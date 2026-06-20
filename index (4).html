@@ -1,0 +1,1776 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Araç Takip</title>
+<style>
+  :root {
+    --bg: #0f1117;
+    --bg2: #1a1d27;
+    --bg3: #222536;
+    --card: #1e2130;
+    --border: #2e3250;
+    --accent: #4f6ef7;
+    --accent2: #7c3aed;
+    --text: #e8eaf6;
+    --muted: #8b90b0;
+    --danger: #ef4444;
+    --warn: #f59e0b;
+    --success: #22c55e;
+    --red-bg: rgba(239,68,68,0.12);
+    --warn-bg: rgba(245,158,11,0.12);
+    --ok-bg: rgba(34,197,94,0.10);
+    --radius: 12px;
+    --radius-sm: 8px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  html { -webkit-text-size-adjust: 100%; }
+  body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', system-ui, sans-serif; min-height: 100vh; overflow-x: hidden; }
+
+  /* SIDEBAR */
+  .app-shell { display: flex; min-height: 100vh; }
+  .sidebar { background: var(--bg2); border-right: 1px solid var(--border); width: 220px; flex-shrink: 0; display: flex; flex-direction: column; position: sticky; top: 0; height: 100vh; transition: width 0.2s ease; z-index: 150; }
+  .sidebar.collapsed { width: 64px; }
+  .sidebar-top { display: flex; align-items: center; padding: 0 1rem; gap: 8px; border-bottom: 1px solid var(--border); height: 56px; }
+  .sidebar-logo { font-size: 22px; flex-shrink: 0; line-height: 1; }
+  .sidebar-title { font-size: 14px; font-weight: 700; color: var(--accent); letter-spacing: 0.5px; white-space: nowrap; overflow: hidden; }
+  .sidebar.collapsed .sidebar-title, .sidebar.collapsed .nav-btn span.nav-label, .sidebar.collapsed .sidebar-bottom span.nav-label { display: none; }
+  .sidebar-toggle { margin-left: auto; background: none; border: none; color: var(--muted); cursor: pointer; padding: 6px; border-radius: 6px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
+  .sidebar-toggle:hover { background: var(--bg3); color: var(--text); }
+  .sidebar.collapsed .sidebar-top { justify-content: center; padding: 0; }
+  .sidebar.collapsed .sidebar-logo { display: none; }
+  .sidebar.collapsed .sidebar-toggle { margin-left: 0; }
+  .sidebar-nav { display: flex; flex-direction: column; padding: 0.75rem; gap: 2px; flex: 1; overflow-y: auto; }
+  .sidebar.collapsed .sidebar-nav { padding: 0.75rem 0; align-items: center; }
+  .nav-btn { background: none; border: none; color: var(--muted); cursor: pointer; padding: 0.65rem 0.75rem; border-radius: var(--radius-sm); font-size: 13px; transition: all 0.15s; display: flex; align-items: center; gap: 10px; white-space: nowrap; text-align: left; width: 100%; position: relative; }
+  .nav-btn:hover { background: var(--bg3); color: var(--text); }
+  .nav-btn.active { color: var(--accent); background: rgba(79,110,247,0.12); }
+  .nav-icon { font-size: 17px; flex-shrink: 0; width: 22px; text-align: center; }
+  .sidebar.collapsed .nav-btn { justify-content: center; padding: 0.65rem 0; width: 44px; }
+  .sidebar.collapsed #hatirlat-badge { position: absolute; top: 2px; right: 2px; margin: 0 !important; padding: 0 4px !important; font-size: 9px !important; min-width: 16px; text-align: center; }
+  .sidebar-bottom { padding: 0.75rem; border-top: 1px solid var(--border); display: flex; flex-direction: column; gap: 6px; }
+  .sidebar.collapsed .sidebar-bottom { padding: 0.75rem 0; align-items: center; }
+  #sync-status { font-size: 11px; color: var(--muted); padding: 0 0.5rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .sidebar.collapsed #sync-status { display: none; }
+
+  /* MOBİL HEADER + HAMBURGER */
+  .mobile-header { display: none; }
+  .hamburger-btn { background: none; border: none; color: var(--text); cursor: pointer; padding: 8px; }
+  .sidebar-overlay-bg { display: none; }
+
+  /* MAIN */
+  .main-content { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+  .main-topbar { display: flex; align-items: center; justify-content: flex-end; padding: 0.85rem 1.5rem; border-bottom: 1px solid var(--border); position: sticky; top: 0; background: var(--bg); z-index: 90; gap: 10px; }
+
+  /* LAYOUT */
+  .page { display: none; padding: 1.5rem; max-width: 1100px; margin: 0 auto; width: 100%; }
+  .page.active { display: block; }
+
+  /* CARDS GRID */
+  .arac-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 1rem; }
+  .arac-card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.25rem; cursor: pointer; transition: all 0.18s; position: relative; }
+  .arac-card:hover { border-color: var(--accent); transform: translateY(-2px); }
+  .arac-card .plaka { font-size: 18px; font-weight: 700; letter-spacing: 2px; color: var(--text); margin-bottom: 4px; }
+  .arac-card .model { font-size: 13px; color: var(--muted); margin-bottom: 1rem; }
+  .arac-card .badges { display: flex; flex-wrap: wrap; gap: 6px; }
+  .badge { font-size: 11px; padding: 3px 8px; border-radius: 20px; font-weight: 600; }
+  .badge.ok { background: var(--ok-bg); color: var(--success); border: 1px solid rgba(34,197,94,0.3); }
+  .badge.warn { background: var(--warn-bg); color: var(--warn); border: 1px solid rgba(245,158,11,0.3); }
+  .badge.danger { background: var(--red-bg); color: var(--danger); border: 1px solid rgba(239,68,68,0.3); }
+  .arac-card .km-info { font-size: 12px; color: var(--muted); margin-top: 0.75rem; }
+
+  /* SECTION HEADER */
+  .section-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.25rem; }
+  .section-title { font-size: 18px; font-weight: 600; }
+  .btn { background: var(--accent); color: #fff; border: none; border-radius: var(--radius-sm); padding: 0.5rem 1.1rem; font-size: 13px; cursor: pointer; font-weight: 600; transition: opacity 0.15s; display: flex; align-items: center; gap: 6px; }
+  .btn:hover { opacity: 0.88; }
+  .btn.outline { background: transparent; border: 1px solid var(--border); color: var(--text); }
+  .btn.outline:hover { border-color: var(--accent); color: var(--accent); }
+  .btn.danger { background: var(--danger); }
+
+  /* MODAL */
+  .overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 200; align-items: center; justify-content: center; padding: 0; }
+  .overlay.open { display: flex; }
+  .modal { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); width: 100%; max-width: 700px; max-height: 100vh; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+  .modal-header { padding: 1.1rem 1.25rem; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; background: var(--bg2); z-index: 1; }
+  .modal-title { font-size: 16px; font-weight: 700; }
+  .modal-close { background: none; border: none; color: var(--muted); font-size: 22px; cursor: pointer; line-height: 1; padding: 8px; margin: -8px; }
+  .modal-body { padding: 1.25rem; }
+
+  /* ARAÇ DETAY */
+  .detail-back { display: flex; align-items: center; gap: 8px; color: var(--muted); font-size: 13px; cursor: pointer; margin-bottom: 1.25rem; background: none; border: none; }
+  .detail-back:hover { color: var(--accent); }
+  .detail-head { display: flex; gap: 1.5rem; align-items: flex-start; margin-bottom: 1.5rem; flex-wrap: wrap; }
+  .detail-photo { width: 120px; height: 90px; border-radius: var(--radius-sm); background: var(--bg3); border: 1px solid var(--border); object-fit: cover; display: flex; align-items: center; justify-content: center; color: var(--muted); font-size: 32px; cursor: pointer; flex-shrink: 0; overflow: hidden; }
+  .detail-photo img { width: 100%; height: 100%; object-fit: cover; }
+  .detail-info { flex: 1; min-width: 200px; }
+  .detail-plaka { font-size: 26px; font-weight: 800; letter-spacing: 3px; }
+  .detail-model { font-size: 14px; color: var(--muted); margin-top: 4px; }
+  .detail-km { font-size: 13px; color: var(--muted); margin-top: 8px; }
+
+  /* TABS */
+  .tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--border); margin-bottom: 1.25rem; flex-wrap: wrap; }
+  .tab { background: none; border: none; color: var(--muted); font-size: 13px; font-weight: 600; padding: 0.6rem 1rem; cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -1px; transition: all 0.15s; }
+  .tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+  .tab:hover:not(.active) { color: var(--text); }
+  .tab-content { display: none; }
+  .tab-content.active { display: block; }
+
+  /* DATE ROWS */
+  .date-table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .date-table { width: 100%; border-collapse: collapse; min-width: 480px; }
+  .date-table th { text-align: left; font-size: 12px; color: var(--muted); font-weight: 600; padding: 0.5rem 0.75rem; white-space: nowrap; }
+  .date-table td { padding: 0.6rem 0.75rem; font-size: 13px; border-top: 1px solid var(--border); white-space: nowrap; }
+  .date-table tr:hover td { background: var(--bg3); }
+  .status-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 8px; }
+  .status-dot.ok { background: var(--success); }
+  .status-dot.warn { background: var(--warn); }
+  .status-dot.danger { background: var(--danger); }
+
+  /* ISLEM LISTESI */
+  .islem-item { background: var(--bg3); border-radius: var(--radius-sm); padding: 1rem; margin-bottom: 0.75rem; border: 1px solid var(--border); }
+  .islem-item-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; }
+  .islem-tur { font-size: 12px; font-weight: 700; padding: 2px 8px; border-radius: 20px; background: rgba(79,110,247,0.18); color: #818cf8; }
+  .islem-tarih { font-size: 12px; color: var(--muted); }
+  .islem-km { font-size: 11px; color: var(--muted); margin-top: 4px; }
+  .islem-detay { font-size: 13px; color: var(--text); margin-top: 6px; }
+  .islem-maliyet { font-size: 14px; font-weight: 700; color: var(--warn); margin-top: 4px; }
+
+  /* HATIRLATMALAR */
+  .hatirlat-item { display: flex; align-items: center; gap: 12px; padding: 0.9rem 1rem; border-radius: var(--radius-sm); margin-bottom: 0.6rem; border: 1px solid transparent; }
+  .hatirlat-item.danger { background: var(--red-bg); border-color: rgba(239,68,68,0.2); }
+  .hatirlat-item.warn { background: var(--warn-bg); border-color: rgba(245,158,11,0.2); }
+  .hatirlat-item.ok { background: var(--ok-bg); border-color: rgba(34,197,94,0.15); }
+  .hatirlat-icon { font-size: 20px; flex-shrink: 0; }
+  .hatirlat-info { flex: 1; }
+  .hatirlat-plaka { font-size: 12px; font-weight: 700; letter-spacing: 1px; }
+  .hatirlat-tur { font-size: 13px; font-weight: 600; }
+  .hatirlat-tarih { font-size: 12px; color: var(--muted); }
+  .hatirlat-kalan { font-size: 12px; font-weight: 700; padding: 3px 10px; border-radius: 20px; flex-shrink: 0; }
+  .hatirlat-kalan.danger { color: var(--danger); background: rgba(239,68,68,0.18); }
+  .hatirlat-kalan.warn { color: var(--warn); background: rgba(245,158,11,0.18); }
+
+  /* FORM */
+  .form-group { margin-bottom: 1rem; }
+  .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+  label { display: block; font-size: 12px; color: var(--muted); font-weight: 600; margin-bottom: 6px; }
+  input, select, textarea { width: 100%; background: var(--bg3); border: 1px solid var(--border); border-radius: var(--radius-sm); color: var(--text); font-size: 13px; padding: 0.55rem 0.85rem; outline: none; font-family: inherit; }
+  input:focus, select:focus, textarea:focus { border-color: var(--accent); }
+  select option { background: var(--bg2); }
+  textarea { resize: vertical; min-height: 70px; }
+  .form-actions { display: flex; gap: 0.75rem; justify-content: flex-end; margin-top: 1.5rem; }
+  .photo-upload-area { border: 2px dashed var(--border); border-radius: var(--radius-sm); padding: 1.5rem; text-align: center; cursor: pointer; transition: border-color 0.15s; }
+  .photo-upload-area:hover { border-color: var(--accent); }
+  .photo-upload-area input[type=file] { display: none; }
+  .photo-preview-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 8px; margin-top: 0.75rem; }
+  .photo-thumb { width: 100%; aspect-ratio: 4/3; object-fit: cover; border-radius: 6px; border: 1px solid var(--border); cursor: pointer; }
+  .empty-state { text-align: center; padding: 3rem 1rem; color: var(--muted); }
+  .empty-icon { font-size: 48px; margin-bottom: 1rem; opacity: 0.4; }
+
+  /* KM GÜNCELLE */
+  .km-modal-display { text-align: center; padding: 1.5rem 0; }
+  .km-modal-display .km-eski { font-size: 13px; color: var(--muted); margin-bottom: 8px; }
+  .km-modal-display .km-input-big { font-size: 28px; font-weight: 700; text-align: center; padding: 0.75rem; }
+
+  @media (max-width: 600px) {
+    .app-shell { display: block; }
+    .mobile-header { display: flex; align-items: center; justify-content: center; position: sticky; top: 0; z-index: 140; background: var(--bg2); border-bottom: 1px solid var(--border); height: 52px; padding: 0 0.75rem; }
+    .mobile-header .hamburger-btn { position: absolute; left: 0.5rem; }
+    .mobile-header-title { display: flex; align-items: center; gap: 7px; font-size: 15px; font-weight: 700; color: var(--text); letter-spacing: 0.5px; }
+    .mobile-header-logo { font-size: 19px; }
+    .mobile-ai-btn { position: absolute; right: 0.5rem; background: none; border: none; color: var(--text); cursor: pointer; padding: 8px; font-size: 18px; }
+
+    .sidebar { position: fixed; left: 0; top: 0; height: 100vh; width: 240px; transform: translateX(-100%); transition: transform 0.22s ease; box-shadow: 4px 0 24px rgba(0,0,0,0.4); }
+    .sidebar.mobile-open { transform: translateX(0); }
+    .sidebar.collapsed { width: 240px; }
+    .sidebar.collapsed .sidebar-title, .sidebar.collapsed .nav-btn span.nav-label { display: inline; }
+    .sidebar-toggle { display: none; }
+    .sidebar-overlay-bg.open { display: block; position: fixed; inset: 0; background: rgba(0,0,0,0.55); z-index: 145; }
+
+    .main-topbar { display: none; }
+
+    nav { padding: 0 1rem; height: 52px; }
+    .nav-logo { margin-right: 1rem; font-size: 13px; }
+    .nav-btn { padding: 0.45rem 0.7rem; font-size: 12px; }
+    .page { padding: 1rem; }
+    .form-row { grid-template-columns: 1fr; gap: 0.75rem; }
+    .detail-head { gap: 0.85rem; }
+    .detail-photo { width: 88px; height: 70px; font-size: 24px; }
+    .detail-plaka { font-size: 21px; letter-spacing: 2px; }
+    .detail-info { width: 100%; }
+    .detail-head { flex-wrap: wrap; }
+    .detail-head > div[style*="margin-left:auto"] { margin-left: 0 !important; width: 100%; }
+    .detail-head .btn, .detail-head .btn.outline, .detail-head .btn.danger { flex: 1; justify-content: center; font-size: 12px; padding: 0.55rem 0.5rem; }
+    .section-header { flex-wrap: wrap; gap: 0.6rem; }
+    .modal { border-radius: 0; max-width: 100%; min-height: 100vh; }
+    .overlay { padding: 0; }
+    .tabs { overflow-x: auto; -webkit-overflow-scrolling: touch; flex-wrap: nowrap; }
+    .tab { flex-shrink: 0; padding: 0.6rem 0.8rem; font-size: 12px; }
+    input, select, textarea { font-size: 16px; }
+    .arac-grid { grid-template-columns: 1fr; }
+    .hatirlat-item { flex-wrap: wrap; }
+    .hatirlat-kalan { margin-left: auto; }
+    .ai-panel { width: 100%; right: 0; left: 0; border-radius: 0; max-height: calc(100vh - 52px); top: 52px; }
+  }
+
+  /* AI ASİSTAN — AÇILIR PANEL */
+  .ai-toggle-btn { background: var(--bg3); border: 1px solid var(--border); color: var(--text); cursor: pointer; padding: 0.5rem 0.95rem; border-radius: var(--radius-sm); font-size: 13px; font-weight: 600; display: flex; align-items: center; gap: 6px; transition: all 0.15s; }
+  .ai-toggle-btn:hover, .ai-toggle-btn.active { border-color: var(--accent); color: var(--accent); background: rgba(79,110,247,0.1); }
+  .ai-panel-backdrop { display: none; }
+  .ai-panel { display: none; position: fixed; top: 64px; right: 1.5rem; width: 400px; max-height: 78vh; background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: 0 12px 40px rgba(0,0,0,0.5); z-index: 250; flex-direction: column; overflow: hidden; }
+  .ai-panel.open { display: flex; }
+  .ai-panel-head { display: flex; align-items: center; justify-content: space-between; padding: 0.9rem 1.1rem; border-bottom: 1px solid var(--border); flex-shrink: 0; }
+  .ai-panel-head-title { font-size: 14px; font-weight: 700; display: flex; align-items: center; gap: 6px; }
+  .ai-panel-close { background: none; border: none; color: var(--muted); font-size: 18px; cursor: pointer; padding: 4px; }
+  .ai-panel-body { flex: 1; overflow-y: auto; padding: 1rem 1.1rem; -webkit-overflow-scrolling: touch; }
+  .ai-suggestions-box { position: relative; background: var(--bg3); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 0.85rem; margin-bottom: 1rem; }
+  .ai-suggestions-box .ai-sugg-close { position: absolute; top: 6px; right: 6px; background: none; border: none; color: var(--muted); font-size: 14px; cursor: pointer; padding: 4px; line-height: 1; }
+  .ai-suggestions-box .ai-sugg-title { font-size: 11px; font-weight: 700; color: var(--muted); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px; }
+  .ai-reopen-row { display: none; margin-bottom: 1rem; }
+  .ai-reopen-row.show { display: block; }
+  .ai-panel-foot { border-top: 1px solid var(--border); padding: 0.85rem 1.1rem; flex-shrink: 0; }
+
+  /* AI ASİSTAN - chat içerikleri */
+  .chat-box { display: flex; flex-direction: column; gap: 0.75rem; margin-bottom: 0.85rem; min-height: 80px; }
+  .chat-empty { text-align: center; padding: 1.25rem 0.5rem; color: var(--muted); }
+  .chat-suggestions { display: flex; gap: 6px; flex-wrap: wrap; }
+  .chip { background: var(--bg); border: 1px solid var(--border); color: var(--text); font-size: 11.5px; padding: 5px 10px; border-radius: 20px; cursor: pointer; transition: all 0.15s; }
+  .chip:hover { border-color: var(--accent); color: var(--accent); }
+  .chat-msg { max-width: 88%; padding: 0.6rem 0.85rem; border-radius: var(--radius); font-size: 13px; line-height: 1.5; white-space: pre-wrap; }
+  .chat-msg.user { align-self: flex-end; background: var(--accent); color: #fff; border-bottom-right-radius: 4px; }
+  .chat-msg.ai { align-self: flex-start; background: var(--bg3); border: 1px solid var(--border); border-bottom-left-radius: 4px; }
+  .chat-msg.error { align-self: flex-start; background: var(--red-bg); border: 1px solid rgba(239,68,68,0.3); color: var(--danger); }
+  .chat-msg.thinking { align-self: flex-start; background: var(--bg3); border: 1px solid var(--border); color: var(--muted); font-style: italic; }
+  .chat-input-row { display: flex; gap: 0.5rem; }
+  .chat-input-row input { flex: 1; }
+  .ai-belge-yukle-row { display: flex; align-items: center; gap: 8px; margin-bottom: 0.85rem; }
+  .ai-belge-yukle-btn { background: var(--bg3); border: 1px dashed var(--border); color: var(--muted); cursor: pointer; padding: 0.55rem 0.85rem; border-radius: var(--radius-sm); font-size: 12px; display: flex; align-items: center; gap: 6px; width: 100%; justify-content: center; transition: all 0.15s; }
+  .ai-belge-yukle-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+  /* BELGE ANALİZ KARTI */
+  .ai-belge-kart { background: var(--bg3); border: 1px solid var(--accent); border-radius: var(--radius-sm); padding: 1rem; margin-top: 0.75rem; }
+  .ai-belge-kart .baslik { font-size: 12px; font-weight: 700; color: var(--accent); margin-bottom: 8px; display: flex; align-items: center; gap: 6px; }
+  .ai-belge-alan { display: flex; justify-content: space-between; font-size: 12px; padding: 4px 0; border-top: 1px solid var(--border); }
+  .ai-belge-alan span:first-child { color: var(--muted); }
+
+  /* EKSİK BİLGİ UYARISI */
+  .arac-card.eksik-var { border-color: rgba(239,68,68,0.55); }
+  .arac-card.eksik-var:hover { border-color: var(--danger); }
+  .eksik-rozet { position: absolute; top: 10px; right: 10px; background: var(--danger); color: #fff; font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 20px; display: flex; align-items: center; gap: 3px; }
+  .detay-eksik-uyari { background: var(--red-bg); border: 1px solid rgba(239,68,68,0.35); border-radius: var(--radius-sm); padding: 0.85rem 1rem; margin-bottom: 1.25rem; font-size: 13px; color: var(--text); display: flex; align-items: flex-start; gap: 10px; }
+  .detay-eksik-uyari .ico { font-size: 18px; flex-shrink: 0; }
+  .detay-eksik-uyari ul { margin: 4px 0 0 18px; color: var(--danger); font-size: 12.5px; }
+</style>
+</head>
+<body>
+
+<div class="sidebar-overlay-bg" id="sidebar-overlay" onclick="closeMobileSidebar()"></div>
+
+<!-- MOBİL ÜST BAR -->
+<div class="mobile-header">
+  <button class="hamburger-btn" onclick="openMobileSidebar()" title="Menü">
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+  </button>
+  <div class="mobile-header-title">
+    <span class="mobile-header-logo">🚗</span> ARAÇ TAKİP
+  </div>
+  <button class="mobile-ai-btn" onclick="toggleAiPanel()" title="AI Asistan">✨</button>
+</div>
+
+<div class="app-shell">
+  <!-- SOL SÜTUN / SIDEBAR -->
+  <div class="sidebar" id="sidebar">
+    <div class="sidebar-top">
+      <span class="sidebar-logo">🚗</span>
+      <span class="sidebar-title">ARAÇ TAKİP</span>
+      <button class="sidebar-toggle" onclick="toggleSidebar()" title="Daralt/Genişlet">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+      </button>
+    </div>
+    <div class="sidebar-nav">
+      <button class="nav-btn active" onclick="showPage('araclar', this)">
+        <span class="nav-icon">🚘</span> <span class="nav-label">Araçlar</span>
+      </button>
+      <button class="nav-btn" onclick="showPage('hatirlatmalar', this)">
+        <span class="nav-icon">🔔</span> <span class="nav-label">Hatırlatmalar</span> <span id="hatirlat-badge" style="display:none;background:var(--danger);color:#fff;font-size:10px;font-weight:700;padding:1px 6px;border-radius:20px;margin-left:2px;"></span>
+      </button>
+      <button class="nav-btn" onclick="showPage('islemler', this)">
+        <span class="nav-icon">📋</span> <span class="nav-label">Tüm İşlemler</span>
+      </button>
+    </div>
+    <div class="sidebar-bottom">
+      <span id="sync-status"></span>
+      <button class="nav-btn" onclick="openKilavuzModal()" title="Kullanım Kılavuzu">
+        <span class="nav-icon">📖</span> <span class="nav-label">Kullanım Kılavuzu</span>
+      </button>
+      <button class="nav-btn" onclick="openAyarlarModal()" title="Ayarlar">
+        <span class="nav-icon">⚙️</span> <span class="nav-label">Ayarlar</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- ANA İÇERİK -->
+  <div class="main-content">
+    <div class="main-topbar">
+      <button class="ai-toggle-btn" id="ai-toggle-btn" onclick="toggleAiPanel()">
+        <span>✨</span> AI Asistan
+      </button>
+    </div>
+
+    <!-- ARAÇLAR SAYFASI -->
+    <div class="page active" id="page-araclar">
+      <div class="section-header" style="margin-top:1rem">
+        <div class="section-title">Araçlarım</div>
+        <button class="btn" onclick="openAracModal()">+ Araç Ekle</button>
+      </div>
+      <div class="arac-grid" id="arac-grid"></div>
+      <div class="empty-state" id="arac-empty" style="display:none">
+        <div class="empty-icon">🚗</div>
+        <div style="font-size:15px;font-weight:600;color:var(--text);margin-bottom:6px">Henüz araç yok</div>
+        <div style="font-size:13px">Araç Ekle butonuna tıklayarak başlayın</div>
+      </div>
+    </div>
+
+    <!-- ARAÇ DETAY SAYFASI -->
+    <div class="page" id="page-detay">
+      <button class="detail-back" onclick="showPage('araclar', document.querySelector('.nav-btn'))">
+        ← Araçlara dön
+      </button>
+      <div id="detay-icerik"></div>
+    </div>
+
+    <!-- HATIRLATMALAR SAYFASI -->
+    <div class="page" id="page-hatirlatmalar">
+      <div class="section-header" style="margin-top:1rem">
+        <div class="section-title">Hatırlatmalar</div>
+        <div style="font-size:13px;color:var(--muted)">30 gün içindekiler gösteriliyor</div>
+      </div>
+      <div id="hatirlat-list"></div>
+    </div>
+
+    <!-- TÜM İŞLEMLER SAYFASI -->
+    <div class="page" id="page-islemler">
+      <div class="section-header" style="margin-top:1rem">
+        <div class="section-title">Tüm İşlemler</div>
+      </div>
+      <div style="display:flex;gap:0.75rem;margin-bottom:1.25rem;flex-wrap:wrap">
+        <input id="islem-arama" placeholder="Plaka, işlem türü, parça veya not ara..." style="flex:1;min-width:200px" oninput="renderTumIslemler()">
+        <select id="islem-arac-filtre" style="max-width:180px" onchange="renderTumIslemler()">
+          <option value="">Tüm araçlar</option>
+        </select>
+        <select id="islem-tur-filtre" style="max-width:170px" onchange="renderTumIslemler()">
+          <option value="">Tüm türler</option>
+          <option>Fenni Muayene</option>
+          <option>Egzoz Muayenesi</option>
+          <option>Trafik Sigortası</option>
+          <option>Kasko</option>
+          <option>Onarım</option>
+          <option>Yedek Parça</option>
+          <option>Bakım</option>
+        </select>
+      </div>
+      <div id="islem-toplam-ozet" style="font-size:13px;color:var(--muted);margin-bottom:1rem"></div>
+      <div id="tum-islem-list"></div>
+    </div>
+  </div>
+</div>
+
+<!-- AI ASİSTAN — AÇILIR PANEL -->
+<div class="ai-panel" id="ai-panel">
+  <div class="ai-panel-head">
+    <div class="ai-panel-head-title">✨ AI Asistan <span style="font-size:11px;color:var(--muted);font-weight:400">· Gemini</span></div>
+    <button class="ai-panel-close" onclick="toggleAiPanel(false)">✕</button>
+  </div>
+  <div class="ai-panel-body">
+    <div id="asistan-key-uyari" style="display:none;background:var(--warn-bg);border:1px solid rgba(245,158,11,0.3);border-radius:var(--radius-sm);padding:0.75rem;margin-bottom:1rem;font-size:12.5px">
+      Önce Gemini API anahtarını eklemen gerekiyor. <button class="btn outline" style="padding:4px 10px;font-size:12px;margin-left:6px" onclick="openAyarlarModal()">Ayarlara git</button>
+    </div>
+
+    <div class="ai-suggestions-box" id="ai-suggestions-box">
+      <button class="ai-sugg-close" onclick="hideAiSuggestions()" title="Önerileri kapat">✕</button>
+      <div class="ai-sugg-title">Hızlı sorular</div>
+      <div class="chat-suggestions">
+        <button class="chip" onclick="chatHizliSor('Hangi araçların sigortası 30 gün içinde bitiyor?')">Sigortası bitenler?</button>
+        <button class="chip" onclick="chatHizliSor('Bu yıl toplam ne kadar bakım masrafı yaptım?')">Toplam masraf?</button>
+        <button class="chip" onclick="chatHizliSor('Tüm araçların güncel durumunu özetle')">Genel özet</button>
+        <button class="chip" onclick="chatHizliSor('Hangi araçlarda eksik bilgi var?')">Eksik bilgiler?</button>
+      </div>
+    </div>
+    <div class="ai-reopen-row" id="ai-reopen-row">
+      <button class="chip" onclick="showAiSuggestions()">✨ Önerileri göster</button>
+    </div>
+
+    <div class="ai-belge-yukle-row">
+      <input type="file" id="ai-panel-belge-input" accept="image/*" style="display:none" onchange="aiPanelBelgeSec(event)">
+      <button class="ai-belge-yukle-btn" onclick="document.getElementById('ai-panel-belge-input').click()">
+        🧾 Fatura / makbuz / belge görseli ekle, Gemini okusun
+      </button>
+    </div>
+    <div id="ai-panel-belge-sonuc"></div>
+
+    <div class="chat-box" id="chat-box">
+      <div class="chat-empty" id="chat-empty">
+        <div style="font-size:28px;margin-bottom:6px">✨</div>
+        <div style="font-size:13px;color:var(--text);font-weight:600">Araçların hakkında her şeyi sorabilirsin</div>
+        <div style="font-size:11.5px;color:var(--muted);margin-top:2px">Sigorta tarihleri, bakım geçmişi, toplam maliyetler...</div>
+      </div>
+      <div id="chat-messages"></div>
+    </div>
+  </div>
+  <div class="ai-panel-foot">
+    <div class="chat-input-row">
+      <input id="chat-input" placeholder="Bir soru sor..." onkeydown="if(event.key==='Enter')chatGonder()">
+      <button class="btn" onclick="chatGonder()">Gönder</button>
+    </div>
+  </div>
+</div>
+
+<!-- ARAÇ EKLEME MODAL -->
+<div class="overlay" id="arac-modal">
+  <div class="modal" style="max-width:500px">
+    <div class="modal-header">
+      <div class="modal-title" id="arac-modal-title">Araç Ekle</div>
+      <button class="modal-close" onclick="closeModal('arac-modal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="arac-edit-id">
+      <div class="form-row">
+        <div class="form-group">
+          <label>Plaka *</label>
+          <input id="inp-plaka" placeholder="34 AB 123" style="text-transform:uppercase">
+        </div>
+        <div class="form-group">
+          <label>Marka / Model *</label>
+          <input id="inp-model" placeholder="Dacia Jogger">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Güncel KM</label>
+          <input id="inp-km" type="number" placeholder="85000">
+        </div>
+        <div class="form-group">
+          <label>Yıl</label>
+          <input id="inp-yil" type="number" placeholder="2020">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Araç Tipi</label>
+          <select id="inp-tip">
+            <option value="Otomobil">Otomobil</option>
+            <option value="Motosiklet">Motosiklet</option>
+            <option value="Ticari">Ticari / Kamyonet</option>
+            <option value="Diğer">Diğer</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Araç Kullanıcısı</label>
+          <input id="inp-kullanici" placeholder="Aracı kullanan kişi adı">
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Şoför WhatsApp Telefonu</label>
+        <input id="inp-telefon" placeholder="905XXXXXXXXX (başında 90, boşluksuz)">
+      </div>
+      <div class="form-group">
+        <label>Not</label>
+        <textarea id="inp-not" placeholder="Ek bilgiler..."></textarea>
+      </div>
+      <div class="form-actions">
+        <button class="btn outline" onclick="closeModal('arac-modal')">İptal</button>
+        <button class="btn" onclick="saveArac()">Kaydet</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- İŞLEM EKLEME MODAL -->
+<div class="overlay" id="islem-modal">
+  <div class="modal" style="max-width:560px">
+    <div class="modal-header">
+      <div class="modal-title" id="islem-modal-title">İşlem Ekle</div>
+      <button class="modal-close" onclick="closeModal('islem-modal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="islem-edit-id">
+      <input type="hidden" id="islem-arac-id">
+      <div class="form-row">
+        <div class="form-group">
+          <label>İşlem Türü *</label>
+          <select id="inp-islem-tur" onchange="updateIslemFormFields()">
+            <option value="">Seç...</option>
+            <option>Fenni Muayene</option>
+            <option>Egzoz Muayenesi</option>
+            <option>Trafik Sigortası</option>
+            <option>Kasko</option>
+            <option>Onarım</option>
+            <option>Yedek Parça</option>
+            <option>Bakım</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Tarih *</label>
+          <input id="inp-islem-tarih" type="date">
+        </div>
+      </div>
+      <div class="form-row" id="field-row-km-maliyet">
+        <div class="form-group" id="field-islem-km">
+          <label>İşlem KM</label>
+          <input id="inp-islem-km" type="number" placeholder="85000">
+        </div>
+        <div class="form-group">
+          <label>Maliyet (TL)</label>
+          <input id="inp-islem-maliyet" type="number" placeholder="0">
+        </div>
+      </div>
+      <div class="form-group" id="field-islem-bitis">
+        <label id="label-islem-bitis">Bitiş / Geçerlilik Tarihi</label>
+        <input id="inp-islem-bitis" type="date">
+      </div>
+      <div class="form-row" id="field-row-sonraki">
+        <div class="form-group">
+          <label>Sonraki Bakım KM Hedefi</label>
+          <input id="inp-sonraki-km" type="number" placeholder="95000">
+        </div>
+        <div class="form-group">
+          <label>Sonraki Bakım Tarihi</label>
+          <input id="inp-sonraki-tarih" type="date">
+        </div>
+      </div>
+      <div class="form-group" id="field-islem-detay">
+        <label id="label-islem-detay">Değişen Parça / Detay</label>
+        <textarea id="inp-islem-detay" placeholder="Yağ filtresi, hava filtresi..."></textarea>
+      </div>
+      <div class="form-group">
+        <label>Özel Notlar</label>
+        <textarea id="inp-islem-not" placeholder="..."></textarea>
+      </div>
+      <div class="form-group">
+        <label>Makbuz / Fatura / Belge Görseli</label>
+        <div class="photo-upload-area" onclick="document.getElementById('inp-islem-belge').click()">
+          <input type="file" id="inp-islem-belge" accept="image/*" multiple onchange="islemBelgeSec(event)">
+          <div style="font-size:28px;margin-bottom:6px">🧾</div>
+          <div style="font-size:13px;color:var(--muted)">Fatura, makbuz veya parça fotoğrafı yüklemek için tıklayın</div>
+        </div>
+        <div class="photo-preview-grid" id="islem-belge-preview" style="margin-top:0.75rem"></div>
+      </div>
+      <div class="form-actions">
+        <button class="btn outline" onclick="closeModal('islem-modal')">İptal</button>
+        <button class="btn" onclick="saveIslem()">Kaydet</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- AYARLAR MODAL -->
+<div class="overlay" id="ayarlar-modal">
+  <div class="modal" style="max-width:520px">
+    <div class="modal-header">
+      <div class="modal-title">⚙️ Ayarlar — Google Sheets Bağlantısı</div>
+      <button class="modal-close" onclick="closeModal('ayarlar-modal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div style="font-size:13px;color:var(--muted);margin-bottom:1rem;line-height:1.6">
+        Verileriniz Google Sheets'te saklanır, böylece PC ve telefondan aynı verilere erişebilirsiniz.
+        Apps Script kurulumunu yaptıktan sonra aldığınız Web App URL'sini buraya yapıştırın.
+      </div>
+      <div class="form-group">
+        <label>Apps Script Web App URL</label>
+        <input id="inp-api-url" placeholder="https://script.google.com/macros/s/.../exec">
+      </div>
+      <div id="ayarlar-test-sonuc" style="font-size:13px;margin-bottom:1rem"></div>
+      <div class="form-actions" style="justify-content:space-between">
+        <button class="btn outline" onclick="testBaglanti()">Bağlantıyı Test Et</button>
+        <button class="btn" onclick="saveApiUrl()">Kaydet</button>
+      </div>
+      <div style="border-top:1px solid var(--border);margin:1.25rem 0 1rem;padding-top:1rem">
+        <div style="font-size:13px;font-weight:600;margin-bottom:6px">✨ Gemini AI Asistan</div>
+        <div style="font-size:12px;color:var(--muted);margin-bottom:0.75rem;line-height:1.6">
+          AI asistan ve belge okuma (fatura/makbuz görseli) özelliği için Gemini API anahtarın gerekli.
+          Anahtar sadece bu tarayıcıda saklanır. Ücretsiz anahtar için
+          <a href="https://aistudio.google.com/apikey" target="_blank" style="color:var(--accent)">aistudio.google.com/apikey</a>
+        </div>
+        <div class="form-group">
+          <label>Gemini API Anahtarı</label>
+          <input id="inp-gemini-key" type="password" placeholder="AIza...">
+        </div>
+        <div class="form-actions" style="justify-content:flex-end">
+          <button class="btn outline" onclick="saveGeminiKey()">Anahtarı Kaydet</button>
+        </div>
+      </div>
+      <div style="border-top:1px solid var(--border);margin:1.25rem 0 0;padding-top:1rem">
+        <div style="font-size:13px;font-weight:600;margin-bottom:6px">📋 Hazır Araç Verileri</div>
+        <div style="font-size:12px;color:var(--muted);margin-bottom:0.75rem;line-height:1.6">
+          Ruhsat ve bakım kayıtlarından hazırlanan 21 araç ve geçmiş işlemlerini yükler.
+        </div>
+        <div class="form-actions" style="justify-content:flex-end">
+          <button class="btn outline" onclick="seedVerileriYukle(true)">Hazır Verileri Yükle</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- YÜKLENİYOR OVERLAY -->
+<div id="loading-overlay" style="display:none;position:fixed;inset:0;background:rgba(15,17,23,0.85);z-index:999;align-items:center;justify-content:center;flex-direction:column;gap:1rem">
+  <div style="width:36px;height:36px;border:3px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin 0.8s linear infinite"></div>
+  <div style="font-size:13px;color:var(--muted)" id="loading-text">Yükleniyor...</div>
+</div>
+<style>@keyframes spin { to { transform: rotate(360deg); } }</style>
+
+<!-- KM GÜNCELLEME MODAL -->
+<div class="overlay" id="km-modal">
+  <div class="modal" style="max-width:380px">
+    <div class="modal-header">
+      <div class="modal-title">KM Güncelle</div>
+      <button class="modal-close" onclick="closeModal('km-modal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="km-arac-id">
+      <div class="km-modal-display">
+        <div class="km-eski" id="km-eski-deger">Mevcut: -</div>
+        <input id="inp-km-yeni" type="number" class="km-input-big" placeholder="0" inputmode="numeric">
+      </div>
+      <div class="form-actions">
+        <button class="btn outline" onclick="closeModal('km-modal')">İptal</button>
+        <button class="btn" onclick="saveKm()">Güncelle</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- FOTOĞRAF GÖRÜNTÜLEME MODAL -->
+<div class="overlay" id="foto-modal" onclick="closeModal('foto-modal')">
+  <div style="max-width:90vw;max-height:90vh;text-align:center" onclick="event.stopPropagation()">
+    <img id="foto-buyuk" style="max-width:100%;max-height:85vh;border-radius:12px;object-fit:contain">
+    <div style="margin-top:0.75rem">
+      <button class="btn outline" onclick="closeModal('foto-modal')">Kapat</button>
+    </div>
+  </div>
+</div>
+
+<!-- KULLANIM KILAVUZU MODAL -->
+<div class="overlay" id="kilavuz-modal">
+  <div class="modal" style="max-width:640px">
+    <div class="modal-header">
+      <div class="modal-title">📖 Kullanım Kılavuzu</div>
+      <button class="modal-close" onclick="closeModal('kilavuz-modal')">✕</button>
+    </div>
+    <div class="modal-body" style="line-height:1.65;font-size:13.5px">
+      <div style="background:var(--bg3);border-radius:var(--radius-sm);padding:1rem;margin-bottom:1.25rem">
+        <div style="font-weight:700;margin-bottom:4px">🚗 Araç Takip nedir?</div>
+        Tüm araçlarının muayene, sigorta, kasko, bakım ve onarım kayıtlarını tek yerde tutan, yaklaşan tarihleri hatırlatan ve fatura/makbuzları AI ile okuyabilen bir takip sistemidir.
+      </div>
+
+      <div style="font-weight:700;color:var(--accent);margin-bottom:6px">🚘 Araçlar</div>
+      <p style="margin-bottom:1rem">Ana sayfada tüm araçların kart halinde listelenir. Bir karta tıklayınca o aracın detayına girersin. <strong>+ Araç Ekle</strong> ile yeni araç tanımlarsın (plaka, marka/model, KM, araç tipi, şoför ve şoför telefonu). Bir araçta eksik bilgi varsa (örn. sigorta kaydı yok, şoför girilmemiş) kartın çerçevesi <span style="color:var(--danger)">kırmızı</span> olur ve köşesinde ⚠ uyarısı çıkar.</p>
+
+      <div style="font-weight:700;color:var(--accent);margin-bottom:6px">📄 Araç Detayı</div>
+      <p style="margin-bottom:1rem">Üç sekme vardır: <strong>Tarihler</strong> (muayene/sigorta/kasko bitiş durumları), <strong>İşlem Geçmişi</strong> (tüm bakım/onarım kayıtları, arama kutusuyla), <strong>Görseller</strong> (araç ve belge fotoğrafları). Buradan <strong>İşlem Ekle</strong>, <strong>KM Güncelle</strong>, <strong>Düzenle</strong> ve <strong>Sil</strong> yapabilirsin.</p>
+
+      <div style="font-weight:700;color:var(--accent);margin-bottom:6px">➕ İşlem Ekleme</div>
+      <p style="margin-bottom:1rem">İşlem türünü seçince (Fenni Muayene, Sigorta, Kasko, Bakım, Onarım, Yedek Parça...) forma sadece o türe uygun alanlar gelir. Muayene/sigortada bitiş tarihi, bakımda sonraki bakım hedefi gibi. Her işleme fatura/makbuz görseli ekleyebilirsin; görsel yüklersen Gemini otomatik okuyup formu doldurmayı teklif eder (onayınla).</p>
+
+      <div style="font-weight:700;color:var(--accent);margin-bottom:6px">🔔 Hatırlatmalar</div>
+      <p style="margin-bottom:1rem">Yaklaşan veya geçmiş muayene/sigorta/kasko ve sonraki bakım tarihlerini öncelik sırasına göre gösterir. Menüdeki kırmızı sayı, 30 gün içinde işlem gereken araç sayısıdır.</p>
+
+      <div style="font-weight:700;color:var(--accent);margin-bottom:6px">📋 Tüm İşlemler</div>
+      <p style="margin-bottom:1rem">Tüm araçların işlemlerini tek listede gösterir. Plaka/araç/tür filtresi ve serbest arama vardır; üstte filtrelenen kayıtların toplam adedi ve toplam maliyeti görünür.</p>
+
+      <div style="font-weight:700;color:var(--accent);margin-bottom:6px">✨ AI Asistan</div>
+      <p style="margin-bottom:1rem">Sağ üstteki <strong>AI Asistan</strong> tuşuyla açılır. "Hangi araçların sigortası bitiyor?", "Bu yıl toplam masraf ne kadar?" gibi sorular sorabilirsin. Fatura/makbuz görseli yükleyip otomatik işlem oluşturabilirsin. Kullanmak için Ayarlar'dan ücretsiz Gemini API anahtarı girmen gerekir.</p>
+
+      <div style="font-weight:700;color:var(--accent);margin-bottom:6px">⚙️ Ayarlar</div>
+      <p style="margin-bottom:1rem">Google Sheets bağlantısı (verilerin buluta kaydedilip cihazlar arası senkron olması için), Gemini API anahtarı ve hazır araç verilerini yükleme buradadır. Sheets'e bağlanırsan veriler tüm cihazlarında ortak olur.</p>
+
+      <div style="background:var(--warn-bg);border:1px solid rgba(245,158,11,0.3);border-radius:var(--radius-sm);padding:0.85rem;font-size:12.5px">
+        💡 <strong>İpucu:</strong> Telefonda tarayıcı menüsünden "Ana ekrana ekle" dersen uygulama gibi açılır. WhatsApp ile şoförlere otomatik km sorma özelliği için kurulum rehberine bak.
+      </div>
+
+      <div class="form-actions" style="margin-top:1.25rem">
+        <button class="btn" onclick="closeModal('kilavuz-modal')">Anladım</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const SEED_DATA = {"araclar":[{"id":"a793948309e","plaka":"72 ACV 611","model":"Skoda Superb","yil":"2025","km":"","tip":"Otomobil","kullanici":"Nurullah Yakut","not":"Şase: TMBAN8NZ6TC012913 · Motor No: DXDN37041 · Yakıt: Benzinli (Mild-Hybrid) · İlk tescil: 02.01.2026","anaFoto":""},{"id":"a844822b500","plaka":"72 ACT 080","model":"Toyota Proace City","yil":"2025","km":"","tip":"Ticari (Kamyonet/Van)","kullanici":"Şenpa (Şirket)","not":"Şase: YAREDYHT2RJ077966 · Motor No: YH0110Q4EU0600937 · Yakıt: Dizel · İlk tescil: 14.10.2025","anaFoto":""},{"id":"a1b14b249cf","plaka":"72 ABN 130","model":"Ford Transit Courier","yil":"2023","km":"","tip":"Ticari (Kamyonet/Van)","kullanici":"Şenpa (Şirket)","not":"Şase: NM0WXXTACWPY45558 · Motor No: PY45558 · Yakıt: Dizel · İlk tescil: 24.07.2023","anaFoto":""},{"id":"a30c13dd7b7","plaka":"72 ABS 134","model":"Renault Express","yil":"2023","km":"","tip":"Ticari (Kamyonet/Van)","kullanici":"Şenpa (Şirket)","not":"Şase: VF1RJK0017836998 · Motor No: K9KU876D368601 · Yakıt: Dizel · İlk tescil: 14.11.2023","anaFoto":""},{"id":"aa486e4cc85","plaka":"72 DH 153","model":"Fiat Doblo Combi 1.3 M Jet","yil":"2011","km":"","tip":"Ticari (Kamyonet)","kullanici":"Şenpa (Şirket)","not":"Şase: NM42230000724009 · Motor No: 199A20003920533 · Yakıt: Dizel · İlk tescil: 04.01.2011","anaFoto":""},{"id":"a0625035fe7","plaka":"34 HNC 313","model":"Renault Express","yil":"2023","km":"","tip":"Ticari (Kamyonet/Van)","kullanici":"Şenpa (Şirket)","not":"Şase: VF1RJK0037138407 · Motor No: K9KU876D342537 · Yakıt: Dizel · İlk tescil: 25.10.2023","anaFoto":""},{"id":"a2d8254b12f","plaka":"72 AAU 316","model":"Fiat Fiorino","yil":"2021","km":"","tip":"Ticari (Kamyonet/Van)","kullanici":"Şenpa (Şirket)","not":"Şase: NM422500006U42392 · Motor No: 350A10009711675 · Yakıt: Benzin + LPG · İlk tescil: 28.04.2021","anaFoto":""},{"id":"ad950c7cc94","plaka":"72 DA 422","model":"Fiat Doblo Combi 1.3 M Jet","yil":"2013","km":"","tip":"Ticari (Kamyonet)","kullanici":"Şenpa (Şirket)","not":"Şase: NM426300009234478 · Motor No: 263A20004931323 · Yakıt: Dizel · İlk tescil: 27.03.2013","anaFoto":""},{"id":"af452aedb88","plaka":"72 ABP 437","model":"Renault Express","yil":"2023","km":"","tip":"Ticari (Kamyonet/Van)","kullanici":"Şenpa (Şirket)","not":"Şase: VF1RJK0057138937 · Motor No: K9KU876D342560 · Yakıt: Dizel · İlk tescil: 07.09.2023","anaFoto":""},{"id":"abc161cb63a","plaka":"72 EH 448","model":"Fiat Doblo Cargo (Combi 1.3 M Jet)","yil":"2012","km":"","tip":"Ticari (Kamyonet)","kullanici":"Şenpa (Şirket)","not":"Şase: NM422300007253448 · Motor No: 199A20004586463 · Yakıt: Dizel · İlk tescil: 24.05.2012","anaFoto":""},{"id":"a367014f9cc","plaka":"72 ACR 484","model":"Toyota Proace City","yil":"2025","km":"","tip":"Ticari (Kamyonet/Van)","kullanici":"Şenpa (Şirket)","not":"Şase: YAREDYHT2RJ063168 · Motor No: YH0110Q4EU0555635 · Yakıt: Dizel · İlk tescil: 27.08.2025","anaFoto":""},{"id":"af74aa05296","plaka":"72 ADA 510","model":"Toyota Proace City","yil":"2026","km":"","tip":"Ticari (Kamyonet/Van)","kullanici":"Şenpa (Şirket)","not":"Şase: YAREDYHT7RJ101630 · Motor No: YH0110Q4EU0661727 · Yakıt: Dizel · İlk tescil: 09.03.2026","anaFoto":""},{"id":"ae459f07d65","plaka":"72 ACA 530","model":"Ford Transit","yil":"2024","km":"","tip":"Ticari (Kamyon)","kullanici":"Şenpa (Şirket)","not":"Şase: NM0AXXTTRARR84060 · Motor No: RR84060 · Yakıt: Dizel · İlk tescil: 03.06.2024","anaFoto":""},{"id":"aec9e796b42","plaka":"72 ABD 563","model":"Ford Transit Courier","yil":"2022","km":"","tip":"Ticari (Kamyonet/Van)","kullanici":"Şenpa (Şirket)","not":"Şase: NM0WXXTACWNU50933 · Motor No: NU50933 · Yakıt: Dizel · İlk tescil: 05.07.2022","anaFoto":""},{"id":"a6b4b6c552e","plaka":"72 ABR 707","model":"Ford Transit","yil":"2023","km":"","tip":"Ticari (Kamyon)","kullanici":"Şenpa (Şirket)","not":"Şase: NM0AXXTTRAPJ82479 · Motor No: PJ82479 · Yakıt: Dizel · İlk tescil: 26.10.2023","anaFoto":""},{"id":"a1e69a0021c","plaka":"21 BE 910","model":"Citroen Nemo","yil":"2015","km":"","tip":"Ticari (Kamyonet/Van)","kullanici":"Şenpa (Şirket)","not":"Şase: VF7ABFHZ0F8636226 · Motor No: 199A90005737058 · Yakıt: Dizel · İlk tescil: 15.05.2015","anaFoto":""},{"id":"acd30014532","plaka":"72 AP 914","model":"Fiat Doblo","yil":"2016","km":"","tip":"Ticari (Kamyonet/Van)","kullanici":"Şenpa (Şirket)","not":"Şase: NM426300006C80761 · Motor No: 263A20006082792 · Yakıt: Dizel · İlk tescil: 03.05.2016","anaFoto":""},{"id":"a10eda48b1d","plaka":"72 EA 934","model":"Ford Transit (Kamyon)","yil":"2011","km":"","tip":"Ticari (Kamyon)","kullanici":"Şenpa (Şirket)","not":"Şase: NM0FXXTTFFAR56748 · Motor No: AR56748 · Yakıt: Dizel · İlk tescil: 23.12.2010","anaFoto":""},{"id":"a804d973817","plaka":"PASSAT-400 (plaka?)","model":"VW Passat","yil":"","km":"","tip":"Otomobil","kullanici":"Şenpa (Şirket)","not":"Yakıt: Dizel","anaFoto":""},{"id":"adaa8451f3a","plaka":"PASSAT-522 (plaka?)","model":"VW Passat","yil":"","km":"","tip":"Otomobil","kullanici":"Şenpa (Şirket)","not":"Yakıt: Dizel","anaFoto":""},{"id":"a85ad903759","plaka":"MOTOSİKLET (plaka?)","model":"Motosiklet","yil":"","km":"","tip":"Motosiklet","kullanici":"Şenpa (Şirket)","not":"Yakıt: Benzinli","anaFoto":""}],"islemler":[{"id":"a072953cdf6","aracId":"a793948309e","tur":"Fenni Muayene","tarih":"2028-08-22","bitis":"2028-08-22","km":"","maliyet":"","sonrakiKm":"","sonrakiTarih":"","detay":"son tarih:22/08/2028","not":"","fotolar":[]},{"id":"addce8b00f2","aracId":"a793948309e","tur":"Egzoz Muayenesi","tarih":"2028-08-22","bitis":"2028-08-22","km":"","maliyet":"","sonrakiKm":"","sonrakiTarih":"","detay":"son tarih:22/08/2028","not":"","fotolar":[]},{"id":"a5d74b09385","aracId":"a793948309e","tur":"Trafik Sigortası","tarih":"2027-01-26","bitis":"2027-01-26","km":"","maliyet":"9154","sonrakiKm":"","sonrakiTarih":"","detay":"son tarıh TÜRKİYE SİGORTA  26.01.2027 -9154 tl BAYRAM KESKIN","not":"","fotolar":[]},{"id":"a20b20eb070","aracId":"a793948309e","tur":"Kasko","tarih":"2027-01-26","bitis":"2027-01-26","km":"","maliyet":"30589","sonrakiKm":"","sonrakiTarih":"","detay":"SON TARIH 26.01.2027TÜRKİYE SİGORTA -30.589TL TLBAYRAM KESKIN","not":"","fotolar":[]},{"id":"a9bb4f63ae9","aracId":"a1b14b249cf","tur":"Fenni Muayene","tarih":"2026-06-24","bitis":"2026-06-24","km":"","maliyet":"","sonrakiKm":"","sonrakiTarih":"","detay":"son tarih 24,06,2026 YAPILACAK","not":"","fotolar":[]},{"id":"a5106ef0853","aracId":"a1b14b249cf","tur":"Egzoz Muayenesi","tarih":"2026-06-24","bitis":"2026-06-24","km":"","maliyet":"","sonrakiKm":"","sonrakiTarih":"","detay":"son tarih 24,06,2026 YAPILACAK","not":"","fotolar":[]},{"id":"aeebd235600","aracId":"a1b14b249cf","tur":"Trafik Sigortası","tarih":"2025-07-24","bitis":"2025-07-24","km":"","maliyet":"","sonrakiKm":"","sonrakiTarih":"","detay":"son tarih 24.07.2025 m uyanık","not":"","fotolar":[]},{"id":"adc7eb58143","aracId":"a1b14b249cf","tur":"Kasko","tarih":"2025-07-24","bitis":"2025-07-24","km":"","maliyet":"","sonrakiKm":"","sonrakiTarih":"","detay":"son tarih 24.07.2025 kkeskin","not":"","fotolar":[]},{"id":"aac4d87abde","aracId":"a1b14b249cf","tur":"Bakım","tarih":"2025-03-15","bitis":null,"km":"","maliyet":"","sonrakiKm":"","sonrakiTarih":"","detay":"15/03/2025 serviste filtreler değişti 44000 bakım yapıldı","not":"","fotolar":[]},{"id":"a51e9834e93","aracId":"a1b14b249cf","tur":"Bakım","tarih":"2025-12-24","bitis":null,"km":"30594","maliyet":"","sonrakiKm":"","sonrakiTarih":"","detay":"24/12/2025 /30594 km bakım","not":"","fotolar":[]},{"id":"a225aef2948","aracId":"a30c13dd7b7","tur":"Fenni Muayene","tarih":"2025-11-16","bitis":"2025-11-16","km":"","maliyet":"","sonrakiKm":"","sonrakiTarih":"","detay":"16/11/2025 YAPILACAK","not":"","fotolar":[]},{"id":"ac87c43b510","aracId":"a30c13dd7b7","tur":"Egzoz Muayenesi","tarih":"2025-11-16","bitis":"2025-11-16","km":"","maliyet":"","sonrakiKm":"","sonrakiTarih":"","detay":"16/11/2025 YAPILACAK","not":"","fotolar":[]},{"id":"a7abbfc4fc8","aracId":"a30c13dd7b7","tur":"Trafik Sigortası","tarih":"2026-11-14","bitis":"2026-11-14","km":"","maliyet":"","sonrakiKm":"","sonrakiTarih":"","detay":"14/11/2026 tarıhınde yapıldı bayramda yapıldı","not":"","fotolar":[]},{"id":"a3f4ee74f8f","aracId":"a30c13dd7b7","tur":"Kasko","tarih":"2026-11-14","bitis":"2026-11-14","km":"","maliyet":"","sonrakiKm":"","sonrakiTarih":"","detay":"14.11.2026 yapıldı bayram","not":"","fotolar":[]},{"id":"a495c2a9c1b","aracId":"a30c13dd7b7","tur":"Onarım","tarih":"2024-12-27","bitis":null,"km":"","maliyet":"4220","sonrakiKm":"","sonrakiTarih":"","detay":"27.12.2024 BALATALAR DEĞİŞTİRİLDİ SERVİSTE 4220 TL ÖDENDİ","not":"","fotolar":[]},{"id":"aed0e7e3087","aracId":"a30c13dd7b7","tur":"Bakım","tarih":"2024-12-27","bitis":null,"km":"15040","maliyet":"","sonrakiKm":"","sonrakiTarih":"","detay":"27.12.2024 YETKİLİ SERVİSTE BAKIM YAPILDI 15.040 KM 8700 ÖDENDİ","not":"","fotolar":[]},{"id":"a751b9d1fb7","aracId":"a30c13dd7b7","tur":"Bakım","tarih":"2025-09-09","bitis":null,"km":"25262","maliyet":"1439051","sonrakiKm":"","sonrakiTarih":"","detay":"09.09.2025 25262KM YETKİLİ SERVİSTE BAKIM YAPILDI  14,390,51TL ÖDENDİ","not":"","fotolar":[]},{"id":"a8d3f473d4a","aracId":"aa486e4cc85","tur":"Fenni Muayene","tarih":"2027-01-12","bitis":"2027-01-12","km":"","maliyet":"","sonrakiKm":"","sonrakiTarih":"","detay":"bitiş tarihı 12,01,2027","not":"","fotolar":[]},{"id":"af97e0c5a81","aracId":"aa486e4cc85","tur":"Egzoz Muayenesi","tarih":"2027-01-12","bitis":"2027-01-12","km":"","maliyet":"","sonrakiKm":"","sonrakiTarih":"","detay":"bitiş tarıhı 12,01,2027","not":"","fotolar":[]},{"id":"a1531474da1","aracId":"aa486e4cc85","tur":"Trafik Sigortası","tarih":"2026-10-14","bitis":"2026-10-14","km":"","maliyet":"","sonrakiKm":"","sonrakiTarih":"","detay":"son tarıh 14/10/2026","not":"","fotolar":[]},{"id":"aa5575e3913","aracId":"aa486e4cc85","tur":"Kasko","tarih":"2025-12-03","bitis":"2025-12-03","km":"","maliyet":"","sonrakiKm":"","sonrakiTarih":"","detay":"son tarih 03/12/2025 eureko","not":"","fotolar":[]},{"id":"a0da2c2fd1c","aracId":"aa486e4cc85","tur":"Onarım","tarih":"2022-04-19","bitis":null,"km":"","maliyet":"150","sonrakiKm":"","sonrakiTarih":"","detay":"19.04.2022 VİRAJ LASTİĞİ ÖN, İŞÇİLİK YAPILDI DAMLA OTO 150 TL","not":"","fotolar":[]},{"id":"ace73cab842","aracId":"aa486e4cc85","tur":"Onarım","tarih":"2022-06-09","bitis":null,"km":"","maliyet":"300","sonrakiKm":"","sonrakiTarih":"","detay":"09.06.2022 300 tl işçilik damla oto","not":"","fotolar":[]},{"id":"ab64ea50471","aracId":"aa486e4cc85","tur":"Onarım","tarih":"2022-12-02","bitis":null,"km":"","maliyet":"2170","sonrakiKm":"","sonrakiTarih":"","detay":"02.12.2022 MEKANİK,DİNEMO ONARIM 2170 TLDAMLA OTO","not":"","fotolar":[]},{"id":"a1f3c8ed238","aracId":"aa486e4cc85","tur":"Onarım","tarih":"2022-12-24","bitis":null,"km":"","maliyet":"","sonrakiKm":"","sonrakiTarih":"","detay":"24,12,2022 blok tapa onarım torna tıpa 1650 Damla oto","not":"","fotolar":[]},{"id":"a830a5d16cb","aracId":"aa486e4cc85","tur":"Onarım","tarih":"2023-10-04","bitis":null,"km":"","maliyet":"900","sonrakiKm":"","sonrakiTarih":"","detay":"04.10.2023 BALATA FREN YAĞI İŞÇİLİK 900TL DAMLA OTO","not":"","fotolar":[]},{"id":"aed65c2bf64","aracId":"aa486e4cc85","tur":"Onarım","tarih":"2023-11-20","bitis":null,"km":"","maliyet":"4610","sonrakiKm":"","sonrakiTarih":"","detay":"20.11.2023 ZİNCİR SETİ YAKIT MÜŞÜRÜ BAKIMLAR YAPILDI 4610 TL","not":"","fotolar":[]},{"id":"abadd34c718","aracId":"aa486e4cc85","tur":"Onarım","tarih":"2024-01-31","bitis":null,"km":"","maliyet":"1200","sonrakiKm":"","sonrakiTarih":"","detay":"31.01.2024 marş dinamo kömürü değişti 1200tl","not":"","fotolar":[]},{"id":"a234e51861f","aracId":"aa486e4cc85","tur":"Onarım","tarih":"2024-10-12","bitis":null,"km":"","maliyet":"6950","sonrakiKm":"","sonrakiTarih":"","detay":"12.10.2024 DEBRİYAJ SETİ DEĞİŞTİRİLDİ DAMLA OTO 6950 TL ÖDENDİ","not":"","fotolar":[]},{"id":"a468df02243","aracId":"aa486e4cc85","tur":"Onarım","tarih":"2025-06-03","bitis":null,"km":"","maliyet":"7750","sonrakiKm":"","sonrakiTarih":"","detay":"03,06,2025kaportacı sağ motoor  takozu sol sanzıman  takozu mekanık ışlık yağ baıkımıyla beraber damla oto 7750. tl","not":"","fotolar":[]},{"id":"aa3aa7b0f9d","aracId":"aa486e4cc85","tur":"Onarım","tarih":"2025-09-15","bitis":null,"km":"","maliyet":"","sonrakiKm":"","sonrakiTarih":"","detay":"15.09.2025 kapı gergı yayı ön amartısör ön balata sağ arka takoz amartisör t körüğüsol akıs 8400 mlz n dundar damla oto","not":"","fotolar":[]},{"id":"abb43fcb234","aracId":"aa486e4cc85","tur":"Onarım","tarih":"2025-09-16","bitis":null,"km":"","maliyet":"9350","sonrakiKm":"","sonrakiTarih":"","detay":"16.09.2025 ön balata sag on amrts sol aks makasçı 4350 işilik 5000tl toplam 9350tl","not":"","fotolar":[]},{"id":"a3589fde30d","aracId":"aa486e4cc85","tur":"Yedek Parça","tarih":"2022-02-05","bitis":null,"km":"","maliyet":"","sonrakiKm":"","sonrakiTarih":"","detay":"05.02.2022 güneydoğu oto h7 lamba.","not":"","fotolar":[]},{"id":"afbe2e4d2d4","aracId":"aa486e4cc85","tur":"Yedek Parça","tarih":"2022-03-16","bitis":null,"km":"","maliyet":"220","sonrakiKm":"","sonrakiTarih":"","detay":"16.03.2022 ENJEKTÖR HORTUMU  VİRAJ LASTİĞİ 220TL GÜNEYDOĞU OTO","not":"","fotolar":[]},{"id":"a34f0943215","aracId":"aa486e4cc85","tur":"Yedek Parça","tarih":"2022-06-09","bitis":null,"km":"","maliyet":"","sonrakiKm":"","sonrakiTarih":"","detay":"09.06.2022 Şanzıman alt takoz üst takoz Cıva 350 Tl  Güneydoğu oto","not":"","fotolar":[]},{"id":"a717042f001","aracId":"aa486e4cc85","tur":"Yedek Parça","tarih":"2022-08-06","bitis":null,"km":"","maliyet":"140","sonrakiKm":"","sonrakiTarih":"","detay":"06.08.2022 2 Tabla 1100 Tl z rot 140 tl Gün Oto","not":"","fotolar":[]},{"id":"a69d89dd332","aracId":"aa486e4cc85","tur":"Yedek Parça","tarih":"2022-12-02","bitis":null,"km":"","maliyet":"2800","sonrakiKm":"","sonrakiTarih":"","detay":"02.12.2022 2 DİNGİL TAKOZU V KAYIŞI GERGİ BİLYASI 2 ARKA AMORTİSÖR DİREKSİYON KAYIŞI 2 HAVA FİLTRE LASTİĞİ 1 CAM ÇITASI 1 CAM KAPI GERGİSİ 2800TL GÜN OTO","not":"","fotolar":[]},{"id":"a6223bf7bd2","aracId":"aa486e4cc85","tur":"Yedek Parça","tarih":"2023-08-03","bitis":null,"km":"","maliyet":"1470","sonrakiKm":"","sonrakiTarih":"","detay":"03,08,2023 2 BAGAJ 1 BUJİ AMÖRTİSÖRÜ1470TL GÜN OTO","not":"","fotolar":[]},{"id":"a57038b46e3","aracId":"aa486e4cc85","tur":"Yedek Parça","tarih":"2023-10-04","bitis":null,"km":"","maliyet":"1850","sonrakiKm":"","sonrakiTarih":"","detay":"04.10.2023 ÖN BALATA GERGİ BİLYASI V KAYIŞI 1850 TL GÜN OTO","not":"","fotolar":[]},{"id":"aadaf3fbd47","aracId":"aa486e4cc85","tur":"Yedek Parça","tarih":"2023-11-08","bitis":null,"km":"","maliyet":"","sonrakiKm":"","sonrakiTarih":"","detay":"08.11.2023 SOL CAM KRİKOSU ZİNCİR SU POMPASI V KAYIŞI","not":"","fotolar":[]},{"id":"aa097acdc77","aracId":"aa486e4cc85","tur":"Yedek Parça","tarih":"2023-11-08","bitis":null,"km":"","maliyet":"14000","sonrakiKm":"","sonrakiTarih":"","detay":"08.11.2023 AKS BİLYESİ SAĞ MOTOR TAKOZU YAĞLAMA FLANŞI ARKA PORYA 14000 TL GÜN OTO","not":"","fotolar":[]},{"id":"aedba39b75a","aracId":"aa486e4cc85","tur":"Yedek Parça","tarih":"2024-04-23","bitis":null,"km":"","maliyet":"","sonrakiKm":"","sonrakiTarih":"","detay":"23.04.2024 CAM ÇITASI 400 GÜN OTO","not":"","fotolar":[]},{"id":"ab6e6a949d1","aracId":"aa486e4cc85","tur":"Yedek Parça","tarih":"2020-01-01","bitis":null,"km":"","maliyet":"","sonrakiKm":"","sonrakiTarih":"","detay":"11.09.24 RADYATÖR HORTUMU 1600 ÖDENDİ GÜN OTO","not":"","fotolar":[]},{"id":"ae7a354c59e","aracId":"aa486e4cc85","tur":"Yedek Parça","tarih":"2024-10-09","bitis":null,"km":"","maliyet":"8000","sonrakiKm":"","sonrakiTarih":"","detay":"09.10.2024 DEBRİYAJ SETİ RASYATÖR HORTUMU KAPI HALATI 2 BU Jİ 8000 TL ÖDENDİ GÜN OTO","not":"","fotolar":[]},{"id":"a5411207fae","aracId":"aa486e4cc85","tur":"Bakım","tarih":"2020-10-10","bitis":null,"km":"161000","maliyet":"350","sonrakiKm":"","sonrakiTarih":"","detay":"161000 KM 10,10,2020( ZINCIR SETI YAG FILITRELER ANTIFIRIZ N DUNDARDAN ALINDI) DAMLA OTO DEGISTIRDI 350 TL ISCLIK ODENDI","not":"","fotolar":[]},{"id":"abdb4e99ded","aracId":"aa486e4cc85","tur":"Bakım","tarih":"2022-03-16","bitis":null,"km":"","maliyet":"620","sonrakiKm":"","sonrakiTarih":"","detay":"16.03.2022 178.250 BAKIM YAPILDI MOTOR YAĞI YAĞ FİLTRESİ HAVA FİLTRESİ POLEN FİLTRESİ 620 TL DAMLA OTO","not":"","fotolar":[]},{"id":"a79f1e154e4","aracId":"aa486e4cc85","tur":"Bakım","tarih":"2022-12-02","bitis":null,"km":"","maliyet":"","sonrakiKm":"","sonrakiTarih":"","detay":"02.12.2022 187.818 BAKIM YAPILDI","not":"","fotolar":[]},{"id":"ad7d5e526f6","aracId":"aa486e4cc85","tur":"Bakım","tarih":"2023-11-20","bitis":null,"km":"","maliyet":"","sonrakiKm":"","sonrakiTarih":"","detay":"20.11.2023 202000 BAKIM YAPILDI ZİNCİR YAĞ FİLTRELER DEĞİŞTİRİLDİ DAMLA OTO","not":"","fotolar":[]},{"id":"ade6d074dbd","aracId":"aa486e4cc85","tur":"Bakım","tarih":"2025-04-02","bitis":null,"km":"224600","maliyet":"3100","sonrakiKm":"","sonrakiTarih":"","detay":"02.04.2025 224.600 km damla oto filtreler değişlti 3100 tl ödendi 224600km yapıldı.","not":"","fotolar":[]},{"id":"ad5cf3a34ba","aracId":"aa486e4cc85","tur":"Bakım","tarih":"2025-06-03","bitis":null,"km":"","maliyet":"","sonrakiKm":"","sonrakiTarih":"","detay":"03.06.2025 motor yağı. Yağ,hava polen fılıtresı","not":"","fotolar":[]},{"id":"a1f7434f3cc","aracId":"a0625035fe7","tur":"Fenni Muayene","tarih":"2026-09-10","bitis":"2026-09-10","km":"","maliyet":"","sonrakiKm":"","sonrakiTarih":"","detay":"son tarıh 10.09.2026","not":"","fotolar":[]},{"id":"a9a57e36938","aracId":"a0625035fe7","tur":"Egzoz Muayenesi","tarih":"2026-09-10","bitis":"2026-09-10","km":"","maliyet":"","sonrakiKm":"","sonrakiTarih":"","detay":"son tarih 10-09-2026","not":"","fotolar":[]},{"id":"a742ccf7e67","aracId":"a0625035fe7","tur":"Trafik Sigortası","tarih":"2027-01-24","bitis":"2027-01-24","km":"","maliyet":"","sonrakiKm":"","sonrakiTarih":"","detay":"son tarih 24.01.2027","not":"","fotolar":[]},{"id":"a82350d47cd","aracId":"a0625035fe7","tur":"Kasko","tarih":"2027-01-25","bitis":"2027-01-25","km":"","maliyet":"","sonrakiKm":"","sonrakiTarih":"","detay":"son tarih 25.01.2027","not":"","fotolar":[]},{"id":"a833ef75de3","aracId":"a0625035fe7","tur":"Onarım","tarih":"2025-09-04","bitis":null,"km":"","maliyet":"6296","sonrakiKm":"","sonrakiTarih":"","detay":"04.09.2025 fren balatası servıs te yapıldı 6296 tl","not":"","fotolar":[]},{"id":"a09dc4158f6","aracId":"a0625035fe7","tur":"Yedek Parça","tarih":"2025-09-04","bitis":null,"km":"","maliyet":"","sonrakiKm":"","sonrakiTarih":"","detay":"fren balatası servıste 04.09.2025","not":"","fotolar":[]},{"id":"a34b6187c23","aracId":"a2d8254b12f","tur":"Fenni Muayene","tarih":"2026-03-25","bitis":"2026-03-25","km":"","maliyet":"","sonrakiKm":"","sonrakiTarih":"","detay":"Son tarih25.03.2026","not":"","fotolar":[]},{"id":"a2404113495","aracId":"a2d8254b12f","tur":"Egzoz Muayenesi","tarih":"2026-03-25","bitis":"2026-03-25","km":"","maliyet":"","sonrakiKm":"","sonrakiTarih":"","detay":"Son tarih25.03.2026","not":"","fotolar":[]},{"id":"a58e5cabf62","aracId":"a2d8254b12f","tur":"Trafik Sigortası","tarih":"2027-04-27","bitis":"2027-04-27","km":"","maliyet":"","sonrakiKm":"","sonrakiTarih":"","detay":"son tarih 27.04.2027 k.keskin","not":"","fotolar":[]},{"id":"ab1c241f9b7","aracId":"a2d8254b12f","tur":"Kasko","tarih":"2026-05-06","bitis":"2026-05-06","km":"","maliyet":"","sonrakiKm":"","sonrakiTarih":"","detay":"son tarih: 06/05/2026 garanti eureko","not":"","fotolar":[]},{"id":"a052a6a15ad","aracId":"a2d8254b12f","tur":"Onarım","tarih":"2024-05-27","bitis":null,"km":"","maliyet":"300","sonrakiKm":"","sonrakiTarih":"","detay":"27.05.2024 ön balata değişti 300 tl","not":"","fotolar":[]},{"id":"a67351c4f52","aracId":"a2d8254b12f","tur":"Onarım","tarih":"2025-01-20","bitis":null,"km":"","maliyet":"16900","sonrakiKm":"","sonrakiTarih":"","detay":"20.01.2025GENEL MEKANİK TAMİR BAKIM YAPILDI 16900 TL ÖDENDİ","not":"","fotolar":[]},{"id":"a279f121064","aracId":"a2d8254b12f","tur":"Onarım","tarih":"2020-01-01","bitis":null,"km":"","maliyet":"2000","sonrakiKm":"","sonrakiTarih":"","detay":"16.01.26 damla ototeker bilyes abs sensörü değ. 2000 tl","not":"","fotolar":[]},{"id":"a80de6890fd","aracId":"a2d8254b12f","tur":"Yedek Parça","tarih":"2024-07-16","bitis":null,"km":"","maliyet":"5400","sonrakiKm":"","sonrakiTarih":"","detay":"16.07.2024 FİLTRELER YAĞ 1 TAKIM BUJİ AYNA VE ÖN BALATA 5400 TL GÜN OTO","not":"","fotolar":[]},{"id":"a67dcecdf40","aracId":"a2d8254b12f","tur":"Yedek Parça","tarih":"2024-05-27","bitis":null,"km":"","maliyet":"","sonrakiKm":"","sonrakiTarih":"","detay":"27.05.2024 ön iki balata n.dündardan alındı","not":"","fotolar":[]},{"id":"a5cba76f1f3","aracId":"a2d8254b12f","tur":"Yedek Parça","tarih":"2020-01-01","bitis":null,"km":"","maliyet":"","sonrakiKm":"","sonrakiTarih":"","detay":"BUJİ TERMOSTAT ÖN FREN DİSKİ FREM BALATASI SOL AKS KÖRÜĞÜ DİREKSİYON MİLİ ŞANZUMAN TAKOZU DEĞİŞTİRİLDİ BOSCH AUTO","not":"","fotolar":[]},{"id":"aaba5afea3c","aracId":"a2d8254b12f","tur":"Yedek Parça","tarih":"2020-01-01","bitis":null,"km":"","maliyet":"","sonrakiKm":"","sonrakiTarih":"","detay":"16.01.26 parçalar nuri dündardan alindi","not":"","fotolar":[]},{"id":"a86d3a9d33f","aracId":"a2d8254b12f","tur":"Bakım","tarih":"2022-05-26","bitis":null,"km":"10950","maliyet":"","sonrakiKm":"","sonrakiTarih":"","detay":"26.05.2022 10.950KM YETKİLİ SERVİSTE BAKIM YAPILDI FİLTRELER ,OPAR MOTOR YAĞI , TAPA DEĞİŞTİRİLDİ","not":"","fotolar":[]},{"id":"a6dfbc0a5ef","aracId":"a2d8254b12f","tur":"Bakım","tarih":"2023-09-05","bitis":null,"km":"","maliyet":"","sonrakiKm":"","sonrakiTarih":"","detay":"05.09.2023 31000 BAKIM YAPILDI","not":"","fotolar":[]},{"id":"a69f5218911","aracId":"a2d8254b12f","tur":"Bakım","tarih":"2024-07-16","bitis":null,"km":"43000","maliyet":"1350","sonrakiKm":"","sonrakiTarih":"","detay":"16.07.2024 DAMLA OTO 43000 KM BAKIM YAPILDI FİLTRELER DEĞİŞTİ İŞÇİLİK 1350 TL","not":"","fotolar":[]},{"id":"a48af970e65","aracId":"a2d8254b12f","tur":"Bakım","tarih":"2025-05-05","bitis":null,"km":"","maliyet":"1500","sonrakiKm":"","sonrakiTarih":"","detay":"05.05.2025 53000 bakımı yapıldı,yağ-yağfiltresi.hava filtresi.polen filtresi değişti yağ bizden 1500tl alındı damla oto","not":"","fotolar":[]},{"id":"a756fd8b2d7","aracId":"a2d8254b12f","tur":"Bakım","tarih":"2026-06-03","bitis":null,"km":"","maliyet":"","sonrakiKm":"","sonrakiTarih":"","detay":"03.06.2026 yağ,yağ filtresi.hava filtresi.lpg (2 filtre).61524te yapıldı sonraki 71524","not":"","fotolar":[]},{"id":"afdaccfdace","aracId":"ad950c7cc94","tur":"Fenni Muayene","tarih":"2026-01-17","bitis":"2026-01-17","km":"","maliyet":"","sonrakiKm":"","sonrakiTarih":"","detay":"son tarih 17/01/2026","not":"","fotolar":[]},{"id":"a369a988563","aracId":"ad950c7cc94","tur":"Egzoz Muayenesi","tarih":"2025-12-19","bitis":"2025-12-19","km":"","maliyet":"","sonrakiKm":"","sonrakiTarih":"","detay":"son tarih 19.12.2025","not":"","fotolar":[]},{"id":"a6b682d1da2","aracId":"ad950c7cc94","tur":"Trafik Sigortası","tarih":"2024-06-04","bitis":"2024-06-04","km":"","maliyet":"6827","sonrakiKm":"","sonrakiTarih":"","detay":"son tarih:04.06.2024 K.keskin (2023- 6827 tl)","not":"","fotolar":[]},{"id":"a9877e98bac","aracId":"ad950c7cc94","tur":"Kasko","tarih":"2024-12-03","bitis":"2024-12-03","km":"","maliyet":"","sonrakiKm":"","sonrakiTarih":"","detay":"son tarih:03.12.2024 eureko","not":"","fotolar":[]},{"id":"ad0c0dc17c7","aracId":"ad950c7cc94","tur":"Onarım","tarih":"2020-01-01","bitis":null,"km":"","maliyet":"","sonrakiKm":"","sonrakiTarih":"","detay":"Damla Oto da yapıldı","not":"","fotolar":[]},{"id":"abd8d47284d","aracId":"ad950c7cc94","tur":"Onarım","tarih":"2022-01-19","bitis":null,"km":"","maliyet":"1200","sonrakiKm":"","sonrakiTarih":"","detay":"güneydoğu rektefe yapıldı 1.200 tl 19.01.2022","not":"","fotolar":[]},{"id":"a6a69d6b1f9","aracId":"ad950c7cc94","tur":"Onarım","tarih":"2020-01-01","bitis":null,"km":"","maliyet":"1100","sonrakiKm":"","sonrakiTarih":"","detay":"damla oto işçilik 4.500 turbocu, tornacı 1.100tl","not":"","fotolar":[]},{"id":"a8a8cf6c150","aracId":"ad950c7cc94","tur":"Onarım","tarih":"2022-04-26","bitis":null,"km":"","maliyet":"","sonrakiKm":"","sonrakiTarih":"","detay":"26.04.2022 karter, karter tapası ön arka keçe değişti damla otoda","not":"","fotolar":[]},{"id":"a6237b08d2c","aracId":"ad950c7cc94","tur":"Onarım","tarih":"2022-06-01","bitis":null,"km":"","maliyet":"1370","sonrakiKm":"","sonrakiTarih":"","detay":"01.06.2022 Ön Kapak, Ön kapak contası, sıvı conta, sprey 1370tl Damla oto","not":"","fotolar":[]},{"id":"a889d0e2968","aracId":"ad950c7cc94","tur":"Onarım","tarih":"2022-06-15","bitis":null,"km":"","maliyet":"1370","sonrakiKm":"","sonrakiTarih":"","detay":"15.06.2022 sağ aks bilyesi tornacı işçilik 1370 tl Damla oto","not":"","fotolar":[]},{"id":"ad0b5699386","aracId":"ad950c7cc94","tur":"Onarım","tarih":"2022-07-25","bitis":null,"km":"","maliyet":"","sonrakiKm":"","sonrakiTarih":"","detay":"25.07.2022 radyatör fanı değişti nizam usta","not":"","fotolar":[]},{"id":"a443c4fcd41","aracId":"ad950c7cc94","tur":"Onarım","tarih":"2022-07-25","bitis":null,"km":"","maliyet":"","sonrakiKm":"","sonrakiTarih":"","detay":"25.07.2022 Amörtisör Rot Teker Bilye ön düzen işçilik 600 Tl Damla oto","not":"","fotolar":[]},{"id":"ae4dc2d1d17","aracId":"ad950c7cc94","tur":"Onarım","tarih":"2022-12-03","bitis":null,"km":"","maliyet":"","sonrakiKm":"","sonrakiTarih":"","detay":"03.12.2022 ARKA BOĞAZ KEÇESİ SIVI CONTA 2.VİTES BAKIM TURBOCU TORNACI ŞAZIMAN ONARIM 7880 DAMLA OTO","not":"","fotolar":[]},{"id":"a67390eb7b2","aracId":"ad950c7cc94","tur":"Onarım","tarih":"2023-05-17","bitis":null,"km":"","maliyet":"10040","sonrakiKm":"","sonrakiTarih":"","detay":"17,05,2023 GERGİ KÜTÜĞÜ VİTES AĞIRLIĞI VİTES DİŞLİLERİ EGSOZ TAKOZLARI ŞANZIMAN İŞÇİLİĞİ 10040 TL DAMLA OTO","not":"","fotolar":[]},{"id":"ad07f964fb2","aracId":"ad950c7cc94","tur":"Onarım","tarih":"2023-08-12","bitis":null,"km":"","maliyet":"1725","sonrakiKm":"","sonrakiTarih":"","detay":"12,08,2023 FİLTRELER DEĞİŞTİ 1725 TL DAMLA OTO","not":"","fotolar":[]},{"id":"a53bfd4a744","aracId":"ad950c7cc94","tur":"Onarım","tarih":"2023-09-09","bitis":null,"km":"","maliyet":"1660","sonrakiKm":"","sonrakiTarih":"","detay":"09.09.2023 ALT TAKOZ ÜST TAKOZ TEKEL BİLYESİ Z ROT TONARCI MEKANİK İŞÇİLİK 1660 TL DAMLA OTO","not":"","fotolar":[]},{"id":"aff3840c620","aracId":"ad950c7cc94","tur":"Onarım","tarih":"2023-10-10","bitis":null,"km":"","maliyet":"22370","sonrakiKm":"","sonrakiTarih":"","detay":"10,10,2023 ENJEKTÖR ALT TABLA SALINCAK YAKIT FİLTRESİ ÖN DÜZEN TORNA ENJEKTÖR İŞÇİLİĞİ TOPLAM 22370 TL ÖDENDİ","not":"","fotolar":[]},{"id":"a917b911fd4","aracId":"ad950c7cc94","tur":"Onarım","tarih":"2023-12-12","bitis":null,"km":"","maliyet":"3000","sonrakiKm":"","sonrakiTarih":"","detay":"12.12.2023 TÜM BAKIMLAR YAPILDI AMÖRTİSÖR AMRTİSÖR TAKOZU DEĞİŞTİRİLDİ 3000 TL ÖDEME YAPILDI İDRİS USTA","not":"","fotolar":[]},{"id":"a51b023e7e5","aracId":"ad950c7cc94","tur":"Onarım","tarih":"2024-05-27","bitis":null,"km":"","maliyet":"150","sonrakiKm":"","sonrakiTarih":"","detay":"27.05.2024 yağ eklendi 150 tl damla oto","not":"","fotolar":[]},{"id":"a9e40a5a48e","aracId":"ad950c7cc94","tur":"Onarım","tarih":"2024-11-05","bitis":null,"km":"","maliyet":"18550","sonrakiKm":"","sonrakiTarih":"","detay":"05.11.2024 TURBO PARTİKÜL DİSKLER BALATA TABLA GENEL BAKIM YAPILDI 18550 TL ÖDENDİ DAMLA OTO","not":"","fotolar":[]},{"id":"a552b25039c","aracId":"ad950c7cc94","tur":"Onarım","tarih":"2025-01-23","bitis":null,"km":"","maliyet":"1000","sonrakiKm":"","sonrakiTarih":"","detay":"23.01.2025 v last z rotu sağ sol tabla rot mılı rot başı rot körüğü fren mrkz boşluğu eksoz takozu ilşlik rot balans 6000tl damla oto işlik 5000 r bls 1000tl","not":"","fotolar":[]},{"id":"ade98fd64b0","aracId":"ad950c7cc94","tur":"Onarım","tarih":"2025-03-26","bitis":null,"km":"221600","maliyet":"7500","sonrakiKm":"","sonrakiTarih":"","detay":"26.03.2025 damla oto zimcir seti 4 buji partekul temz baskı balata şanzıman seklomeçleri şanzıman yağı on boğaz keçesi ayna mahrutu dıreksyon yağı 52.000tl damla oto ödendi işçilik 30.000tl partekül 7","not":"","fotolar":[]},{"id":"aa5aea49fff","aracId":"ad950c7cc94","tur":"Onarım","tarih":"2025-06-12","bitis":null,"km":"","maliyet":"1500","sonrakiKm":"","sonrakiTarih":"","detay":"12.06.2025ınterkol hortumu damla oto  1500tl hortum harıc","not":"","fotolar":[]},{"id":"ac697697815","aracId":"ad950c7cc94","tur":"Onarım","tarih":"2025-06-18","bitis":null,"km":"","maliyet":"800","sonrakiKm":"","sonrakiTarih":"","detay":"18.06.2025 karalıfer  dırseyı 800tl damla oto","not":"","fotolar":[]},{"id":"a9fedb602d0","aracId":"ad950c7cc94","tur":"Onarım","tarih":"2025-09-18","bitis":null,"km":"","maliyet":"","sonrakiKm":"","sonrakiTarih":"","detay":"18.09.2025 damla oto","not":"","fotolar":[]},{"id":"a0ac4d3c64c","aracId":"ad950c7cc94","tur":"Onarım","tarih":"2025-09-17","bitis":null,"km":"","maliyet":"5625","sonrakiKm":"","sonrakiTarih":"","detay":"17.09.2025motor yağı bakım fılıtreler v kayışı avare bilye 5625 tl işçilik","not":"","fotolar":[]},{"id":"a6c94e2e945","aracId":"ad950c7cc94","tur":"Yedek Parça","tarih":"2022-02-11","bitis":null,"km":"","maliyet":"","sonrakiKm":"","sonrakiTarih":"","detay":"11.02.2022 motor yağı 1lt","not":"","fotolar":[]},{"id":"a6514a877be","aracId":"ad950c7cc94","tur":"Yedek Parça","tarih":"2022-01-19","bitis":null,"km":"","maliyet":"17050","sonrakiKm":"","sonrakiTarih":"","detay":"güneydoğu oto piston,sekman,turbo hortumu,yatak,kapak,pompa,conta vs 17.050tl ödendi 19.01.2022","not":"","fotolar":[]},{"id":"aced7c2f789","aracId":"ad950c7cc94","tur":"Yedek Parça","tarih":"2022-05-16","bitis":null,"km":"","maliyet":"","sonrakiKm":"","sonrakiTarih":"","detay":"16.05.2022 ön sol amortisör 2 rot 500 Tl Güneydoğu oto","not":"","fotolar":[]},{"id":"a8ac7809b96","aracId":"ad950c7cc94","tur":"Yedek Parça","tarih":"2022-06-15","bitis":null,"km":"","maliyet":"","sonrakiKm":"","sonrakiTarih":"","detay":"15.06.2022 amörtisör kepi , salıncak , sağ tekel bilyesi, 2 alt tabla 2150 Tl güneydoğu oto","not":"","fotolar":[]},{"id":"afe38914244","aracId":"ad950c7cc94","tur":"Yedek Parça","tarih":"2022-07-25","bitis":null,"km":"","maliyet":"","sonrakiKm":"","sonrakiTarih":"","detay":"25.07.2022 vites halatı, radyatör fanı, sis farı,2200 Tl güneydoğu oto","not":"","fotolar":[]},{"id":"a418a8bcc2f","aracId":"ad950c7cc94","tur":"Yedek Parça","tarih":"2022-09-10","bitis":null,"km":"","maliyet":"2650","sonrakiKm":"","sonrakiTarih":"","detay":"10.09.2022 debriyaj seti sol abs sensörü sol bilye alt tabla önbilye aks sol amörtisör değiştirildi   gün oto 2650tl","not":"","fotolar":[]},{"id":"ab45082fda7","aracId":"ad950c7cc94","tur":"Yedek Parça","tarih":"2022-12-03","bitis":null,"km":"","maliyet":"520","sonrakiKm":"","sonrakiTarih":"","detay":"03.12.2022 ABS KABLOSU  BOĞAZ KEÇESİ 520 TL GÜN OTO","not":"","fotolar":[]},{"id":"afd1e636ab1","aracId":"ad950c7cc94","tur":"Yedek Parça","tarih":"2023-03-10","bitis":null,"km":"","maliyet":"2570","sonrakiKm":"","sonrakiTarih":"","detay":"10,03,2023 ÖN PORYA ,BİLYA 1 AMÖRTİSÖR BİLYASI 5 BİJON 2 BUJİ 2 VİRAJ LASTİĞİ 1 Z-ROT 2570 TL","not":"","fotolar":[]},{"id":"a40072cb1bb","aracId":"ad950c7cc94","tur":"Yedek Parça","tarih":"2023-05-17","bitis":null,"km":"","maliyet":"1860","sonrakiKm":"","sonrakiTarih":"","detay":"17.05.2023 Ön keçe zincir tarşı Gergi kütüğü ısıtma bujisi 1860tl","not":"","fotolar":[]},{"id":"a160083b1e2","aracId":"ad950c7cc94","tur":"Yedek Parça","tarih":"2023-08-12","bitis":null,"km":"","maliyet":"4000","sonrakiKm":"","sonrakiTarih":"","detay":"12,08,2023 ön balata şanzuman takozu ön bilya 4000 tl","not":"","fotolar":[]},{"id":"a4aecafbc29","aracId":"ad950c7cc94","tur":"Yedek Parça","tarih":"2023-10-10","bitis":null,"km":"","maliyet":"8800","sonrakiKm":"","sonrakiTarih":"","detay":"10.10.2023 motor takozu 1ad sol ön teker bilyesi alternatör kayışı sabit bilye sol rot mili 2 adet tabla 1 adet yakıt pompa contası gün 1 ısıtma bujisi 1 yakıt filtresi 8800TL","not":"","fotolar":[]},{"id":"a626dee93b5","aracId":"ad950c7cc94","tur":"Yedek Parça","tarih":"2023-10-10","bitis":null,"km":"","maliyet":"","sonrakiKm":"","sonrakiTarih":"","detay":"10,10,2023 4 adet enjektör yakıt pompası direksiyon körüğü iki adet bijon İDRİS USTA","not":"","fotolar":[]},{"id":"acd1cc52f1a","aracId":"ad950c7cc94","tur":"Yedek Parça","tarih":"2023-12-12","bitis":null,"km":"","maliyet":"","sonrakiKm":"","sonrakiTarih":"","detay":"12.12.2023 TERMOSTAT-YAĞ FİLTRESİ -YAĞ POMPASI ZİNCİR SETİ-ÖN PORYA-ÖN  TEKEL BİLYASI- ARKA PORYA-","not":"","fotolar":[]},{"id":"a4452133285","aracId":"ad950c7cc94","tur":"Yedek Parça","tarih":"2023-12-12","bitis":null,"km":"","maliyet":"11000","sonrakiKm":"","sonrakiTarih":"","detay":"12.12.2023 SAĞ ÖN AMÖRTİSÖR SAĞ AMÖRTİSÖR TAKOZU SOL AMÖRTİSÖR ÖN SOL AMORTİSÖR TAKOSU 1 Z-ROT GÖN OTO 11,000 TL","not":"","fotolar":[]},{"id":"a72862039a7","aracId":"ad950c7cc94","tur":"Yedek Parça","tarih":"2024-03-30","bitis":null,"km":"","maliyet":"850","sonrakiKm":"","sonrakiTarih":"","detay":"30.03.2024 GERİ VİTES MÜŞÜRÜ 2 BUJİ 850 TL","not":"","fotolar":[]},{"id":"a570e1b3407","aracId":"ad950c7cc94","tur":"Yedek Parça","tarih":"2024-08-12","bitis":null,"km":"","maliyet":"","sonrakiKm":"","sonrakiTarih":"","detay":"12.08.2024 FAN MOTORU 2,6 AKÜ SALINCAK Z TOR ÖN BALATA TURBO HORTUMU NURİ DÜNDAR 12600 ÖDENDİ","not":"","fotolar":[]},{"id":"ae1875421bb","aracId":"ad950c7cc94","tur":"Yedek Parça","tarih":"2025-01-23","bitis":null,"km":"","maliyet":"6000","sonrakiKm":"","sonrakiTarih":"","detay":"23,01,2025v last z rotu sağ sol tabla rot mılı rot başı rot körüğü fren mrkz boşluğu eksoz takozu ilşlik rot balans damla oto 6000tl","not":"","fotolar":[]},{"id":"a4554096ba3","aracId":"ad950c7cc94","tur":"Yedek Parça","tarih":"2025-03-26","bitis":null,"km":"221600","maliyet":"7500","sonrakiKm":"","sonrakiTarih":"","detay":"26.03.2025 damla oto zimcir seti 4 buji partekul temz baskı balata şanzıman seklomeçleri şanzıman yağı on boğaz keçesi ayna mahrutu dıreksyon yağı 52.000tl damla oto ödendi işçilik 30.000tl partekül 7","not":"","fotolar":[]},{"id":"a2a0ae16484","aracId":"ad950c7cc94","tur":"Yedek Parça","tarih":"2025-09-18","bitis":null,"km":"","maliyet":"","sonrakiKm":"","sonrakiTarih":"","detay":"18.09.2025 kütek bılya sabit bilya v kayış ndundar 5350","not":"","fotolar":[]},{"id":"ac71fa91a66","aracId":"ad950c7cc94","tur":"Bakım","tarih":"2022-01-13","bitis":null,"km":"159961","maliyet":"555","sonrakiKm":"","sonrakiTarih":"","detay":"13.01.2022-555TL- 159.961KM Motor da yağ kalmadığı için bakım yapıldı HAVA FİLTRESİ YAĞ FİLTRESİ TEMİZLEME SPREYİ","not":"","fotolar":[]},{"id":"a515cc523ce","aracId":"ad950c7cc94","tur":"Bakım","tarih":"2022-09-06","bitis":null,"km":"173100","maliyet":"","sonrakiKm":"","sonrakiTarih":"","detay":"06.09.2022 173.100 km bakım yapıldı motor yağı ,yağ,hava,polen filtresi değişti Damla Oto","not":"","fotolar":[]},{"id":"a9cdf159ce9","aracId":"ad950c7cc94","tur":"Bakım","tarih":"2022-12-03","bitis":null,"km":"","maliyet":"","sonrakiKm":"","sonrakiTarih":"","detay":"03.12.2022 177.500 BAKIM YAPILDI","not":"","fotolar":[]},{"id":"ab78586b930","aracId":"ad950c7cc94","tur":"Bakım","tarih":"2020-01-01","bitis":null,"km":"","maliyet":"","sonrakiKm":"","sonrakiTarih":"","detay":"187.000 bakım yapıldı","not":"","fotolar":[]},{"id":"af9dfa87585","aracId":"ad950c7cc94","tur":"Bakım","tarih":"2020-01-01","bitis":null,"km":"","maliyet":"","sonrakiKm":"","sonrakiTarih":"","detay":"207.000 ZİNCİR DEĞİŞTİRİLDİ FİLTRELER DEĞİŞTİRİLDİ İDRİS USTA","not":"","fotolar":[]},{"id":"af7eb8104a5","aracId":"ad950c7cc94","tur":"Bakım","tarih":"2025-03-26","bitis":null,"km":"221600","maliyet":"7500","sonrakiKm":"","sonrakiTarih":"","detay":"26.03.2025 damla oto zimcir seti 4 buji partekul temz baskı balata şanzıman seklomeçleri şanzıman yağı on boğaz keçesi ayna mahrutu dıreksyon yağı 52.000tl damla oto ödendi işçilik 30.000tl partekül 7","not":"","fotolar":[]},{"id":"aa1694b5a10","aracId":"ad950c7cc94","tur":"Bakım","tarih":"2026-03-29","bitis":null,"km":"","maliyet":"","sonrakiKm":"","sonrakiTarih":"","detay":"29,03,2026 motor yenileme rektefe tamır damla oto","not":"","fotolar":[]},{"id":"abe77141115","aracId":"ad950c7cc94","tur":"Bakım","tarih":"2026-05-02","bitis":null,"km":"","maliyet":"35400","sonrakiKm":"","sonrakiTarih":"","detay":"02,05,2026 motor yağı filitreler şanzıman marutu  motor tamır sadece işlık 12,500 toplam 35,400tl damla oto","not":"","fotolar":[]},{"id":"aa5f535652a","aracId":"af452aedb88","tur":"Fenni Muayene","tarih":"2026-07-10","bitis":"2026-07-10","km":"","maliyet":"","sonrakiKm":"","sonrakiTarih":"","detay":"son tarih 10-07-2026","not":"","fotolar":[]},{"id":"a40c2ad80a9","aracId":"af452aedb88","tur":"Egzoz Muayenesi","tarih":"2026-07-10","bitis":"2026-07-10","km":"","maliyet":"","sonrakiKm":"","sonrakiTarih":"","detay":"son tarih 10-07-2026","not":"","fotolar":[]},{"id":"a90c950ad4c","aracId":"af452aedb88","tur":"Trafik Sigortası","tarih":"2025-09-06","bitis":"2025-09-06","km":"","maliyet":"","sonrakiKm":"","sonrakiTarih":"","detay":"son tarih 6.09.2025 eureko","not":"","fotolar":[]},{"id":"a9781f66297","aracId":"af452aedb88","tur":"Kasko","tarih":"2026-09-06","bitis":"2026-09-06","km":"","maliyet":"","sonrakiKm":"","sonrakiTarih":"","detay":"06.09.2026 EURUKO","not":"","fotolar":[]},{"id":"a85cc43c602","aracId":"af452aedb88","tur":"Yedek Parça","tarih":"2026-03-21","bitis":null,"km":"","maliyet":"","sonrakiKm":"","sonrakiTarih":"","detay":"21.03.2026 ön aks bılye arız arş parametresi kayış seti eksantrik kayışön aks taşıyıcı akü","not":"","fotolar":[]},{"id":"abd136cb170","aracId":"af452aedb88","tur":"Bakım","tarih":"2024-08-19","bitis":null,"km":"","maliyet":"","sonrakiKm":"","sonrakiTarih":"","detay":"19.08.2024 20.000 bakımı yapıldı (filtreler","not":"","fotolar":[]},{"id":"a204d4e1d05","aracId":"abc161cb63a","tur":"Fenni Muayene","tarih":"2025-11-19","bitis":"2025-11-19","km":"","maliyet":"","sonrakiKm":"","sonrakiTarih":"","detay":"son tarih 19.11.2025","not":"","fotolar":[]},{"id":"a40e6f416c8","aracId":"abc161cb63a","tur":"Egzoz Muayenesi","tarih":"2025-11-19","bitis":"2025-11-19","km":"","maliyet":"","sonrakiKm":"","sonrakiTarih":"","detay":"son tarih 19.11.2025","not":"","fotolar":[]},{"id":"a836f0915a6","aracId":"abc161cb63a","tur":"Trafik Sigortası","tarih":"2025-06-02","bitis":"2025-06-02","km":"","maliyet":"","sonrakiKm":"","sonrakiTarih":"","detay":"son 02.06.2025 M.uyanık","not":"","fotolar":[]},{"id":"a1bf298fa1b","aracId":"abc161cb63a","tur":"Kasko","tarih":"2026-12-03","bitis":"2026-12-03","km":"","maliyet":"","sonrakiKm":"","sonrakiTarih":"","detay":"son 03.12.2026 K KSEKIN","not":"","fotolar":[]},{"id":"aa3deb24b23","aracId":"abc161cb63a","tur":"Onarım","tarih":"2022-01-12","bitis":null,"km":"","maliyet":"550","sonrakiKm":"","sonrakiTarih":"","detay":"Damla Oto da yapıldı:550tl 12.01.2022","not":"","fotolar":[]},{"id":"ab5c0ecd729","aracId":"abc161cb63a","tur":"Onarım","tarih":"2022-02-24","bitis":null,"km":"","maliyet":"1000","sonrakiKm":"","sonrakiTarih":"","detay":"24.02.2022 yaşar oto cam işçilik,düzeltme 1000tl","not":"","fotolar":[]},{"id":"a415c0de551","aracId":"abc161cb63a","tur":"Onarım","tarih":"2022-04-06","bitis":null,"km":"","maliyet":"625","sonrakiKm":"","sonrakiTarih":"","detay":"06.04.2022 TEM SPREYİ,SIVI CONTA İŞ.İLİK MOTOR YAĞI 625TL DAMLA OTO ÖDENDİ","not":"","fotolar":[]},{"id":"a98bf385c40","aracId":"abc161cb63a","tur":"Onarım","tarih":"2022-09-01","bitis":null,"km":"","maliyet":"100","sonrakiKm":"","sonrakiTarih":"","detay":"01.09.2022 Fren merkezi Tamir 100 TL Damla oto","not":"","fotolar":[]},{"id":"a666a7005a2","aracId":"abc161cb63a","tur":"Onarım","tarih":"2022-09-10","bitis":null,"km":"","maliyet":"600","sonrakiKm":"","sonrakiTarih":"","detay":"10.09.2022 su radyatörü değiştirildi 600tl","not":"","fotolar":[]},{"id":"ae9ed45d735","aracId":"abc161cb63a","tur":"Onarım","tarih":"2023-06-14","bitis":null,"km":"","maliyet":"3260","sonrakiKm":"","sonrakiTarih":"","detay":"14.06.2023 İŞÇİLİK FREN YAĞI 3260 TL","not":"","fotolar":[]},{"id":"a6f47be4438","aracId":"abc161cb63a","tur":"Onarım","tarih":"2023-12-26","bitis":null,"km":"","maliyet":"5850","sonrakiKm":"","sonrakiTarih":"","detay":"26.12.2023 ZİNCİR YAĞ FİLTRE V KAYIŞI SAĞ AKS HAVA AKIŞI DAMLA OTO YAPILDI 5850 TL DAMLA OTO","not":"","fotolar":[]},{"id":"a14a5fb1157","aracId":"abc161cb63a","tur":"Onarım","tarih":"2024-05-24","bitis":null,"km":"","maliyet":"1000","sonrakiKm":"","sonrakiTarih":"","detay":"24.05.2024 ŞAMANDRA O RİNG+İŞÇİLİK 1000 TL DAMLA OTO","not":"","fotolar":[]},{"id":"a579858eef0","aracId":"abc161cb63a","tur":"Onarım","tarih":"2024-06-20","bitis":null,"km":"","maliyet":"500","sonrakiKm":"","sonrakiTarih":"","detay":"20.06.2024 EL FREN KOLU DEĞİŞTİ 500 TL ÖDENDİ","not":"","fotolar":[]},{"id":"a9773c37e3d","aracId":"abc161cb63a","tur":"Onarım","tarih":"2025-05-23","bitis":null,"km":"","maliyet":"","sonrakiKm":"","sonrakiTarih":"","detay":"23.05.2025debrıyaj setı sag -sol aks on fren balatası on dsk sanzıman yağı bıjon cıvata işçilik 10,250 toplam damla oto","not":"","fotolar":[]},{"id":"af05ccbb550","aracId":"abc161cb63a","tur":"Onarım","tarih":"2025-08-22","bitis":null,"km":"","maliyet":"1620","sonrakiKm":"","sonrakiTarih":"","detay":"22.08.2025 slck cam krıko sag cam cıtası cam küçük fiber sol cam düğmesi n d 1620 tl","not":"","fotolar":[]},{"id":"a286695ea26","aracId":"abc161cb63a","tur":"Onarım","tarih":"2025-09-02","bitis":null,"km":"","maliyet":"","sonrakiKm":"","sonrakiTarih":"","detay":"02.09.2025 ssğ slck sağ rot başı şzm takozo sağ rot mili ön balata vıraj lstğ ön vıraj lst 6650 n dundar","not":"","fotolar":[]},{"id":"a2fb7bf5dbf","aracId":"abc161cb63a","tur":"Onarım","tarih":"2025-09-18","bitis":null,"km":"","maliyet":"","sonrakiKm":"","sonrakiTarih":"","detay":"18.09.2025 sağ tabla ön balata ön z rotu sag rot bası alt şzmn takozu sagrot mılı vıraj lst tornacı işç 4500","not":"","fotolar":[]},{"id":"a6b7aa51149","aracId":"abc161cb63a","tur":"Yedek Parça","tarih":"2020-01-01","bitis":null,"km":"","maliyet":"","sonrakiKm":"","sonrakiTarih":"","detay":"Su hortumu,ınterkol hortumu güneydoğu","not":"","fotolar":[]},{"id":"a732560b5c6","aracId":"abc161cb63a","tur":"Yedek Parça","tarih":"2022-02-24","bitis":null,"km":"","maliyet":"1400","sonrakiKm":"","sonrakiTarih":"","detay":"24.02.2022 far, far çıtası panjur,arma ızgara 1400tl","not":"","fotolar":[]},{"id":"ad38967e298","aracId":"abc161cb63a","tur":"Yedek Parça","tarih":"2022-03-29","bitis":null,"km":"","maliyet":"220","sonrakiKm":"","sonrakiTarih":"","detay":"29.03.2022 KARTEL , KARTEL TAPASI 220TL","not":"","fotolar":[]},{"id":"a274f5d3549","aracId":"abc161cb63a","tur":"Yedek Parça","tarih":"2022-06-20","bitis":null,"km":"","maliyet":"400","sonrakiKm":"","sonrakiTarih":"","detay":"20.06.2022 koltuk kılıfı değiştirildi 400tl","not":"","fotolar":[]},{"id":"ad0117999f7","aracId":"abc161cb63a","tur":"Yedek Parça","tarih":"2022-09-01","bitis":null,"km":"","maliyet":"","sonrakiKm":"","sonrakiTarih":"","detay":"01.09.2022 Stop lambası fren mekan. 60Ah akü 1380 Tl Gün. Oto","not":"","fotolar":[]},{"id":"a87facb8c88","aracId":"abc161cb63a","tur":"Yedek Parça","tarih":"2020-01-01","bitis":null,"km":"","maliyet":"","sonrakiKm":"","sonrakiTarih":"","detay":"14.06.TURBO GERİ DÖNÜŞ BORUSU SOL AMÖRTİSÖR SAĞ KEP SALINCAK ALT MERKEZZ Z ROT GÜN OTO","not":"","fotolar":[]},{"id":"a4be28d2715","aracId":"abc161cb63a","tur":"Yedek Parça","tarih":"2023-12-07","bitis":null,"km":"","maliyet":"","sonrakiKm":"","sonrakiTarih":"","detay":"07.12.2023 ZİNCİR SETİ KAPAK CONTASI V KAYIŞI DEBİMETRE SAĞ AKS KEÇESİ 1 FISKİYE MOTORU 1 AKS KÖRÜĞÜ","not":"","fotolar":[]},{"id":"ab549261b05","aracId":"abc161cb63a","tur":"Yedek Parça","tarih":"2023-12-07","bitis":null,"km":"","maliyet":"9530","sonrakiKm":"","sonrakiTarih":"","detay":"07.12.2023 SAĞ AKS ÖN PORYA 9530 TL","not":"","fotolar":[]},{"id":"a671a49c943","aracId":"abc161cb63a","tur":"Yedek Parça","tarih":"2024-05-09","bitis":null,"km":"","maliyet":"2700","sonrakiKm":"","sonrakiTarih":"","detay":"09.05.2024 CAM KRİKOSU  2700TL","not":"","fotolar":[]},{"id":"a210e74de61","aracId":"abc161cb63a","tur":"Yedek Parça","tarih":"2024-06-26","bitis":null,"km":"","maliyet":"3000","sonrakiKm":"","sonrakiTarih":"","detay":"26.06.2024EL FREN KOLU YAĞ SOĞUTUCU 3000 TL GÜN OTO","not":"","fotolar":[]},{"id":"a4baba6e3ca","aracId":"abc161cb63a","tur":"Yedek Parça","tarih":"2024-07-22","bitis":null,"km":"","maliyet":"700","sonrakiKm":"","sonrakiTarih":"","detay":"22.07.2024 EL FREN TELİ GÜN OTO 700 TL","not":"","fotolar":[]},{"id":"a02ab1c3289","aracId":"abc161cb63a","tur":"Yedek Parça","tarih":"2024-09-06","bitis":null,"km":"","maliyet":"","sonrakiKm":"","sonrakiTarih":"","detay":"06.09.2024 FREN DİSKİ ÖN BALATA AKÜ 5200 ÖDENDİ GÜN OTO","not":"","fotolar":[]},{"id":"a44f966f2d5","aracId":"abc161cb63a","tur":"Yedek Parça","tarih":"2020-01-01","bitis":null,"km":"","maliyet":"6000","sonrakiKm":"","sonrakiTarih":"","detay":"18.06.20 6000tl yağ müşürü alt merkez üst merkez fren hıdrolık  damla oto","not":"","fotolar":[]},{"id":"af357c8b215","aracId":"abc161cb63a","tur":"Bakım","tarih":"2020-01-01","bitis":null,"km":"164000","maliyet":"","sonrakiKm":"","sonrakiTarih":"","detay":"164.000 km de zincir takımı değiştrildi","not":"","fotolar":[]},{"id":"a493a5c861c","aracId":"abc161cb63a","tur":"Bakım","tarih":"2022-01-12","bitis":null,"km":"173000","maliyet":"","sonrakiKm":"","sonrakiTarih":"","detay":"173.000.km  12.01.2022 INTERKOL HORTUMU SU HORTOMU  YAĞ  YAĞ FILITRESI HAVA FILITRESI POLEN FİLTRESİ BAKIM YAPILDI DAMLA OTO","not":"","fotolar":[]},{"id":"a191f77f39b","aracId":"abc161cb63a","tur":"Bakım","tarih":"2020-01-01","bitis":null,"km":"193000","maliyet":"","sonrakiKm":"","sonrakiTarih":"","detay":"193000 KM BAKIM YAPILDI","not":"","fotolar":[]},{"id":"a191c32eab7","aracId":"abc161cb63a","tur":"Bakım","tarih":"2020-01-01","bitis":null,"km":"","maliyet":"","sonrakiKm":"","sonrakiTarih":"","detay":"202.000 bakım yapıldı filtre ve yağlar değiştirildi damla oto","not":"","fotolar":[]},{"id":"a35c6ab107d","aracId":"abc161cb63a","tur":"Bakım","tarih":"2023-12-26","bitis":null,"km":"205000","maliyet":"","sonrakiKm":"","sonrakiTarih":"","detay":"26.12.2023 ZİNCİR SETİ V KAYIŞI TÜM FİLTRELER DEĞİŞTİRİLDİ 205000 KM BAKIM YAPILDI DAMLA OTO","not":"","fotolar":[]},{"id":"a9973f30f62","aracId":"abc161cb63a","tur":"Bakım","tarih":"2024-09-23","bitis":null,"km":"217500","maliyet":"","sonrakiKm":"","sonrakiTarih":"","detay":"23.09.2024 217.500 km bakımı yapıldı hava polen yağ filtresi değiştirildi","not":"","fotolar":[]},{"id":"a049fa29565","aracId":"abc161cb63a","tur":"Bakım","tarih":"2024-05-10","bitis":null,"km":"213000","maliyet":"2125","sonrakiKm":"","sonrakiTarih":"","detay":"10.05.2024 yağ, hava,polen filtresi ve yağ değişti 2125 tl damla oto 213000KM","not":"","fotolar":[]},{"id":"a42b29c6d7f","aracId":"abc161cb63a","tur":"Bakım","tarih":"2025-06-12","bitis":null,"km":"227369","maliyet":"4750","sonrakiKm":"","sonrakiTarih":"","detay":"12.06.2025 227369 km bakım yapıldı ınterkol hortumu 4750 tl damla oto","not":"","fotolar":[]},{"id":"ae1e2e50324","aracId":"aec9e796b42","tur":"Fenni Muayene","tarih":"2026-06-20","bitis":"2026-06-20","km":"","maliyet":"","sonrakiKm":"","sonrakiTarih":"","detay":"20.06.2026 YAPILACAK","not":"","fotolar":[]},{"id":"a0802920be9","aracId":"aec9e796b42","tur":"Egzoz Muayenesi","tarih":"2026-06-20","bitis":"2026-06-20","km":"","maliyet":"","sonrakiKm":"","sonrakiTarih":"","detay":"20.06.2026 YAPILACAK","not":"","fotolar":[]},{"id":"ab66c5ab5d8","aracId":"aec9e796b42","tur":"Trafik Sigortası","tarih":"2026-08-05","bitis":"2026-08-05","km":"","maliyet":"","sonrakiKm":"","sonrakiTarih":"","detay":"Bitiş tarıhı 05.08.2026 m uyanık","not":"","fotolar":[]},{"id":"adf67975c35","aracId":"aec9e796b42","tur":"Onarım","tarih":"2023-04-08","bitis":null,"km":"","maliyet":"","sonrakiKm":"","sonrakiTarih":"","detay":"08.04.2023 DAMLA OTO DİSK BALATA DEĞİŞTİRİLDİ","not":"","fotolar":[]},{"id":"a75c20bc414","aracId":"aec9e796b42","tur":"Yedek Parça","tarih":"2023-04-08","bitis":null,"km":"","maliyet":"2800","sonrakiKm":"","sonrakiTarih":"","detay":"08.04.2023 ERİPEK  DİSK BALATA DEĞİŞTİRİLDİ 2800TL ÖDENDİ","not":"","fotolar":[]},{"id":"aaeca08f823","aracId":"aec9e796b42","tur":"Bakım","tarih":"2023-03-20","bitis":null,"km":"","maliyet":"","sonrakiKm":"","sonrakiTarih":"","detay":"20/03/2023 15000 bakım yapıldı","not":"","fotolar":[]},{"id":"af0e031af57","aracId":"aec9e796b42","tur":"Bakım","tarih":"2024-03-20","bitis":null,"km":"30000","maliyet":"","sonrakiKm":"","sonrakiTarih":"","detay":"20/03/2024 30000 km de yapılDI","not":"","fotolar":[]},{"id":"a8c4302fa8f","aracId":"aec9e796b42","tur":"Bakım","tarih":"2025-01-21","bitis":null,"km":"44090","maliyet":"","sonrakiKm":"","sonrakiTarih":"","detay":"21.01.2025 44090 KM BAKIM YAPILDI YETKİLİ SERVİS","not":"","fotolar":[]},{"id":"ad3235ae585","aracId":"a1e69a0021c","tur":"Fenni Muayene","tarih":"2026-04-14","bitis":"2026-04-14","km":"","maliyet":"","sonrakiKm":"","sonrakiTarih":"","detay":"son tarih 14/04/2026","not":"","fotolar":[]},{"id":"a7d10847b32","aracId":"a1e69a0021c","tur":"Egzoz Muayenesi","tarih":"2026-04-14","bitis":"2026-04-14","km":"","maliyet":"","sonrakiKm":"","sonrakiTarih":"","detay":"son tarih 14/04/2026","not":"","fotolar":[]},{"id":"ad9c3e9e5e3","aracId":"a1e69a0021c","tur":"Trafik Sigortası","tarih":"2025-11-30","bitis":"2025-11-30","km":"","maliyet":"","sonrakiKm":"","sonrakiTarih":"","detay":"son tarih 30/11/2025 m.uyanık","not":"","fotolar":[]},{"id":"a298c42cdb6","aracId":"a1e69a0021c","tur":"Onarım","tarih":"2022-03-12","bitis":null,"km":"","maliyet":"650","sonrakiKm":"","sonrakiTarih":"","detay":"12.03.2022 yaşar oto cam 650 tl kapı fişeği rutüş,işçilik","not":"","fotolar":[]},{"id":"a0803560e4f","aracId":"a1e69a0021c","tur":"Onarım","tarih":"2020-01-01","bitis":null,"km":"","maliyet":"","sonrakiKm":"","sonrakiTarih":"","detay":"19..04.2022 İŞÇİLİK DAMLA OTO","not":"","fotolar":[]},{"id":"a25aa07e893","aracId":"a1e69a0021c","tur":"Onarım","tarih":"2020-01-01","bitis":null,"km":"","maliyet":"800","sonrakiKm":"","sonrakiTarih":"","detay":"İŞÇİLİK 800 TL DAMLA OTO","not":"","fotolar":[]},{"id":"a37650f342e","aracId":"a1e69a0021c","tur":"Onarım","tarih":"2022-06-12","bitis":null,"km":"","maliyet":"1200","sonrakiKm":"","sonrakiTarih":"","detay":"12.06.2022 Debriyaj Tabla Şanzuman Vites kolu işçilik 1200 TL","not":"","fotolar":[]},{"id":"a6e65893984","aracId":"a1e69a0021c","tur":"Onarım","tarih":"2022-11-30","bitis":null,"km":"","maliyet":"","sonrakiKm":"","sonrakiTarih":"","detay":"30.11.2022 TURBOCU PARTİKÜL TEMİZLİĞİ ŞARJ DİNEMO SÖK TAK ELEKTRİKÇİ MEKANİL İŞÇİLİK 2950 DAMLA OTO","not":"","fotolar":[]},{"id":"a09fbd0e86c","aracId":"a1e69a0021c","tur":"Onarım","tarih":"2023-06-20","bitis":null,"km":"","maliyet":"","sonrakiKm":"","sonrakiTarih":"","detay":"20.06.2023 blok tıpası yapıştırıcı torna mekanik işçilik 2850 damla oto","not":"","fotolar":[]},{"id":"a9cb3df86e3","aracId":"a1e69a0021c","tur":"Onarım","tarih":"2023-09-05","bitis":null,"km":"","maliyet":"8300","sonrakiKm":"","sonrakiTarih":"","detay":"05.09.2023 MOTOR İNDİRME 8300TL DAMLA OTO","not":"","fotolar":[]},{"id":"aea0fd116b4","aracId":"a1e69a0021c","tur":"Onarım","tarih":"2023-11-30","bitis":null,"km":"","maliyet":"4500","sonrakiKm":"","sonrakiTarih":"","detay":"30.11.2023 EGR İŞÇİLİK ABS DAMLA OTO 4500 TL","not":"","fotolar":[]},{"id":"abb67d63010","aracId":"a1e69a0021c","tur":"Onarım","tarih":"2024-05-28","bitis":null,"km":"","maliyet":"3625","sonrakiKm":"","sonrakiTarih":"","detay":"28.05.2024 z rot,su radyatörü bakım ile beraber 3625 tl","not":"","fotolar":[]},{"id":"aadf8e80317","aracId":"a1e69a0021c","tur":"Onarım","tarih":"2024-07-16","bitis":null,"km":"","maliyet":"5700","sonrakiKm":"","sonrakiTarih":"","detay":"16.07.2024 DEBRİYAJ SETİ DEĞİŞTİRİLDİ DAMLA OTO 5700 TL ÖDENDİ","not":"","fotolar":[]},{"id":"a2ab7c81f29","aracId":"a1e69a0021c","tur":"Onarım","tarih":"2025-02-08","bitis":null,"km":"","maliyet":"4500","sonrakiKm":"","sonrakiTarih":"","detay":"08.02.2025 DİREKSİYON HORTUMU DEĞİŞTİRİLDİ 4500 TL ÖDENDİ ALTUN AUTO","not":"","fotolar":[]},{"id":"a3fc4bb7e52","aracId":"a1e69a0021c","tur":"Onarım","tarih":"2025-06-03","bitis":null,"km":"","maliyet":"3500","sonrakiKm":"","sonrakiTarih":"","detay":"03.06.2025 vıtez halatı işçilik damla oto 3.500tl","not":"","fotolar":[]},{"id":"a08e143b3c8","aracId":"a1e69a0021c","tur":"Onarım","tarih":"2025-09-06","bitis":null,"km":"169865","maliyet":"110000","sonrakiKm":"","sonrakiTarih":"","detay":"06.09.2025 altun tıc motor tamiri toplam 105000tl 12000tl rektefe 12.000tl enjektör onarım zincir seti şanzıman yağı bakım kpl piston sekmanmühtelim işler listede mevcutür ücreti 55.000tl kk 55.000tl ","not":"","fotolar":[]},{"id":"a20f49d8b5b","aracId":"a1e69a0021c","tur":"Yedek Parça","tarih":"2022-04-19","bitis":null,"km":"","maliyet":"1970","sonrakiKm":"","sonrakiTarih":"","detay":"19.04.2022 CAM DÜĞMESİ ISITMA BUJİSİ AMARTİSÖR KEPİ SOL ALT TABLA SOL Z ROTU SAĞ ROT BAŞI ŞANZUMAN ÜST TAKOZU VİRAJ LASTİĞİ DEĞİŞTİ GÜNEYDOĞU OTO 1970TL","not":"","fotolar":[]},{"id":"a92fc9a06d0","aracId":"a1e69a0021c","tur":"Yedek Parça","tarih":"2022-03-29","bitis":null,"km":"","maliyet":"1690","sonrakiKm":"","sonrakiTarih":"","detay":"29.03.2022 SU POMPASI KAYIS VİTES HALATI 1690TL GÜNEYDOĞU OTO","not":"","fotolar":[]},{"id":"a6fb4a5ac87","aracId":"a1e69a0021c","tur":"Yedek Parça","tarih":"2022-05-26","bitis":null,"km":"","maliyet":"","sonrakiKm":"","sonrakiTarih":"","detay":"26.05.2022 Debriyaj seti  Arka Silecek 1130 TlGüneydoğu Oto","not":"","fotolar":[]},{"id":"a89666a0989","aracId":"a1e69a0021c","tur":"Yedek Parça","tarih":"2022-11-30","bitis":null,"km":"","maliyet":"","sonrakiKm":"","sonrakiTarih":"","detay":"30.11.2022 ŞARJ DİNAMO KASNAĞI SOL TABLA KARTER ZİNCİR KAPAK CONTASI AKS KEÇESİ AYN CAMI FİORİNO VURUSA 2840 GÜN OTO","not":"","fotolar":[]},{"id":"ab3ea38329c","aracId":"a1e69a0021c","tur":"Yedek Parça","tarih":"2023-05-05","bitis":null,"km":"","maliyet":"5500","sonrakiKm":"","sonrakiTarih":"","detay":"05,05,2023 KRANK KAYNAĞI YAĞ POMPASI POMPA CONTASI KARTER LOKTAYT 5500 TL GÜN OTO","not":"","fotolar":[]},{"id":"a02aaef1cb4","aracId":"a1e69a0021c","tur":"Yedek Parça","tarih":"2023-06-09","bitis":null,"km":"","maliyet":"350","sonrakiKm":"","sonrakiTarih":"","detay":"09,06,2023 ÖN BALATA 350 TL","not":"","fotolar":[]},{"id":"abd72025559","aracId":"a1e69a0021c","tur":"Yedek Parça","tarih":"2023-09-02","bitis":null,"km":"","maliyet":"5780","sonrakiKm":"","sonrakiTarih":"","detay":"02,09,2023 10 BLOK TAPASI SU BORUSU MOTOR TAKOZU GERGİ BİLYASI TAKIM JANT 5780TL GÜN OTO","not":"","fotolar":[]},{"id":"ab190d21c3f","aracId":"a1e69a0021c","tur":"Yedek Parça","tarih":"2023-12-01","bitis":null,"km":"","maliyet":"2630","sonrakiKm":"","sonrakiTarih":"","detay":"01.12.2023 DEBİMETRE ÖN ABS KABLOSU 2630 TL GÜN OTO","not":"","fotolar":[]},{"id":"adf13d9990b","aracId":"a1e69a0021c","tur":"Yedek Parça","tarih":"2024-07-16","bitis":null,"km":"","maliyet":"5200","sonrakiKm":"","sonrakiTarih":"","detay":"16.07.2024 DEBRİYAJ SETİ KANALLI KAYIŞ GERGİ RULMANI ŞANZIMAN TAKOZU 5200 TL GÜN OTO","not":"","fotolar":[]},{"id":"ae698e7a302","aracId":"a1e69a0021c","tur":"Bakım","tarih":"2021-10-30","bitis":null,"km":"100500","maliyet":"2720","sonrakiKm":"","sonrakiTarih":"","detay":"30,10,2021 100500 km yağ fılıtres hava fılıtresı polen fılıtresı turbo tamırı dpf temızleme sprey ıscılık 2720 tl damla oto","not":"","fotolar":[]},{"id":"a66ccc7ac5d","aracId":"a1e69a0021c","tur":"Bakım","tarih":"2022-09-07","bitis":null,"km":"120290","maliyet":"","sonrakiKm":"","sonrakiTarih":"","detay":"07.09.2022 120290km yağ,hava,polen filtresi değişti balatalar temizlendi damla oto","not":"","fotolar":[]},{"id":"ae7d8d0e819","aracId":"a1e69a0021c","tur":"Bakım","tarih":"2020-01-01","bitis":null,"km":"","maliyet":"","sonrakiKm":"","sonrakiTarih":"","detay":"31.04.2023 bakım yapıldı","not":"","fotolar":[]},{"id":"a3cbb76b16e","aracId":"a1e69a0021c","tur":"Bakım","tarih":"2023-05-01","bitis":null,"km":"","maliyet":"","sonrakiKm":"","sonrakiTarih":"","detay":"130.000 01.05.2023Yağ filtresi hava filtresi polen filtresi değiştirildi","not":"","fotolar":[]},{"id":"acbbd45cfe8","aracId":"a1e69a0021c","tur":"Bakım","tarih":"2024-05-10","bitis":null,"km":"","maliyet":"","sonrakiKm":"","sonrakiTarih":"","detay":"10,05,2024 145.000 bakım yapıldı yağ.yfiltre.hava,polen filtresi değişti.","not":"","fotolar":[]},{"id":"ad73ef02d86","aracId":"a1e69a0021c","tur":"Bakım","tarih":"2025-04-25","bitis":null,"km":"164558","maliyet":"3750","sonrakiKm":"","sonrakiTarih":"","detay":"25.04.2025-164558 km bakım yapıldı altun kardeşler peryodık bakım c suyu temz sprey polen, yakıt f hava flt, yağ flt, yağ 4 lt 3750 tl.","not":"","fotolar":[]},{"id":"ae83d715a7e","aracId":"acd30014532","tur":"Fenni Muayene","tarih":"2025-05-27","bitis":"2025-05-27","km":"","maliyet":"","sonrakiKm":"","sonrakiTarih":"","detay":"27.05.2025 yapıldı","not":"","fotolar":[]},{"id":"a768ff53a5c","aracId":"acd30014532","tur":"Egzoz Muayenesi","tarih":"2025-05-27","bitis":"2025-05-27","km":"","maliyet":"","sonrakiKm":"","sonrakiTarih":"","detay":"27.05.2025 yapıldı","not":"","fotolar":[]},{"id":"a152d7e70f3","aracId":"acd30014532","tur":"Trafik Sigortası","tarih":"2026-04-30","bitis":"2026-04-30","km":"","maliyet":"","sonrakiKm":"","sonrakiTarih":"","detay":"son tarih 30.04.2026 k.keskin","not":"","fotolar":[]},{"id":"a6b5c9d6826","aracId":"acd30014532","tur":"Kasko","tarih":"2026-05-06","bitis":"2026-05-06","km":"","maliyet":"","sonrakiKm":"","sonrakiTarih":"","detay":"son tarih 06,05,2026 eureko","not":"","fotolar":[]},{"id":"ae14179f2d1","aracId":"acd30014532","tur":"Onarım","tarih":"2022-05-19","bitis":null,"km":"","maliyet":"100","sonrakiKm":"","sonrakiTarih":"","detay":"19.05.2022 TURBO HORTUMU DEĞİŞTİRİLDİ 100 TL DAMLA OTO İŞÇİLİK","not":"","fotolar":[]},{"id":"ac44b4d4f72","aracId":"acd30014532","tur":"Onarım","tarih":"2022-12-01","bitis":null,"km":"","maliyet":"","sonrakiKm":"","sonrakiTarih":"","detay":"01.12.2022 İŞÇİLİK DAMLA OTO 400","not":"","fotolar":[]},{"id":"a68cf27c056","aracId":"acd30014532","tur":"Onarım","tarih":"2023-05-03","bitis":null,"km":"","maliyet":"750","sonrakiKm":"","sonrakiTarih":"","detay":"03.05.2023 SAĞ SOL AMÖRTİSÖR TAKOZU ROT KOLU ŞANZUMAN ALT TAKOZU DEĞİŞTİRİLDİ DAMLA OTO 750 TLİŞÇİLİK","not":"","fotolar":[]},{"id":"aa53f3bc15a","aracId":"acd30014532","tur":"Onarım","tarih":"2024-03-16","bitis":null,"km":"","maliyet":"33000","sonrakiKm":"","sonrakiTarih":"","detay":"16.03.2024ENJEKTÖR FİLTRELER 3 BUJİ ŞANZUMAN ALT TAKOZ  ÖN DİSK FREN AYNASI EGR BOSCH CAR 33000TL","not":"","fotolar":[]},{"id":"a399e0ab21e","aracId":"acd30014532","tur":"Onarım","tarih":"2024-08-07","bitis":null,"km":"","maliyet":"12000","sonrakiKm":"","sonrakiTarih":"","detay":"07.08.2024 partikül turbo onarıldı 12000 tl ödendi damla oto","not":"","fotolar":[]},{"id":"a1ce8471e5f","aracId":"acd30014532","tur":"Yedek Parça","tarih":"2022-05-19","bitis":null,"km":"","maliyet":"200","sonrakiKm":"","sonrakiTarih":"","detay":"19.05.2022 200TL ÖZTOPRAK HORTUM ALINDI","not":"","fotolar":[]},{"id":"a4cecc9dca6","aracId":"acd30014532","tur":"Yedek Parça","tarih":"2022-08-15","bitis":null,"km":"","maliyet":"","sonrakiKm":"","sonrakiTarih":"","detay":"15.08.2022 72Ah Akü 1000 Tl  Günd. Oto","not":"","fotolar":[]},{"id":"a4389c38b13","aracId":"acd30014532","tur":"Yedek Parça","tarih":"2022-12-01","bitis":null,"km":"","maliyet":"1370","sonrakiKm":"","sonrakiTarih":"","detay":"01.12.2022 ALT TABLA 1 DIŞ AKS KÖRÜĞÜ 1370 tl GÜN OTO","not":"","fotolar":[]},{"id":"a084a3f82b0","aracId":"acd30014532","tur":"Yedek Parça","tarih":"2020-01-01","bitis":null,"km":"","maliyet":"","sonrakiKm":"","sonrakiTarih":"","detay":"SİLECEK GÜN OTO 260","not":"","fotolar":[]},{"id":"abac398ef51","aracId":"acd30014532","tur":"Yedek Parça","tarih":"2023-05-03","bitis":null,"km":"","maliyet":"","sonrakiKm":"","sonrakiTarih":"","detay":"03.05.2023 SAĞ SOL AMÖRTİSÖR TAKOZU ROT KOLU ŞANZUMAN ALT TAKOZU gün oto","not":"","fotolar":[]},{"id":"a68f2cddea1","aracId":"acd30014532","tur":"Yedek Parça","tarih":"2024-03-16","bitis":null,"km":"","maliyet":"33000","sonrakiKm":"","sonrakiTarih":"","detay":"16.03.2024ENJEKTÖR FİLTRELER 3 BUJİ ŞANZUMAN ALT TAKOZ  ÖN DİSK FREN AYNASI EGR BOSCH CAR 33000TL","not":"","fotolar":[]},{"id":"a467114fbc1","aracId":"acd30014532","tur":"Bakım","tarih":"2021-04-09","bitis":null,"km":"80982","maliyet":"2265","sonrakiKm":"","sonrakiTarih":"","detay":"09,04,2021 80982 KM BAKIM YAPILDI DEBRIYAJ SETI VE BAKIM KPL YAPILDI 2265 TL SERVISE ODENDI","not":"","fotolar":[]},{"id":"afd8d6f937a","aracId":"acd30014532","tur":"Bakım","tarih":"2022-03-31","bitis":null,"km":"91466","maliyet":"620","sonrakiKm":"","sonrakiTarih":"","detay":"31.03.2022 91.466 KM BAKIM YAPILDI DAMLA OTO YAĞ,HAVA,POLEN FİLTRESİ DEĞİŞTİ 620TL DAMLA OTO","not":"","fotolar":[]},{"id":"a173edfd155","aracId":"acd30014532","tur":"Bakım","tarih":"2023-01-17","bitis":null,"km":"","maliyet":"","sonrakiKm":"","sonrakiTarih":"","detay":"17.01.2023 104.000 FİLTRE BAKIM YAPILDI","not":"","fotolar":[]},{"id":"ac4cf887962","aracId":"acd30014532","tur":"Bakım","tarih":"2024-01-19","bitis":null,"km":"123000","maliyet":"","sonrakiKm":"","sonrakiTarih":"","detay":"19.01.2024 123000KM KM BAKIM YAPILDI BOSCH CAR","not":"","fotolar":[]},{"id":"ae2f314d843","aracId":"acd30014532","tur":"Bakım","tarih":"2024-05-28","bitis":null,"km":"125000","maliyet":"1875","sonrakiKm":"","sonrakiTarih":"","detay":"28,05,2024- 125000 km bakım yapıldı .motor yağı ve yağ filtresi-damla auto 1875 tl","not":"","fotolar":[]},{"id":"a8d9fb97015","aracId":"a804d973817","tur":"Fenni Muayene","tarih":"2022-07-06","bitis":"2022-07-06","km":"","maliyet":"","sonrakiKm":"","sonrakiTarih":"","detay":"son tarih:06.07.2022 de yapıldı bir daha ki muayene 06.07.2024","not":"","fotolar":[]},{"id":"ac02a196d6a","aracId":"a804d973817","tur":"Egzoz Muayenesi","tarih":"2022-07-06","bitis":"2022-07-06","km":"","maliyet":"","sonrakiKm":"","sonrakiTarih":"","detay":"son tarih:06.07.2022 de yapıldı bir daha ki pul 06.07.2024","not":"","fotolar":[]},{"id":"a42ee681f11","aracId":"a804d973817","tur":"Onarım","tarih":"2024-02-16","bitis":null,"km":"","maliyet":"5000","sonrakiKm":"","sonrakiTarih":"","detay":"16,02,2024 msa otomotiv 4 balata 2 disk değiştirildi 5000 tl ödendi","not":"","fotolar":[]},{"id":"a25dea13104","aracId":"adaa8451f3a","tur":"Fenni Muayene","tarih":"2027-05-10","bitis":"2027-05-10","km":"","maliyet":"","sonrakiKm":"","sonrakiTarih":"","detay":"son tarih:10/05/2027","not":"","fotolar":[]},{"id":"a224fb6900c","aracId":"adaa8451f3a","tur":"Egzoz Muayenesi","tarih":"2027-05-10","bitis":"2027-05-10","km":"","maliyet":"","sonrakiKm":"","sonrakiTarih":"","detay":"son tarih:10/05/2027","not":"","fotolar":[]},{"id":"a1cd9b7eb7a","aracId":"adaa8451f3a","tur":"Trafik Sigortası","tarih":"2026-01-03","bitis":"2026-01-03","km":"","maliyet":"7588","sonrakiKm":"","sonrakiTarih":"","detay":"TÜRKİYE SİGORTA 03.01.2026- 7588 TL BAYRAM","not":"","fotolar":[]},{"id":"a81a2f2a75a","aracId":"adaa8451f3a","tur":"Kasko","tarih":"2026-01-03","bitis":"2026-01-03","km":"","maliyet":"18330","sonrakiKm":"","sonrakiTarih":"","detay":"TÜRKİYE SİGORTA -03.01.2026 BİTİŞ TARIHI -18.330 TLBAYRAM KESKIN","not":"","fotolar":[]},{"id":"a448e7be41e","aracId":"adaa8451f3a","tur":"Yedek Parça","tarih":"2025-06-24","bitis":null,"km":"","maliyet":"5500","sonrakiKm":"","sonrakiTarih":"","detay":"24.06.2025 BOSCH MARKA AKÜ NIZAM USTADA DEĞİŞTİ 5500TL ÖDENDİ","not":"","fotolar":[]},{"id":"aead6ae0ba9","aracId":"adaa8451f3a","tur":"Bakım","tarih":"2024-06-24","bitis":null,"km":"","maliyet":"10850","sonrakiKm":"","sonrakiTarih":"","detay":"BAKIM YAĞ FILITRESI  24.06.2024.82828 KM (TREGEL KAYIŞ YAKIT FILITRESI KAYITTA YOK). DEVIR DAYIM POMPASI UCRETLI DEGISTI 10,850.TL ÖDENDİ","not":"","fotolar":[]},{"id":"ac178e8873a","aracId":"adaa8451f3a","tur":"Bakım","tarih":"2025-06-24","bitis":null,"km":"98609","maliyet":"10000","sonrakiKm":"","sonrakiTarih":"","detay":"(24.06.2025 98609 KM BAKIM  YAPILDI POLEN YAĞ HAVA FILITRESI BAKIM 4500TL) 2 AD ILAÇLI JENERASYON PARTÜKÜL TEMIZLEME 5500TL TOPLAM 10.000TL ÖDENDİ","not":"","fotolar":[]},{"id":"aef94cd6ba4","aracId":"a85ad903759","tur":"Onarım","tarih":"2022-03-22","bitis":null,"km":"","maliyet":"3300","sonrakiKm":"","sonrakiTarih":"","detay":"22.03.2022 motorcu murat 6*550:3300 tl(akü)","not":"","fotolar":[]},{"id":"ab6ed8db8b3","aracId":"a85ad903759","tur":"Yedek Parça","tarih":"2022-03-22","bitis":null,"km":"","maliyet":"","sonrakiKm":"","sonrakiTarih":"","detay":"22.03.2022motorcu murat 6 ad akü değişti","not":"","fotolar":[]},{"id":"a25307b7096","aracId":"a85ad903759","tur":"Yedek Parça","tarih":"2022-03-22","bitis":null,"km":"","maliyet":"200","sonrakiKm":"","sonrakiTarih":"","detay":"22.03.2022 motorcu murat tampon, basamak değiştirildi 200tl","not":"","fotolar":[]}]};
+let state = JSON.parse(localStorage.getItem('arac_takip_cache') || '{"araclar":[],"islemler":[]}');
+let currentAracId = null;
+let API_URL = localStorage.getItem('arac_takip_api_url') || '';
+let GEMINI_KEY = localStorage.getItem('arac_takip_gemini_key') || '';
+let isOnline = false;
+let pendingSync = false;
+
+function save() {
+  localStorage.setItem('arac_takip_cache', JSON.stringify(state));
+}
+function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2,6); }
+
+function setSyncStatus(text, color) {
+  const el = document.getElementById('sync-status');
+  if (el) { el.textContent = text; el.style.color = color || 'var(--muted)'; }
+}
+
+function showLoading(text) {
+  document.getElementById('loading-text').textContent = text || 'Yükleniyor...';
+  document.getElementById('loading-overlay').style.display = 'flex';
+}
+function hideLoading() {
+  document.getElementById('loading-overlay').style.display = 'none';
+}
+
+async function apiCall(action, data, useGet) {
+  if (!API_URL) return null;
+  try {
+    if (useGet) {
+      const res = await fetch(API_URL + '?action=' + action, { method: 'GET' });
+      return await res.json();
+    } else {
+      const res = await fetch(API_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain' },
+        body: JSON.stringify({ action, ...data })
+      });
+      return await res.json();
+    }
+  } catch (err) {
+    console.error('API hatası:', err);
+    return { error: err.toString() };
+  }
+}
+
+async function loadFromCloud(silent) {
+  if (!API_URL) { setSyncStatus('☁️ Bağlı değil', 'var(--muted)'); return; }
+  if (!silent) showLoading('Google Sheets\'ten veriler yükleniyor...');
+  setSyncStatus('🔄 Senkronize ediliyor...', 'var(--warn)');
+  const result = await apiCall('getAll', null, true);
+  if (!silent) hideLoading();
+  if (!result || result.error) {
+    setSyncStatus('⚠️ Bağlantı hatası', 'var(--danger)');
+    isOnline = false;
+    return false;
+  }
+  state.araclar = (result.araclar || []).map(a => ({ ...a, id: String(a.id) }));
+  state.islemler = (result.islemler || []).map(i => ({ ...i, id: String(i.id), aracId: String(i.aracId) }));
+  save();
+  isOnline = true;
+  setSyncStatus('✅ Senkron — ' + new Date().toLocaleTimeString('tr-TR', {hour:'2-digit',minute:'2-digit'}), 'var(--success)');
+  return true;
+}
+
+async function syncArac(data) {
+  if (!API_URL) return;
+  setSyncStatus('🔄 Kaydediliyor...', 'var(--warn)');
+  const result = await apiCall('saveArac', { data });
+  if (result && !result.error) setSyncStatus('✅ Kaydedildi', 'var(--success)');
+  else setSyncStatus('⚠️ Senkron hatası — yerelde saklı', 'var(--danger)');
+}
+async function syncDeleteArac(id) {
+  if (!API_URL) return;
+  await apiCall('deleteArac', { id });
+}
+async function syncIslem(data) {
+  if (!API_URL) return;
+  setSyncStatus('🔄 Kaydediliyor...', 'var(--warn)');
+  const result = await apiCall('saveIslem', { data });
+  if (result && !result.error) setSyncStatus('✅ Kaydedildi', 'var(--success)');
+  else setSyncStatus('⚠️ Senkron hatası — yerelde saklı', 'var(--danger)');
+}
+async function syncDeleteIslem(id) {
+  if (!API_URL) return;
+  await apiCall('deleteIslem', { id });
+}
+
+function showPage(name, btn) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById('page-' + name).classList.add('active');
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  if (name === 'hatirlatmalar') renderHatirlatmalar();
+  if (name === 'islemler') renderTumIslemler();
+  if (name === 'araclar') renderAraclar();
+  closeMobileSidebar();
+}
+
+// SIDEBAR / MOBİL MENÜ
+function toggleSidebar() {
+  document.getElementById('sidebar').classList.toggle('collapsed');
+}
+function openMobileSidebar() {
+  document.getElementById('sidebar').classList.add('mobile-open');
+  document.getElementById('sidebar-overlay').classList.add('open');
+}
+function closeMobileSidebar() {
+  document.getElementById('sidebar').classList.remove('mobile-open');
+  document.getElementById('sidebar-overlay').classList.remove('open');
+}
+
+// AI PANEL (açılır panel)
+function toggleAiPanel(force) {
+  const panel = document.getElementById('ai-panel');
+  const shouldOpen = force !== undefined ? force : !panel.classList.contains('open');
+  panel.classList.toggle('open', shouldOpen);
+  document.querySelectorAll('.ai-toggle-btn').forEach(b => b.classList.toggle('active', shouldOpen));
+  if (shouldOpen) {
+    document.getElementById('asistan-key-uyari').style.display = GEMINI_KEY ? 'none' : 'block';
+  }
+}
+
+let aiSuggestionsHidden = false;
+function hideAiSuggestions() {
+  document.getElementById('ai-suggestions-box').style.display = 'none';
+  document.getElementById('ai-reopen-row').classList.add('show');
+  aiSuggestionsHidden = true;
+}
+function showAiSuggestions() {
+  document.getElementById('ai-suggestions-box').style.display = 'block';
+  document.getElementById('ai-reopen-row').classList.remove('show');
+  aiSuggestionsHidden = false;
+}
+
+// tarih diff
+function gunFark(tarihStr) {
+  if (!tarihStr) return null;
+  const t = new Date(tarihStr); t.setHours(0,0,0,0);
+  const bugun = new Date(); bugun.setHours(0,0,0,0);
+  return Math.floor((t - bugun) / 86400000);
+}
+function formatTarih(str) {
+  if (!str) return '-';
+  const [y,m,d] = str.split('-');
+  return `${d}.${m}.${y}`;
+}
+function statusClass(gun) {
+  if (gun === null) return '';
+  if (gun < 0) return 'danger';
+  if (gun <= 30) return 'warn';
+  return 'ok';
+}
+
+// ARAÇLAR
+// EKSİK BİLGİ TESPİTİ
+function getAracEksikler(a) {
+  const eksikler = [];
+  const tarihler = getAracTarihler(a.id);
+  tarihler.forEach(t => {
+    if (!t.bitis) { eksikler.push(`${t.ad} kaydı yok`); return; }
+    const gun = gunFark(t.bitis);
+    if (gun < 0) eksikler.push(`${t.ad} süresi doldu`);
+  });
+  if (!a.kullanici || !a.kullanici.trim()) eksikler.push('Araç kullanıcısı girilmemiş');
+  if (!a.km) eksikler.push('Güncel KM girilmemiş');
+  return eksikler;
+}
+
+function renderAraclar() {
+  const grid = document.getElementById('arac-grid');
+  const empty = document.getElementById('arac-empty');
+  if (!state.araclar.length) { grid.innerHTML = ''; empty.style.display = 'block'; return; }
+  empty.style.display = 'none';
+  grid.innerHTML = state.araclar.map(a => {
+    const tarihler = getAracTarihler(a.id);
+    const badges = tarihler.filter(t => t.bitis).map(t => {
+      const gun = gunFark(t.bitis);
+      const cls = statusClass(gun);
+      const label = gun < 0 ? `${t.ad} süresi doldu` : gun <= 30 ? `${t.ad} – ${gun}g` : '';
+      return cls !== 'ok' && cls ? `<span class="badge ${cls}">${label}</span>` : '';
+    }).filter(Boolean).join('');
+    const eksikler = getAracEksikler(a);
+    return `<div class="arac-card ${eksikler.length ? 'eksik-var' : ''}" onclick="showDetay('${a.id}')">
+      ${eksikler.length ? `<span class="eksik-rozet" title="${eksikler.join(', ')}">⚠ ${eksikler.length}</span>` : ''}
+      <div class="plaka">${a.plaka}${a.tip === 'Motosiklet' ? ' 🏍️' : ''}</div>
+      <div class="model">${a.model}${a.yil ? ' · ' + a.yil : ''}</div>
+      <div class="badges">${badges || '<span class="badge ok">Tümü geçerli</span>'}</div>
+      ${a.kullanici ? `<div class="km-info">👤 ${a.kullanici}</div>` : ''}
+      ${a.km ? `<div class="km-info">📏 ${Number(a.km).toLocaleString('tr-TR')} km</div>` : ''}
+    </div>`;
+  }).join('');
+  updateBadge();
+}
+
+function getAracTarihler(aracId) {
+  const turler = ['Fenni Muayene','Egzoz Muayenesi','Trafik Sigortası','Kasko','Bakım'];
+  const map = {};
+  state.islemler.filter(i => i.aracId === aracId && i.bitis).sort((a,b) => a.bitis > b.bitis ? 1 : -1).forEach(i => { map[i.tur] = i; });
+  return turler.map(tur => {
+    const i = map[tur];
+    return { ad: tur, baslangic: i ? i.tarih : null, bitis: i ? i.bitis : null, islem: i };
+  });
+}
+
+function showDetay(aracId) {
+  currentAracId = aracId;
+  const a = state.araclar.find(x => x.id === aracId);
+  if (!a) return;
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById('page-detay').classList.add('active');
+  renderDetay(a);
+}
+
+function renderDetay(a) {
+  const tarihler = getAracTarihler(a.id);
+  const islemler = state.islemler.filter(i => i.aracId === a.id).sort((x,y) => y.tarih > x.tarih ? 1 : -1);
+  const fotoIslem = state.islemler.filter(i => i.aracId === a.id && i.fotolar && i.fotolar.length);
+  const tumFotolar = [];
+  fotoIslem.forEach(i => i.fotolar.forEach(f => tumFotolar.push(f)));
+  const anaFoto = a.anaFoto || (tumFotolar.length ? tumFotolar[0] : null);
+  const eksikler = getAracEksikler(a);
+
+  document.getElementById('detay-icerik').innerHTML = `
+    ${eksikler.length ? `
+    <div class="detay-eksik-uyari">
+      <span class="ico">⚠️</span>
+      <div>
+        <div style="font-weight:600">Bu araçta eksik/dikkat gerektiren bilgiler var</div>
+        <ul>${eksikler.map(e => `<li>${e}</li>`).join('')}</ul>
+      </div>
+    </div>` : ''}
+    <div class="detail-head">
+      <div class="detail-photo" onclick="triggerFotoUpload('${a.id}')" title="Fotoğraf eklemek için tıkla">
+        ${anaFoto ? `<img src="${anaFoto}" alt="">` : '📷'}
+      </div>
+      <div class="detail-info">
+        <div class="detail-plaka">${a.plaka}${a.tip === 'Motosiklet' ? ' 🏍️' : ''}</div>
+        <div class="detail-model">${a.model}${a.yil ? ' · ' + a.yil : ''}</div>
+        ${a.kullanici ? `<div class="detail-km">👤 ${a.kullanici}</div>` : ''}
+        ${a.km ? `<div class="detail-km">📏 ${Number(a.km).toLocaleString('tr-TR')} km</div>` : ''}
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-left:auto">
+        <button class="btn outline" onclick="editArac('${a.id}')">✏️ Düzenle</button>
+        <button class="btn outline" onclick="openKmModal('${a.id}')">📏 KM Güncelle</button>
+        <button class="btn" onclick="openIslemModal('${a.id}')">+ İşlem Ekle</button>
+        <button class="btn danger" onclick="silArac('${a.id}')">Sil</button>
+      </div>
+    </div>
+
+    <div class="tabs">
+      <button class="tab active" onclick="switchTab('tarihler',this)">📅 Tarihler</button>
+      <button class="tab" onclick="switchTab('islemler',this)">🔧 İşlem Geçmişi</button>
+      <button class="tab" onclick="switchTab('gorseller',this)">🖼️ Görseller</button>
+    </div>
+
+    <div class="tab-content active" id="tab-tarihler">
+      <div class="date-table-wrap">
+      <table class="date-table">
+        <thead><tr><th>Belge</th><th>Başlangıç</th><th>Bitiş Tarihi</th><th>Durum</th></tr></thead>
+        <tbody>
+        ${tarihler.map(t => {
+          const gun = gunFark(t.bitis);
+          const cls = t.bitis ? statusClass(gun) : '';
+          const durum = !t.bitis ? '<span style="color:var(--muted)">Kayıt yok</span>' :
+            gun < 0 ? `<span class="badge danger">Süresi doldu (${Math.abs(gun)} gün önce)</span>` :
+            gun === 0 ? `<span class="badge danger">Bugün bitiyor!</span>` :
+            gun <= 30 ? `<span class="badge warn">${gun} gün kaldı</span>` :
+            `<span class="badge ok">${gun} gün kaldı</span>`;
+          return `<tr>
+            <td><span class="status-dot ${cls}"></span>${t.ad}</td>
+            <td style="color:var(--muted)">${t.baslangic ? formatTarih(t.baslangic) : '-'}</td>
+            <td>${formatTarih(t.bitis)}</td>
+            <td>${durum}</td>
+          </tr>`;
+        }).join('')}
+        </tbody>
+      </table>
+      </div>
+      ${a.not ? `<div style="margin-top:1rem;padding:0.75rem;background:var(--bg3);border-radius:var(--radius-sm);font-size:13px;color:var(--muted)">${a.not}</div>` : ''}
+    </div>
+
+    <div class="tab-content" id="tab-islemler">
+      ${islemler.length ? `<input id="detay-islem-arama" placeholder="İşlem türü, parça, detay veya not ara..." style="margin-bottom:1rem" oninput="filtreDetayIslemler('${a.id}')">` : ''}
+      <div id="detay-islem-list">
+        ${islemler.length ? islemler.map(i => islemItemHTML(i)).join('') : '<div class="empty-state"><div class="empty-icon">🔧</div><div>Henüz işlem kaydı yok</div></div>'}
+      </div>
+    </div>
+
+    <div class="tab-content" id="tab-gorseller">
+      <div class="photo-upload-area" onclick="document.getElementById('foto-input-bulk').click()">
+        <input type="file" id="foto-input-bulk" accept="image/*" multiple onchange="uploadFotoBulk(event,'${a.id}')">
+        <div style="font-size:32px;margin-bottom:8px">📷</div>
+        <div style="font-size:13px;color:var(--muted)">Fotoğraf yüklemek için tıklayın veya sürükleyin</div>
+        <div style="font-size:11px;color:var(--muted);margin-top:4px">İlk fotoğraf araç kartında görünür</div>
+      </div>
+      <div class="photo-preview-grid" id="foto-grid" style="margin-top:1rem">
+        ${tumFotolar.map((f,idx) => `<img class="photo-thumb" src="${f}" onclick="buyukGoster('${f}')" title="${idx===0?'Ana fotoğraf':''}"`+`${idx===0?'style="border:2px solid var(--accent)"':''+""}>`).join('')}
+      </div>
+    </div>
+  `;
+  input_foto = document.getElementById('foto-input-main');
+}
+
+function islemItemHTML(i) {
+  return `
+    <div class="islem-item">
+      <div class="islem-item-head">
+        <div>
+          <span class="islem-tur">${i.tur}</span>
+          ${i.bitis ? `<span style="font-size:11px;color:var(--muted);margin-left:8px">Bitiş: ${formatTarih(i.bitis)}</span>` : ''}
+        </div>
+        <div style="display:flex;gap:6px;align-items:center">
+          <span class="islem-tarih">${formatTarih(i.tarih)}</span>
+          <button class="btn outline" style="padding:2px 8px;font-size:11px" onclick="editIslem('${i.id}')">✏️</button>
+          <button class="btn danger" style="padding:2px 8px;font-size:11px" onclick="silIslem('${i.id}')">🗑️</button>
+        </div>
+      </div>
+      ${i.km ? `<div class="islem-km">📏 ${Number(i.km).toLocaleString('tr-TR')} km'de yapıldı${i.sonrakiKm ? ` → Sonraki: ${Number(i.sonrakiKm).toLocaleString('tr-TR')} km` : ''}</div>` : ''}
+      ${i.sonrakiTarih ? `<div class="islem-km">📅 Sonraki bakım: ${formatTarih(i.sonrakiTarih)}</div>` : ''}
+      ${i.detay ? `<div class="islem-detay">${i.detay}</div>` : ''}
+      ${i.not ? `<div style="font-size:12px;color:var(--muted);margin-top:4px">${i.not}</div>` : ''}
+      ${i.maliyet ? `<div class="islem-maliyet">💰 ${Number(i.maliyet).toLocaleString('tr-TR')} ₺</div>` : ''}
+      ${i.fotolar && i.fotolar.length ? `<div class="photo-preview-grid" style="margin-top:8px">${i.fotolar.map(f => `<img class="photo-thumb" src="${f}" onclick="buyukGoster('${f}')">`).join('')}</div>` : ''}
+    </div>`;
+}
+
+function filtreDetayIslemler(aracId) {
+  const terim = (document.getElementById('detay-islem-arama').value || '').trim().toLocaleLowerCase('tr-TR');
+  let islemler = state.islemler.filter(i => i.aracId === aracId).sort((x,y) => y.tarih > x.tarih ? 1 : -1);
+  if (terim) {
+    islemler = islemler.filter(i => {
+      const hay = [i.tur, i.detay, i.not, i.tarih, i.bitis].filter(Boolean).join(' ').toLocaleLowerCase('tr-TR');
+      return hay.includes(terim);
+    });
+  }
+  const list = document.getElementById('detay-islem-list');
+  list.innerHTML = islemler.length
+    ? islemler.map(i => islemItemHTML(i)).join('')
+    : '<div class="empty-state"><div class="empty-icon">🔍</div><div>Eşleşen işlem bulunamadı</div></div>';
+}
+
+function switchTab(name, btn) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('tab-' + name).classList.add('active');
+}
+
+function fileToBase64(file) {
+  return new Promise((resolve, reject) => {
+    const r = new FileReader();
+    r.onload = () => resolve(r.result);
+    r.onerror = reject;
+    r.readAsDataURL(file);
+  });
+}
+
+async function uploadToDrive(file) {
+  const base64 = await fileToBase64(file);
+  if (!API_URL) return base64; // API bağlı değilse yerel base64 kullan (sadece bu tarayıcıda görünür)
+  const result = await apiCall('uploadFoto', { data: { base64, fileName: file.name, mimeType: file.type } });
+  if (result && result.url) return result.url;
+  return base64; // yükleme başarısız olursa yerel olarak sakla
+}
+
+async function triggerFotoUpload(aracId) {
+  const inp = document.createElement('input');
+  inp.type = 'file'; inp.accept = 'image/*';
+  inp.onchange = async e => {
+    const f = e.target.files[0]; if (!f) return;
+    showLoading('Fotoğraf yükleniyor...');
+    const url = await uploadToDrive(f);
+    hideLoading();
+    const a = state.araclar.find(x => x.id === aracId);
+    if (a) { a.anaFoto = url; save(); renderDetay(a); syncArac(a); }
+  };
+  inp.click();
+}
+
+async function uploadFotoBulk(event, aracId) {
+  const files = Array.from(event.target.files);
+  if (!files.length) return;
+  const a = state.araclar.find(x => x.id === aracId);
+  showLoading(`0/${files.length} fotoğraf yükleniyor...`);
+  const newFotos = [];
+  for (let i = 0; i < files.length; i++) {
+    document.getElementById('loading-text').textContent = `${i+1}/${files.length} fotoğraf yükleniyor...`;
+    const url = await uploadToDrive(files[i]);
+    newFotos.push(url);
+  }
+  hideLoading();
+  if (!a.anaFoto && newFotos.length) { a.anaFoto = newFotos[0]; syncArac(a); }
+  // Görseller sekmesindeki ilk yükleme için genel bir islem kaydı oluştur
+  const islem = { id: uid(), aracId, tur: 'Bakım', tarih: new Date().toISOString().slice(0,10), fotolar: newFotos, detay: 'Fotoğraf yüklendi', km: '', maliyet: '', bitis: '', sonrakiKm: '', sonrakiTarih: '', not: '' };
+  state.islemler.push(islem);
+  save(); renderDetay(a);
+  syncIslem(islem);
+}
+
+function buyukGoster(src) {
+  document.getElementById('foto-buyuk').src = src;
+  document.getElementById('foto-modal').classList.add('open');
+}
+
+// ARAÇ KAYIT
+function openAracModal(id) {
+  document.getElementById('arac-edit-id').value = id || '';
+  document.getElementById('arac-modal-title').textContent = id ? 'Araç Düzenle' : 'Araç Ekle';
+  if (id) {
+    const a = state.araclar.find(x => x.id === id);
+    document.getElementById('inp-plaka').value = a.plaka;
+    document.getElementById('inp-model').value = a.model;
+    document.getElementById('inp-km').value = a.km || '';
+    document.getElementById('inp-yil').value = a.yil || '';
+    document.getElementById('inp-tip').value = a.tip || 'Otomobil';
+    document.getElementById('inp-kullanici').value = a.kullanici || '';
+    document.getElementById('inp-telefon').value = a.telefon || '';
+    document.getElementById('inp-not').value = a.not || '';
+  } else {
+    ['inp-plaka','inp-model','inp-km','inp-yil','inp-kullanici','inp-telefon','inp-not'].forEach(id => document.getElementById(id).value = '');
+    document.getElementById('inp-tip').value = 'Otomobil';
+  }
+  document.getElementById('arac-modal').classList.add('open');
+}
+function editArac(id) { openAracModal(id); }
+
+function saveArac() {
+  const plaka = document.getElementById('inp-plaka').value.trim().toUpperCase();
+  const model = document.getElementById('inp-model').value.trim();
+  if (!plaka || !model) { alert('Plaka ve model zorunlu!'); return; }
+  const id = document.getElementById('arac-edit-id').value;
+  const data = { plaka, model, km: document.getElementById('inp-km').value, yil: document.getElementById('inp-yil').value, tip: document.getElementById('inp-tip').value, kullanici: document.getElementById('inp-kullanici').value, telefon: document.getElementById('inp-telefon').value, not: document.getElementById('inp-not').value };
+  let aracObj;
+  if (id) { aracObj = state.araclar.find(x => x.id === id); Object.assign(aracObj, data); }
+  else { aracObj = { id: uid(), anaFoto: '', ...data }; state.araclar.push(aracObj); }
+  save(); closeModal('arac-modal'); renderAraclar();
+  if (id && currentAracId === id) renderDetay(state.araclar.find(x => x.id === id));
+  syncArac(aracObj);
+}
+
+function silArac(id) {
+  if (!confirm('Bu araç ve tüm işlem kayıtları silinecek. Emin misiniz?')) return;
+  state.araclar = state.araclar.filter(x => x.id !== id);
+  state.islemler = state.islemler.filter(x => x.aracId !== id);
+  save(); showPage('araclar', document.querySelector('.nav-btn'));
+  syncDeleteArac(id);
+}
+
+// KM GÜNCELLEME
+function openKmModal(aracId) {
+  const a = state.araclar.find(x => x.id === aracId);
+  if (!a) return;
+  document.getElementById('km-arac-id').value = aracId;
+  document.getElementById('km-eski-deger').textContent = 'Mevcut: ' + (a.km ? Number(a.km).toLocaleString('tr-TR') + ' km' : 'Kayıt yok');
+  document.getElementById('inp-km-yeni').value = a.km || '';
+  document.getElementById('km-modal').classList.add('open');
+  setTimeout(() => document.getElementById('inp-km-yeni').focus(), 100);
+}
+
+function saveKm() {
+  const aracId = document.getElementById('km-arac-id').value;
+  const yeniKm = document.getElementById('inp-km-yeni').value;
+  if (!yeniKm) { alert('KM değeri girin!'); return; }
+  const a = state.araclar.find(x => x.id === aracId);
+  if (!a) return;
+  const eskiKm = a.km;
+  if (eskiKm && Number(yeniKm) < Number(eskiKm)) {
+    if (!confirm('Girdiğiniz KM mevcut değerden düşük. Yine de devam edilsin mi?')) return;
+  }
+  a.km = yeniKm;
+  save();
+  closeModal('km-modal');
+  renderAraclar();
+  if (currentAracId === aracId) renderDetay(a);
+  syncArac(a);
+}
+
+// İŞLEM BELGE (fatura/makbuz) YÖNETİMİ
+let islemBelgeGecici = [];
+
+function islemBelgeSec(event) {
+  const files = Array.from(event.target.files);
+  let loaded = 0;
+  if (!files.length) return;
+  const yeniGorseller = [];
+  files.forEach(f => {
+    const r = new FileReader();
+    r.onload = ev => {
+      islemBelgeGecici.push(ev.target.result);
+      yeniGorseller.push(ev.target.result);
+      loaded++;
+      if (loaded === files.length) {
+        renderIslemBelgePreview();
+        // Otomatik analiz: sadece tek görsel eklendiyse (en yaygın senaryo: bir fatura fotoğrafı)
+        if (GEMINI_KEY && yeniGorseller.length === 1) {
+          islemBelgeAnalizBaslat(yeniGorseller[0]);
+        }
+      }
+    };
+    r.readAsDataURL(f);
+  });
+  event.target.value = '';
+}
+
+async function islemBelgeAnalizBaslat(dataUrl) {
+  const preview = document.getElementById('islem-belge-preview');
+  const yukleniyor = document.createElement('div');
+  yukleniyor.id = 'ai-belge-yukleniyor';
+  yukleniyor.style.cssText = 'font-size:12px;color:var(--accent);margin-top:0.5rem;display:flex;align-items:center;gap:6px';
+  yukleniyor.textContent = '✨ Gemini belgeyi okuyor...';
+  preview.insertAdjacentElement('afterend', yukleniyor);
+  try {
+    const analiz = await islemBelgeAnalizEt(dataUrl);
+    yukleniyor.remove();
+    if (analiz) islemAnalizKartGoster(analiz, dataUrl);
+  } catch (e) {
+    yukleniyor.remove();
+    const hata = document.createElement('div');
+    hata.style.cssText = 'font-size:12px;color:var(--danger);margin-top:0.5rem';
+    hata.textContent = '⚠️ Belge otomatik okunamadı: ' + e.message + ' (Formu manuel doldurabilirsin)';
+    preview.insertAdjacentElement('afterend', hata);
+    setTimeout(() => hata.remove(), 6000);
+  }
+}
+
+function renderIslemBelgePreview() {
+  const grid = document.getElementById('islem-belge-preview');
+  grid.innerHTML = islemBelgeGecici.map((f, idx) => `
+    <div style="position:relative">
+      <img class="photo-thumb" src="${f}" onclick="buyukGoster('${f}')">
+      <button onclick="event.stopPropagation();islemBelgeSil(${idx})" style="position:absolute;top:4px;right:4px;background:rgba(0,0,0,0.65);border:none;color:#fff;border-radius:50%;width:20px;height:20px;font-size:12px;cursor:pointer;line-height:1">✕</button>
+    </div>
+  `).join('');
+}
+
+function islemBelgeSil(idx) {
+  islemBelgeGecici.splice(idx, 1);
+  renderIslemBelgePreview();
+}
+
+// İŞLEM TÜRÜNE GÖRE ALAN GÖSTERİMİ
+// muayene/sigorta-tipi: sadece bitiş tarihi + maliyet
+// bakim: km + sonraki bakım + parça + maliyet
+// onarim/parca: km + parça/detay + maliyet (sonraki bakım yok)
+const ISLEM_FIELD_CONFIG = {
+  'Fenni Muayene':     { km: false, bitis: true,  sonraki: false, detay: false },
+  'Egzoz Muayenesi':   { km: false, bitis: true,  sonraki: false, detay: false },
+  'Trafik Sigortası':  { km: false, bitis: true,  sonraki: false, detay: false },
+  'Kasko':             { km: false, bitis: true,  sonraki: false, detay: false },
+  'Onarım':            { km: true,  bitis: false, sonraki: false, detay: true },
+  'Yedek Parça':       { km: true,  bitis: false, sonraki: false, detay: true },
+  'Bakım':             { km: true,  bitis: false, sonraki: true,  detay: true },
+};
+const ISLEM_BITIS_LABEL = {
+  'Fenni Muayene': 'Muayene Bitiş Tarihi *',
+  'Egzoz Muayenesi': 'Egzoz Pulu Bitiş Tarihi *',
+  'Trafik Sigortası': 'Sigorta Bitiş Tarihi *',
+  'Kasko': 'Kasko Bitiş Tarihi *',
+};
+
+function updateIslemFormFields() {
+  const tur = document.getElementById('inp-islem-tur').value;
+  const cfg = ISLEM_FIELD_CONFIG[tur];
+
+  const rowKmMaliyet = document.getElementById('field-row-km-maliyet');
+  const fieldKm = document.getElementById('field-islem-km');
+  const fieldBitis = document.getElementById('field-islem-bitis');
+  const rowSonraki = document.getElementById('field-row-sonraki');
+  const fieldDetay = document.getElementById('field-islem-detay');
+  const labelBitis = document.getElementById('label-islem-bitis');
+  const labelDetay = document.getElementById('label-islem-detay');
+
+  if (!tur || !cfg) {
+    // Tür seçilmeden önce hepsini göster (varsayılan davranış)
+    rowKmMaliyet.style.display = '';
+    fieldKm.style.display = '';
+    fieldBitis.style.display = '';
+    rowSonraki.style.display = '';
+    fieldDetay.style.display = '';
+    return;
+  }
+
+  rowKmMaliyet.style.display = '';
+  fieldKm.style.display = cfg.km ? '' : 'none';
+  fieldBitis.style.display = cfg.bitis ? '' : 'none';
+  rowSonraki.style.display = cfg.sonraki ? '' : 'none';
+  fieldDetay.style.display = cfg.detay ? '' : 'none';
+
+  labelBitis.textContent = ISLEM_BITIS_LABEL[tur] || 'Bitiş / Geçerlilik Tarihi';
+  labelDetay.textContent = tur === 'Yedek Parça' ? 'Değişen Parça' : 'Değişen Parça / Detay';
+
+  // Gizlenen alanları temizle ki yanlışlıkla eski veri kaydedilmesin
+  if (!cfg.km) document.getElementById('inp-islem-km').value = '';
+  if (!cfg.bitis) document.getElementById('inp-islem-bitis').value = '';
+  if (!cfg.sonraki) { document.getElementById('inp-sonraki-km').value = ''; document.getElementById('inp-sonraki-tarih').value = ''; }
+  if (!cfg.detay) document.getElementById('inp-islem-detay').value = '';
+}
+
+// İŞLEM KAYIT
+function openIslemModal(aracId, islemId) {
+  document.getElementById('islem-arac-id').value = aracId || currentAracId;
+  document.getElementById('islem-edit-id').value = islemId || '';
+  document.getElementById('islem-modal-title').textContent = islemId ? 'İşlem Düzenle' : 'İşlem Ekle';
+  const fields = ['inp-islem-tur','inp-islem-tarih','inp-islem-km','inp-islem-maliyet','inp-islem-bitis','inp-sonraki-km','inp-sonraki-tarih','inp-islem-detay','inp-islem-not'];
+  if (islemId) {
+    const i = state.islemler.find(x => x.id === islemId);
+    document.getElementById('inp-islem-tur').value = i.tur || '';
+    document.getElementById('inp-islem-tarih').value = i.tarih || '';
+    document.getElementById('inp-islem-km').value = i.km || '';
+    document.getElementById('inp-islem-maliyet').value = i.maliyet || '';
+    document.getElementById('inp-islem-bitis').value = i.bitis || '';
+    document.getElementById('inp-sonraki-km').value = i.sonrakiKm || '';
+    document.getElementById('inp-sonraki-tarih').value = i.sonrakiTarih || '';
+    document.getElementById('inp-islem-detay').value = i.detay || '';
+    document.getElementById('inp-islem-not').value = i.not || '';
+    islemBelgeGecici = (i.fotolar || []).slice();
+  } else {
+    fields.forEach(f => document.getElementById(f).value = '');
+    document.getElementById('inp-islem-tarih').value = new Date().toISOString().slice(0,10);
+    islemBelgeGecici = [];
+  }
+  renderIslemBelgePreview();
+  updateIslemFormFields();
+  document.getElementById('islem-modal').classList.add('open');
+}
+function editIslem(id) {
+  const i = state.islemler.find(x => x.id === id);
+  openIslemModal(i.aracId, id);
+}
+
+function saveIslem() {
+  const tur = document.getElementById('inp-islem-tur').value;
+  const tarih = document.getElementById('inp-islem-tarih').value;
+  if (!tur || !tarih) { alert('İşlem türü ve tarih zorunlu!'); return; }
+  const aracId = document.getElementById('islem-arac-id').value;
+  const id = document.getElementById('islem-edit-id').value;
+  const data = { aracId, tur, tarih, km: document.getElementById('inp-islem-km').value, maliyet: document.getElementById('inp-islem-maliyet').value, bitis: document.getElementById('inp-islem-bitis').value, sonrakiKm: document.getElementById('inp-sonraki-km').value, sonrakiTarih: document.getElementById('inp-sonraki-tarih').value, detay: document.getElementById('inp-islem-detay').value, not: document.getElementById('inp-islem-not').value, fotolar: islemBelgeGecici.slice() };
+  let islemObj;
+  if (id) { islemObj = state.islemler.find(x => x.id === id); Object.assign(islemObj, data); }
+  else { islemObj = { id: uid(), ...data }; state.islemler.push(islemObj); }
+  save(); closeModal('islem-modal');
+  const a = state.araclar.find(x => x.id === aracId);
+  if (a) renderDetay(a);
+  renderAraclar();
+  syncIslem(islemObj);
+}
+
+function silIslem(id) {
+  if (!confirm('İşlem kaydı silinecek. Emin misiniz?')) return;
+  state.islemler = state.islemler.filter(x => x.id !== id);
+  save();
+  const a = state.araclar.find(x => x.id === currentAracId);
+  if (a) renderDetay(a);
+  syncDeleteIslem(id);
+}
+
+// HATIRLATMALAR
+function renderHatirlatmalar() {
+  const turler = ['Fenni Muayene','Egzoz Muayenesi','Trafik Sigortası','Kasko','Bakım'];
+  let items = [];
+  state.araclar.forEach(a => {
+    const map = {};
+    state.islemler.filter(i => i.aracId === a.id && i.bitis).sort((x,y) => x.bitis > y.bitis ? 1 : -1).forEach(i => { map[i.tur] = i; });
+    turler.forEach(tur => {
+      const i = map[tur];
+      if (!i) return;
+      const gun = gunFark(i.bitis);
+      if (gun !== null && gun <= 60) items.push({ a, tur, bitis: i.bitis, gun });
+    });
+    state.islemler.filter(i => i.aracId === a.id && i.sonrakiTarih).forEach(i => {
+      const gun = gunFark(i.sonrakiTarih);
+      if (gun !== null && gun <= 60) items.push({ a, tur: 'Sonraki Bakım (' + i.tur + ')', bitis: i.sonrakiTarih, gun });
+    });
+  });
+  items.sort((a,b) => a.gun - b.gun);
+  const list = document.getElementById('hatirlat-list');
+  if (!items.length) { list.innerHTML = '<div class="empty-state"><div class="empty-icon">✅</div><div style="font-size:15px;font-weight:600;color:var(--text);margin-bottom:6px">Yaklaşan işlem yok</div><div style="font-size:13px">60 günlük periyotta herhangi bir hatırlatma bulunamadı</div></div>'; return; }
+  list.innerHTML = items.map(item => {
+    const cls = item.gun < 0 ? 'danger' : item.gun <= 15 ? 'danger' : item.gun <= 30 ? 'warn' : 'ok';
+    const icon = item.gun < 0 ? '🚨' : item.gun <= 15 ? '⚠️' : '🔔';
+    const kalan = item.gun < 0 ? `${Math.abs(item.gun)} gün geçti!` : item.gun === 0 ? 'Bugün!' : `${item.gun} gün kaldı`;
+    return `<div class="hatirlat-item ${cls}" onclick="showDetay('${item.a.id}')">
+      <div class="hatirlat-icon">${icon}</div>
+      <div class="hatirlat-info">
+        <div class="hatirlat-plaka">${item.a.plaka}</div>
+        <div class="hatirlat-tur">${item.tur}</div>
+        <div class="hatirlat-tarih">${formatTarih(item.bitis)}</div>
+      </div>
+      <div class="hatirlat-kalan ${cls}">${kalan}</div>
+    </div>`;
+  }).join('');
+}
+
+function updateBadge() {
+  const turler = ['Fenni Muayene','Egzoz Muayenesi','Trafik Sigortası','Kasko'];
+  let count = 0;
+  state.araclar.forEach(a => {
+    const map = {};
+    state.islemler.filter(i => i.aracId === a.id && i.bitis).forEach(i => { if (!map[i.tur] || i.bitis > map[i.tur]) map[i.tur] = i.bitis; });
+    turler.forEach(tur => { if (map[tur] && gunFark(map[tur]) <= 30) count++; });
+  });
+  const badge = document.getElementById('hatirlat-badge');
+  if (count > 0) { badge.textContent = count; badge.style.display = 'inline'; }
+  else badge.style.display = 'none';
+}
+
+function renderTumIslemler() {
+  const list = document.getElementById('tum-islem-list');
+  const aracFiltreSel = document.getElementById('islem-arac-filtre');
+
+  // Araç filtre listesini doldur (sadece bir kez gerçek seçenekler değişmediyse atla)
+  if (aracFiltreSel.dataset.dolu !== String(state.araclar.length)) {
+    aracFiltreSel.innerHTML = '<option value="">Tüm araçlar</option>' + state.araclar.map(a => `<option value="${a.id}">${a.plaka}</option>`).join('');
+    aracFiltreSel.dataset.dolu = String(state.araclar.length);
+  }
+
+  const aramaTerimi = (document.getElementById('islem-arama').value || '').trim().toLocaleLowerCase('tr-TR');
+  const aracFiltre = aracFiltreSel.value;
+  const turFiltre = document.getElementById('islem-tur-filtre').value;
+
+  let islemler = [...state.islemler].sort((a,b) => b.tarih > a.tarih ? 1 : -1);
+
+  if (aracFiltre) islemler = islemler.filter(i => i.aracId === aracFiltre);
+  if (turFiltre) islemler = islemler.filter(i => i.tur === turFiltre);
+  if (aramaTerimi) {
+    islemler = islemler.filter(i => {
+      const a = state.araclar.find(x => x.id === i.aracId);
+      const hay = [a ? a.plaka : '', a ? a.model : '', i.tur, i.detay, i.not].join(' ').toLocaleLowerCase('tr-TR');
+      return hay.includes(aramaTerimi);
+    });
+  }
+
+  const ozet = document.getElementById('islem-toplam-ozet');
+  const toplamMaliyet = islemler.reduce((s,i) => s + (Number(i.maliyet) || 0), 0);
+  ozet.textContent = islemler.length ? `${islemler.length} işlem · Toplam ${toplamMaliyet.toLocaleString('tr-TR')} ₺` : '';
+
+  if (!islemler.length) { list.innerHTML = '<div class="empty-state"><div class="empty-icon">📋</div><div>Eşleşen işlem kaydı bulunamadı</div></div>'; return; }
+  list.innerHTML = islemler.map(i => {
+    const a = state.araclar.find(x => x.id === i.aracId);
+    return `<div class="islem-item" onclick="showDetay('${i.aracId}')">
+      <div class="islem-item-head">
+        <div><span class="islem-tur">${i.tur}</span> <span style="font-size:12px;font-weight:700;letter-spacing:1px;color:var(--accent);margin-left:8px">${a ? a.plaka : '?'}</span></div>
+        <span class="islem-tarih">${formatTarih(i.tarih)}</span>
+      </div>
+      ${i.detay ? `<div class="islem-detay">${i.detay}</div>` : ''}
+      ${i.maliyet ? `<div class="islem-maliyet">💰 ${Number(i.maliyet).toLocaleString('tr-TR')} ₺</div>` : ''}
+      ${i.fotolar && i.fotolar.length ? `<div style="font-size:11px;color:var(--muted);margin-top:4px">🧾 ${i.fotolar.length} belge</div>` : ''}
+    </div>`;
+  }).join('');
+}
+
+// ============ GEMİNİ AI ASİSTAN ============
+let chatGecmis = [];
+
+function aracVeriOzeti() {
+  // Gemini'ye bağlam olarak gönderilecek özet veri (tüm state)
+  const bugun = new Date().toISOString().slice(0,10);
+  const araclar = state.araclar.map(a => {
+    const islemler = state.islemler.filter(i => i.aracId === a.id).map(i => ({
+      tur: i.tur, tarih: i.tarih, km: i.km || null, maliyet: i.maliyet || null,
+      bitis: i.bitis || null, sonrakiKm: i.sonrakiKm || null, sonrakiTarih: i.sonrakiTarih || null,
+      detay: i.detay || null, not: i.not || null
+    }));
+    return { plaka: a.plaka, model: a.model, yil: a.yil || null, guncelKm: a.km || null, not: a.not || null, islemler };
+  });
+  return { bugununTarihi: bugun, araclar };
+}
+
+function chatHizliSor(metin) {
+  document.getElementById('chat-input').value = metin;
+  chatGonder();
+}
+
+function chatMesajEkle(rol, metin) {
+  const wrap = document.getElementById('chat-messages');
+  document.getElementById('chat-empty').style.display = 'none';
+  const div = document.createElement('div');
+  div.className = 'chat-msg ' + rol;
+  div.textContent = metin;
+  wrap.appendChild(div);
+  document.getElementById('chat-box').scrollTop = document.getElementById('chat-box').scrollHeight;
+  return div;
+}
+
+async function chatGonder() {
+  const input = document.getElementById('chat-input');
+  const soru = input.value.trim();
+  if (!soru) return;
+  if (!GEMINI_KEY) { toggleAiPanel(true); document.getElementById('asistan-key-uyari').style.display = 'block'; return; }
+
+  chatMesajEkle('user', soru);
+  input.value = '';
+  const dusunuyor = chatMesajEkle('thinking', 'Düşünüyor...');
+
+  const sistemPrompt = `Sen bir araç bakım takip uygulamasının asistanısın. Kullanıcının araç verileri JSON olarak aşağıda. Sorulara kısa, net ve Türkçe cevap ver. Tarih hesaplarken bugünün tarihini referans al. Sadece verilen veriye dayan, veri yoksa "bu bilgi sistemde yok" de. Para birimini ₺ olarak göster.\n\nVERİ:\n${JSON.stringify(aracVeriOzeti())}`;
+
+  try {
+    const cevap = await geminiMetinCagrisi(sistemPrompt, chatGecmis, soru);
+    dusunuyor.remove();
+    chatMesajEkle('ai', cevap);
+    chatGecmis.push({ role: 'user', parts: [{ text: soru }] });
+    chatGecmis.push({ role: 'model', parts: [{ text: cevap }] });
+    if (chatGecmis.length > 20) chatGecmis = chatGecmis.slice(-20);
+  } catch (e) {
+    dusunuyor.remove();
+    chatMesajEkle('error', 'Hata: ' + e.message);
+  }
+}
+
+async function geminiMetinCagrisi(sistemPrompt, gecmis, soru) {
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_KEY}`;
+  const contents = [...gecmis, { role: 'user', parts: [{ text: soru }] }];
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      system_instruction: { parts: [{ text: sistemPrompt }] },
+      contents
+    })
+  });
+  const data = await res.json();
+  if (data.error) throw new Error(data.error.message || 'Gemini API hatası');
+  const text = data.candidates && data.candidates[0] && data.candidates[0].content
+    ? data.candidates[0].content.parts.map(p => p.text || '').join('')
+    : null;
+  if (!text) throw new Error('Yanıt alınamadı');
+  return text;
+}
+
+// ---- AI PANEL: BELGE YÜKLE & ARACA KAYDET ----
+let aiPanelAnaliz = null;
+let aiPanelBelgeData = null;
+
+async function aiPanelBelgeSec(event) {
+  const file = event.target.files[0];
+  event.target.value = '';
+  if (!file) return;
+  if (!GEMINI_KEY) { document.getElementById('asistan-key-uyari').style.display = 'block'; return; }
+  if (!state.araclar.length) { alert('Önce en az bir araç eklemelisin.'); return; }
+
+  const sonuc = document.getElementById('ai-panel-belge-sonuc');
+  const r = new FileReader();
+  r.onload = async ev => {
+    aiPanelBelgeData = ev.target.result;
+    sonuc.innerHTML = '<div style="font-size:12px;color:var(--accent);padding:0.5rem 0">✨ Gemini belgeyi okuyor...</div>';
+    try {
+      const analiz = await islemBelgeAnalizEt(aiPanelBelgeData);
+      aiPanelAnaliz = analiz;
+      if (!analiz) { sonuc.innerHTML = '<div style="font-size:12px;color:var(--danger)">Belge okunamadı.</div>'; return; }
+      const guvenRenk = analiz.guvenSeviyesi === 'yuksek' ? 'var(--success)' : analiz.guvenSeviyesi === 'orta' ? 'var(--warn)' : 'var(--danger)';
+      const aracOpts = state.araclar.map(a => `<option value="${a.id}">${a.plaka} — ${a.model}</option>`).join('');
+      sonuc.innerHTML = `
+        <div class="ai-belge-kart">
+          <div class="baslik">✨ Gemini bu belgeyi okudu <span style="margin-left:auto;color:${guvenRenk};font-weight:600">${analiz.guvenSeviyesi === 'yuksek' ? 'Yüksek' : analiz.guvenSeviyesi === 'orta' ? 'Orta' : 'Düşük'} güven</span></div>
+          <div class="ai-belge-alan"><span>İşlem türü</span><span>${analiz.tur || '-'}</span></div>
+          <div class="ai-belge-alan"><span>Tarih</span><span>${analiz.tarih || '-'}</span></div>
+          <div class="ai-belge-alan"><span>Bitiş tarihi</span><span>${analiz.bitis || '-'}</span></div>
+          <div class="ai-belge-alan"><span>Maliyet</span><span>${analiz.maliyet ? Number(analiz.maliyet).toLocaleString('tr-TR')+' ₺' : '-'}</span></div>
+          <div class="ai-belge-alan"><span>KM</span><span>${analiz.km || '-'}</span></div>
+          <div class="ai-belge-alan"><span>Detay</span><span style="text-align:right;max-width:60%">${analiz.detay || '-'}</span></div>
+          <div style="margin-top:0.85rem">
+            <label style="font-size:11px">Hangi araca işlensin?</label>
+            <select id="ai-panel-arac-sec">${aracOpts}</select>
+          </div>
+          <div style="display:flex;gap:8px;margin-top:0.85rem">
+            <button class="btn outline" style="flex:1;font-size:12px" onclick="document.getElementById('ai-panel-belge-sonuc').innerHTML=''">İptal</button>
+            <button class="btn" style="flex:1;font-size:12px" onclick="aiPanelBelgeKaydet()">✨ Bu araca işle</button>
+          </div>
+          <div style="font-size:11px;color:var(--muted);margin-top:6px;text-align:center">Kaydetmeden önce araç seçimini kontrol et</div>
+        </div>`;
+    } catch (e) {
+      sonuc.innerHTML = `<div style="font-size:12px;color:var(--danger)">⚠️ ${e.message}</div>`;
+    }
+  };
+  r.readAsDataURL(file);
+}
+
+function aiPanelBelgeKaydet() {
+  const a = aiPanelAnaliz;
+  if (!a) return;
+  const aracId = document.getElementById('ai-panel-arac-sec').value;
+  const tur = ['Fenni Muayene','Egzoz Muayenesi','Trafik Sigortası','Kasko','Onarım','Yedek Parça','Bakım'].includes(a.tur) ? a.tur : 'Onarım';
+  const islem = {
+    id: uid(), aracId, tur,
+    tarih: a.tarih || new Date().toISOString().slice(0,10),
+    bitis: a.bitis || null,
+    km: a.km ? String(a.km) : '', maliyet: a.maliyet ? String(a.maliyet) : '',
+    sonrakiKm: '', sonrakiTarih: '', detay: a.detay || '', not: 'Gemini ile belgeden eklendi',
+    fotolar: aiPanelBelgeData ? [aiPanelBelgeData] : []
+  };
+  state.islemler.push(islem);
+  save();
+  syncIslem(islem);
+  renderAraclar();
+  document.getElementById('ai-panel-belge-sonuc').innerHTML = '<div style="font-size:12px;color:var(--success);padding:0.5rem 0">✅ İşlem kaydedildi.</div>';
+  aiPanelAnaliz = null; aiPanelBelgeData = null;
+  setTimeout(() => { document.getElementById('ai-panel-belge-sonuc').innerHTML = ''; }, 3000);
+}
+
+// ---- BELGE (fatura/makbuz) GÖRSEL ANALİZİ ----
+async function islemBelgeAnalizEt(dataUrl) {
+  if (!GEMINI_KEY) {
+    alert('Önce Ayarlar bölümünden Gemini API anahtarını eklemelisin.');
+    return null;
+  }
+  const match = dataUrl.match(/^data:(image\/\w+);base64,(.+)$/);
+  if (!match) return null;
+  const mimeType = match[1], base64Data = match[2];
+
+  const prompt = `Bu görsel bir araç bakım/onarım/sigorta/muayene fatura, makbuz veya belgesi olabilir. Görseldeki bilgileri analiz et ve SADECE şu JSON formatında cevap ver, başka hiçbir metin ekleme:
+{
+  "tur": "Fenni Muayene|Egzoz Muayenesi|Trafik Sigortası|Kasko|Onarım|Yedek Parça|Bakım içinden en uygun olan, emin değilsen Onarım",
+  "tarih": "YYYY-MM-DD formatında belge/işlem tarihi, bulamazsan null",
+  "bitis": "varsa geçerlilik/bitiş tarihi YYYY-MM-DD, yoksa null",
+  "maliyet": "sayı olarak toplam tutar (TL), yoksa null",
+  "km": "varsa araç kilometresi sayı olarak, yoksa null",
+  "detay": "kısa açıklama: değişen parça, yapılan işlem veya hizmet adı (en fazla 100 karakter)",
+  "guvenSeviyesi": "yuksek|orta|dusuk - bilgilerin ne kadar net okunduğuna dair"
+}
+Tarih bulamazsan tahmin etme, null bırak. Sayısal alanlarda nokta/virgül kullanma, sade sayı yaz.`;
+
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_KEY}`;
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      contents: [{ parts: [{ text: prompt }, { inline_data: { mime_type: mimeType, data: base64Data } }] }]
+    })
+  });
+  const data = await res.json();
+  if (data.error) throw new Error(data.error.message || 'Gemini API hatası');
+  let text = data.candidates && data.candidates[0] && data.candidates[0].content
+    ? data.candidates[0].content.parts.map(p => p.text || '').join('')
+    : '';
+  text = text.replace(/```json|```/g, '').trim();
+  try { return JSON.parse(text); }
+  catch (e) { throw new Error('Belge analiz sonucu okunamadı'); }
+}
+
+function islemAnalizKartGoster(analiz, dataUrl) {
+  const guvenRenk = analiz.guvenSeviyesi === 'yuksek' ? 'var(--success)' : analiz.guvenSeviyesi === 'orta' ? 'var(--warn)' : 'var(--danger)';
+  const eski = document.getElementById('ai-belge-onay-karti');
+  if (eski) eski.remove();
+  const kart = document.createElement('div');
+  kart.className = 'ai-belge-kart';
+  kart.id = 'ai-belge-onay-karti';
+  kart.innerHTML = `
+    <div class="baslik">✨ Gemini bu belgeyi okudu <span style="margin-left:auto;color:${guvenRenk};font-weight:600">${analiz.guvenSeviyesi === 'yuksek' ? 'Yüksek güven' : analiz.guvenSeviyesi === 'orta' ? 'Orta güven' : 'Düşük güven, kontrol et'}</span></div>
+    <div class="ai-belge-alan"><span>İşlem türü</span><span>${analiz.tur || '-'}</span></div>
+    <div class="ai-belge-alan"><span>Tarih</span><span>${analiz.tarih || '-'}</span></div>
+    <div class="ai-belge-alan"><span>Bitiş tarihi</span><span>${analiz.bitis || '-'}</span></div>
+    <div class="ai-belge-alan"><span>Maliyet</span><span>${analiz.maliyet ? Number(analiz.maliyet).toLocaleString('tr-TR') + ' ₺' : '-'}</span></div>
+    <div class="ai-belge-alan"><span>KM</span><span>${analiz.km || '-'}</span></div>
+    <div class="ai-belge-alan"><span>Detay</span><span style="text-align:right;max-width:60%">${analiz.detay || '-'}</span></div>
+    <div style="display:flex;gap:8px;margin-top:0.9rem">
+      <button class="btn outline" style="flex:1" onclick="document.getElementById('ai-belge-onay-karti').remove()">Yoksay, ben gireceğim</button>
+      <button class="btn" style="flex:1" onclick="islemAnalizUygula()">✨ Bunu sisteme işle</button>
+    </div>
+  `;
+  document.getElementById('islem-belge-preview').insertAdjacentElement('afterend', kart);
+  window._sonAiAnaliz = analiz;
+}
+
+function islemAnalizUygula() {
+  const a = window._sonAiAnaliz;
+  if (!a) return;
+  if (a.tur && ['Fenni Muayene','Egzoz Muayenesi','Trafik Sigortası','Kasko','Onarım','Yedek Parça','Bakım'].includes(a.tur)) {
+    document.getElementById('inp-islem-tur').value = a.tur;
+    updateIslemFormFields();
+  }
+  if (a.tarih) document.getElementById('inp-islem-tarih').value = a.tarih;
+  if (a.bitis) document.getElementById('inp-islem-bitis').value = a.bitis;
+  if (a.maliyet) document.getElementById('inp-islem-maliyet').value = a.maliyet;
+  if (a.km) document.getElementById('inp-islem-km').value = a.km;
+  if (a.detay) document.getElementById('inp-islem-detay').value = a.detay;
+  const kart = document.getElementById('ai-belge-onay-karti');
+  if (kart) kart.remove();
+  updateIslemFormFields();
+}
+
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+document.querySelectorAll('.overlay').forEach(o => o.addEventListener('click', function(e) { if (e.target === this) closeModal(this.id); }));
+
+// AI panel dışına tıklayınca kapat (masaüstü)
+document.addEventListener('click', function(e) {
+  const panel = document.getElementById('ai-panel');
+  if (!panel.classList.contains('open')) return;
+  if (panel.contains(e.target)) return;
+  if (e.target.closest('.ai-toggle-btn') || e.target.closest('.mobile-ai-btn')) return;
+  toggleAiPanel(false);
+});
+
+// AYARLAR
+function openKilavuzModal() {
+  document.getElementById('kilavuz-modal').classList.add('open');
+  closeMobileSidebar();
+}
+
+function openAyarlarModal() {
+  document.getElementById('inp-api-url').value = API_URL;
+  document.getElementById('inp-gemini-key').value = GEMINI_KEY;
+  document.getElementById('ayarlar-test-sonuc').textContent = '';
+  document.getElementById('ayarlar-modal').classList.add('open');
+  closeMobileSidebar();
+}
+
+function saveGeminiKey() {
+  const key = document.getElementById('inp-gemini-key').value.trim();
+  GEMINI_KEY = key;
+  localStorage.setItem('arac_takip_gemini_key', key);
+  document.getElementById('asistan-key-uyari').style.display = key ? 'none' : 'block';
+  closeModal('ayarlar-modal');
+}
+
+async function testBaglanti() {
+  const url = document.getElementById('inp-api-url').value.trim();
+  const sonucEl = document.getElementById('ayarlar-test-sonuc');
+  if (!url) { sonucEl.innerHTML = '<span style="color:var(--danger)">URL girin</span>'; return; }
+  sonucEl.innerHTML = '<span style="color:var(--warn)">🔄 Test ediliyor...</span>';
+  const oldUrl = API_URL;
+  API_URL = url;
+  const result = await apiCall('getAll', null, true);
+  if (result && !result.error) {
+    sonucEl.innerHTML = `<span style="color:var(--success)">✅ Bağlantı başarılı! (${(result.araclar||[]).length} araç bulundu)</span>`;
+  } else {
+    sonucEl.innerHTML = `<span style="color:var(--danger)">❌ Bağlantı başarısız: ${result ? result.error : 'bilinmeyen hata'}</span>`;
+    API_URL = oldUrl;
+  }
+}
+
+async function saveApiUrl() {
+  const url = document.getElementById('inp-api-url').value.trim();
+  API_URL = url;
+  localStorage.setItem('arac_takip_api_url', url);
+  closeModal('ayarlar-modal');
+  if (url) {
+    await loadFromCloud();
+    renderAraclar();
+    updateBadge();
+  } else {
+    setSyncStatus('☁️ Bağlı değil', 'var(--muted)');
+  }
+}
+
+// BAŞLANGIÇ
+function seedVerileriYukle(zorla) {
+  if (!zorla && state.araclar.length) return;
+  if (zorla && !confirm('Hazır araç verileri yüklenecek. Mevcut yerel veriler değiştirilecek. Devam edilsin mi?')) return;
+  state = JSON.parse(JSON.stringify(SEED_DATA));
+  save();
+  renderAraclar();
+  updateBadge();
+  if (zorla) { closeModal('ayarlar-modal'); alert(state.araclar.length + ' araç ve ' + state.islemler.length + ' işlem kaydı yüklendi.'); }
+}
+
+async function init() {
+  if (API_URL) {
+    await loadFromCloud(true);
+  } else {
+    setSyncStatus('☁️ Bağlı değil — Ayarlar\'dan bağlanın', 'var(--muted)');
+    // İlk açılışta yerel veri yoksa hazır veriyi yükle
+    if (!state.araclar.length) seedVerileriYukle(false);
+  }
+  renderAraclar();
+  updateBadge();
+}
+
+init();
+</script>
+</body>
+</html>
