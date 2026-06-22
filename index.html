@@ -816,7 +816,14 @@ async function loadFromCloud(silent) {
     return false;
   }
   state.araclar = (result.araclar || []).map(a => ({ ...a, id: String(a.id) }));
-  state.islemler = (result.islemler || []).map(i => ({ ...i, id: String(i.id), aracId: String(i.aracId) }));
+  state.islemler = (result.islemler || []).map(i => ({
+    ...i,
+    id: String(i.id),
+    aracId: String(i.aracId),
+    tarih: tarihNormalize(i.tarih) || '',
+    bitis: tarihNormalize(i.bitis),
+    sonrakiTarih: tarihNormalize(i.sonrakiTarih)
+  }));
   save();
   isOnline = true;
   setSyncStatus('✅ Senkron — ' + new Date().toLocaleTimeString('tr-TR', {hour:'2-digit',minute:'2-digit'}), 'var(--success)');
@@ -929,8 +936,37 @@ function gunFark(tarihStr) {
 }
 function formatTarih(str) {
   if (!str) return '-';
-  const [y,m,d] = str.split('-');
-  return `${d}.${m}.${y}`;
+  // Zaten YYYY-MM-DD formatındaysa hızlı yol
+  if (typeof str === 'string') {
+    const m = str.match(/^(\d{4})-(\d{2})-(\d{2})/);
+    if (m) return `${m[3]}.${m[2]}.${m[1]}`;
+  }
+  // Date objesi veya "Tue Jan 12 2027..." gibi metin / başka format → Date ile çöz
+  const d = new Date(str);
+  if (!isNaN(d.getTime())) {
+    const gg = String(d.getDate()).padStart(2, '0');
+    const aa = String(d.getMonth() + 1).padStart(2, '0');
+    const yyyy = d.getFullYear();
+    return `${gg}.${aa}.${yyyy}`;
+  }
+  return String(str); // çözülemezse olduğu gibi göster
+}
+
+// Tarihi her zaman YYYY-MM-DD string'e normalize eder (state'e yazmadan önce)
+function tarihNormalize(str) {
+  if (!str) return null;
+  if (typeof str === 'string') {
+    const m = str.match(/^(\d{4})-(\d{2})-(\d{2})/);
+    if (m) return `${m[1]}-${m[2]}-${m[3]}`;
+  }
+  const d = new Date(str);
+  if (!isNaN(d.getTime())) {
+    const yyyy = d.getFullYear();
+    const aa = String(d.getMonth() + 1).padStart(2, '0');
+    const gg = String(d.getDate()).padStart(2, '0');
+    return `${yyyy}-${aa}-${gg}`;
+  }
+  return null;
 }
 function statusClass(gun) {
   if (gun === null) return '';
@@ -1982,12 +2018,12 @@ async function iceAktarUygula() {
       id: i.id || uid(),
       aracId: aracId,
       tur: i.tur || 'Bakım',
-      tarih: i.tarih || new Date().toISOString().slice(0,10),
-      bitis: i.bitis || null,
+      tarih: tarihNormalize(i.tarih) || new Date().toISOString().slice(0,10),
+      bitis: tarihNormalize(i.bitis),
       km: i.km || '',
       maliyet: i.maliyet || '',
       sonrakiKm: i.sonrakiKm || '',
-      sonrakiTarih: i.sonrakiTarih || '',
+      sonrakiTarih: tarihNormalize(i.sonrakiTarih),
       detay: i.detay || '',
       not: i.not || '',
       fotolar: i.fotolar || []
