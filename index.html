@@ -1037,9 +1037,16 @@ function renderDetay(a) {
     </div>
 
     <div class="tabs">
-      <button class="tab active" onclick="switchTab('tarihler',this)">📅 Tarihler</button>
-      <button class="tab" onclick="switchTab('islemler',this)">🔧 İşlem Geçmişi</button>
+      <button class="tab active" onclick="switchTab('tarihler',this)">📅 Özet</button>
+      <button class="tab" onclick="switchTab('muayene',this)">🔧 Muayene</button>
+      <button class="tab" onclick="switchTab('egzoz',this)">💨 Egzoz</button>
+      <button class="tab" onclick="switchTab('sigorta',this)">🛡️ Sigorta</button>
+      <button class="tab" onclick="switchTab('kasko',this)">🚗 Kasko</button>
+      <button class="tab" onclick="switchTab('bakim',this)">🔩 Bakım</button>
+      <button class="tab" onclick="switchTab('onarim',this)">🛠️ Onarım</button>
+      <button class="tab" onclick="switchTab('parca',this)">⚙️ Yedek Parça</button>
       <button class="tab" onclick="switchTab('gorseller',this)">🖼️ Görseller</button>
+      <button class="tab" onclick="switchTab('islemler',this)">📋 Tüm İşlem Geçmişi</button>
     </div>
 
     <div class="tab-content active" id="tab-tarihler">
@@ -1068,6 +1075,14 @@ function renderDetay(a) {
       ${a.not ? `<div style="margin-top:1rem;padding:0.75rem;background:var(--bg3);border-radius:var(--radius-sm);font-size:13px;color:var(--muted)">${a.not}</div>` : ''}
     </div>
 
+    ${turSekmesiHTML(a, 'muayene', 'Fenni Muayene', '🔧')}
+    ${turSekmesiHTML(a, 'egzoz', 'Egzoz Muayenesi', '💨')}
+    ${turSekmesiHTML(a, 'sigorta', 'Trafik Sigortası', '🛡️')}
+    ${turSekmesiHTML(a, 'kasko', 'Kasko', '🚗')}
+    ${turSekmesiHTML(a, 'bakim', 'Bakım', '🔩')}
+    ${turSekmesiHTML(a, 'onarim', 'Onarım', '🛠️')}
+    ${turSekmesiHTML(a, 'parca', 'Yedek Parça', '⚙️')}
+
     <div class="tab-content" id="tab-islemler">
       ${islemler.length ? `<input id="detay-islem-arama" placeholder="İşlem türü, parça, detay veya not ara..." style="margin-bottom:1rem" oninput="filtreDetayIslemler('${a.id}')">` : ''}
       <div id="detay-islem-list">
@@ -1088,6 +1103,21 @@ function renderDetay(a) {
     </div>
   `;
   input_foto = document.getElementById('foto-input-main');
+}
+
+// Belirli bir tür için sekme içeriği üretir (o araçtaki o türdeki işlemler)
+function turSekmesiHTML(a, sekmeId, turAdi, ikon) {
+  const kayitlar = state.islemler
+    .filter(i => i.aracId === a.id && i.tur === turAdi)
+    .sort((x,y) => (y.tarih||'') > (x.tarih||'') ? 1 : -1);
+  return `
+    <div class="tab-content" id="tab-${sekmeId}">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;flex-wrap:wrap;gap:8px">
+        <div style="font-size:14px;font-weight:600">${ikon} ${turAdi} <span style="font-size:12px;color:var(--muted);font-weight:400">(${kayitlar.length} kayıt)</span></div>
+        <button class="btn" style="padding:6px 12px;font-size:12px" onclick="openIslemModalTur('${a.id}','${turAdi}')">+ ${turAdi} Ekle</button>
+      </div>
+      ${kayitlar.length ? kayitlar.map(i => islemItemHTML(i)).join('') : `<div class="empty-state"><div class="empty-icon">${ikon}</div><div>Bu araç için ${turAdi.toLocaleLowerCase('tr-TR')} kaydı yok</div></div>`}
+    </div>`;
 }
 
 function islemItemHTML(i) {
@@ -1415,6 +1445,16 @@ function openIslemModal(aracId, islemId) {
 function editIslem(id) {
   const i = state.islemler.find(x => x.id === id);
   openIslemModal(i.aracId, id);
+}
+
+// Belirli bir tür önceden seçili olarak işlem modalını açar (tür sekmelerindeki + Ekle butonu için)
+function openIslemModalTur(aracId, turAdi) {
+  openIslemModal(aracId);
+  const sel = document.getElementById('inp-islem-tur');
+  if (sel) {
+    sel.value = turAdi;
+    updateIslemFormFields();
+  }
 }
 
 function saveIslem() {
