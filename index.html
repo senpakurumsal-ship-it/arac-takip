@@ -606,11 +606,69 @@
       <div style="border-top:1px solid var(--border);margin:1.25rem 0 0;padding-top:1rem">
         <div style="font-size:13px;font-weight:600;margin-bottom:6px">📋 Hazır Araç Verileri</div>
         <div style="font-size:12px;color:var(--muted);margin-bottom:0.75rem;line-height:1.6">
-          Ruhsat ve bakım kayıtlarından hazırlanan 21 araç ve geçmiş işlemlerini yükler.
+          Ruhsat ve bakım kayıtlarından hazırlanan 21 araç ve geçmiş işlemlerini yükler. Sheets'e bağlıysan otomatik olarak buluta da yazılır.
         </div>
-        <div class="form-actions" style="justify-content:flex-end">
+        <div class="form-actions" style="justify-content:flex-end;gap:8px;flex-wrap:wrap">
+          <button class="btn outline" onclick="tumVeriyiSheetseYazManuel()">Mevcudu Sheets'e Yaz</button>
           <button class="btn outline" onclick="seedVerileriYukle(true)">Hazır Verileri Yükle</button>
         </div>
+      </div>
+      <div style="border-top:1px solid var(--border);margin:1.25rem 0 0;padding-top:1rem">
+        <div style="font-size:13px;font-weight:600;margin-bottom:6px">🔄 İçe / Dışa Aktar</div>
+        <div style="font-size:12px;color:var(--muted);margin-bottom:0.75rem;line-height:1.6">
+          Verileri metin olarak dışa aktarıp yedekleyebilir, veya AI ile hazırladığın araç/işlem verisini buraya yapıştırarak toplu içe aktarabilirsin.
+        </div>
+        <div class="form-actions" style="justify-content:flex-end;gap:8px;flex-wrap:wrap">
+          <button class="btn outline" onclick="disaAktarAc()">⬇️ Dışa Aktar (Yedek)</button>
+          <button class="btn" onclick="iceAktarAc()">⬆️ İçe Aktar (Yapıştır)</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- DIŞA AKTAR MODAL -->
+<div class="overlay" id="disa-modal">
+  <div class="modal" style="max-width:600px">
+    <div class="modal-header">
+      <div class="modal-title">⬇️ Dışa Aktar</div>
+      <button class="modal-close" onclick="closeModal('disa-modal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div style="font-size:12px;color:var(--muted);margin-bottom:0.75rem">Aşağıdaki metin tüm araç ve işlem verini içerir. Kopyalayıp güvenli bir yere kaydet (yedek). Geri yüklemek için "İçe Aktar"a yapıştır.</div>
+      <textarea id="disa-text" readonly style="min-height:240px;font-family:monospace;font-size:11px"></textarea>
+      <div class="form-actions" style="margin-top:1rem">
+        <button class="btn outline" onclick="closeModal('disa-modal')">Kapat</button>
+        <button class="btn" onclick="disaKopyala()">📋 Kopyala</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- İÇE AKTAR MODAL -->
+<div class="overlay" id="ice-modal">
+  <div class="modal" style="max-width:600px">
+    <div class="modal-header">
+      <div class="modal-title">⬆️ İçe Aktar</div>
+      <button class="modal-close" onclick="closeModal('ice-modal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div style="font-size:12px;color:var(--muted);margin-bottom:0.75rem;line-height:1.6">
+        AI ile hazırladığın veya dışa aktardığın veriyi buraya yapıştır. Format: JSON (araçlar ve işlemler).
+      </div>
+      <textarea id="ice-text" placeholder='Buraya yapıştır...' style="min-height:200px;font-family:monospace;font-size:11px"></textarea>
+      <div style="margin-top:0.75rem">
+        <label style="display:flex;align-items:center;gap:8px;font-size:12px;cursor:pointer">
+          <input type="radio" name="ice-mod" value="ekle" checked style="width:auto"> Mevcuda ekle (yeni araçlar eklenir, aynı plaka güncellenir)
+        </label>
+        <label style="display:flex;align-items:center;gap:8px;font-size:12px;cursor:pointer;margin-top:6px">
+          <input type="radio" name="ice-mod" value="degistir" style="width:auto"> Hepsini değiştir (mevcut tüm veri silinir)
+        </label>
+      </div>
+      <div id="ice-sonuc" style="font-size:12px;margin-top:0.75rem"></div>
+      <div class="form-actions" style="margin-top:1rem">
+        <button class="btn outline" onclick="closeModal('ice-modal')">İptal</button>
+        <button class="btn" onclick="iceAktarUygula()">İçe Aktar</button>
       </div>
     </div>
   </div>
@@ -786,6 +844,33 @@ async function syncIslem(data) {
 async function syncDeleteIslem(id) {
   if (!API_URL) return;
   await apiCall('deleteIslem', { id });
+}
+
+// Tüm yerel veriyi tek tek Sheets'e yazar (hazır veri yükleme / toplu aktarım için)
+async function tumVeriyiSheetseYaz() {
+  if (!API_URL) { alert('Önce Ayarlar\'dan Google Sheets bağlantısını kurmalısın.'); return false; }
+  const toplam = state.araclar.length + state.islemler.length;
+  let sayac = 0;
+  showLoading('Veriler Google Sheets\'e yazılıyor... (0/' + toplam + ')');
+  try {
+    for (const a of state.araclar) {
+      await apiCall('saveArac', { data: a });
+      sayac++;
+      if (sayac % 3 === 0) showLoading('Veriler Google Sheets\'e yazılıyor... (' + sayac + '/' + toplam + ')');
+    }
+    for (const i of state.islemler) {
+      await apiCall('saveIslem', { data: i });
+      sayac++;
+      if (sayac % 5 === 0) showLoading('Veriler Google Sheets\'e yazılıyor... (' + sayac + '/' + toplam + ')');
+    }
+    hideLoading();
+    setSyncStatus('✅ Senkron — ' + new Date().toLocaleTimeString('tr-TR', {hour:'2-digit',minute:'2-digit'}), 'var(--success)');
+    return true;
+  } catch (err) {
+    hideLoading();
+    setSyncStatus('⚠️ Yazma hatası', 'var(--danger)');
+    return false;
+  }
 }
 
 function showPage(name, btn) {
@@ -1747,15 +1832,172 @@ async function saveApiUrl() {
   }
 }
 
+// İÇE / DIŞA AKTAR
+function disaAktarAc() {
+  const veri = { araclar: state.araclar, islemler: state.islemler };
+  document.getElementById('disa-text').value = JSON.stringify(veri, null, 1);
+  closeModal('ayarlar-modal');
+  document.getElementById('disa-modal').classList.add('open');
+}
+
+function disaKopyala() {
+  const ta = document.getElementById('disa-text');
+  ta.select();
+  try {
+    navigator.clipboard.writeText(ta.value);
+    alert('Kopyalandı! Güvenli bir yere kaydet.');
+  } catch (e) {
+    document.execCommand('copy');
+    alert('Kopyalandı!');
+  }
+}
+
+function iceAktarAc() {
+  document.getElementById('ice-text').value = '';
+  document.getElementById('ice-sonuc').textContent = '';
+  closeModal('ayarlar-modal');
+  document.getElementById('ice-modal').classList.add('open');
+}
+
+async function iceAktarUygula() {
+  const txt = document.getElementById('ice-text').value.trim();
+  const sonuc = document.getElementById('ice-sonuc');
+  if (!txt) { sonuc.innerHTML = '<span style="color:var(--danger)">Önce veri yapıştır.</span>'; return; }
+
+  let veri;
+  try {
+    veri = JSON.parse(txt);
+  } catch (e) {
+    sonuc.innerHTML = '<span style="color:var(--danger)">Geçersiz format. Düzgün JSON yapıştırdığından emin ol.</span>';
+    return;
+  }
+
+  // Esnek format: {araclar:[],islemler:[]} veya sadece {araclar:[]} veya dizi
+  let yeniAraclar = [], yeniIslemler = [];
+  if (Array.isArray(veri)) {
+    yeniAraclar = veri; // sadece araç dizisi geldiyse
+  } else {
+    yeniAraclar = veri.araclar || [];
+    yeniIslemler = veri.islemler || [];
+  }
+
+  if (!yeniAraclar.length && !yeniIslemler.length) {
+    sonuc.innerHTML = '<span style="color:var(--danger)">Veride araç veya işlem bulunamadı.</span>';
+    return;
+  }
+
+  const mod = document.querySelector('input[name="ice-mod"]:checked').value;
+
+  // Her araca id yoksa üret, plaka ile eşleştir
+  function aracIdBul(plaka) {
+    const v = state.araclar.find(a => (a.plaka||'').replace(/\s/g,'').toUpperCase() === (plaka||'').replace(/\s/g,'').toUpperCase());
+    return v ? v.id : null;
+  }
+
+  if (mod === 'degistir') {
+    if (!confirm('Mevcut TÜM veri silinip yapıştırdığın veriyle değiştirilecek. Emin misin?')) return;
+    state.araclar = [];
+    state.islemler = [];
+  }
+
+  let eklenenArac = 0, guncellenenArac = 0, eklenenIslem = 0;
+  const plakaIdMap = {}; // içe aktarılan dosyadaki eski id -> yeni gerçek id
+
+  yeniAraclar.forEach(a => {
+    const plaka = (a.plaka || '').trim().toUpperCase();
+    if (!plaka) return;
+    let mevcutId = aracIdBul(plaka);
+    const aracObj = {
+      id: mevcutId || uid(),
+      plaka: plaka,
+      model: a.model || '',
+      yil: a.yil || '',
+      km: a.km || '',
+      tip: a.tip || 'Otomobil',
+      kullanici: a.kullanici || '',
+      telefon: a.telefon || '',
+      not: a.not || '',
+      anaFoto: a.anaFoto || ''
+    };
+    if (mevcutId) {
+      Object.assign(state.araclar.find(x => x.id === mevcutId), aracObj);
+      guncellenenArac++;
+    } else {
+      state.araclar.push(aracObj);
+      eklenenArac++;
+    }
+    if (a.id) plakaIdMap[a.id] = aracObj.id;
+    plakaIdMap[plaka] = aracObj.id;
+  });
+
+  yeniIslemler.forEach(i => {
+    // İşlemin aracId'sini çöz: önce eski id eşlemesi, sonra plaka
+    let aracId = null;
+    if (i.aracId && plakaIdMap[i.aracId]) aracId = plakaIdMap[i.aracId];
+    else if (i.plaka) aracId = plakaIdMap[(i.plaka||'').trim().toUpperCase()] || aracIdBul(i.plaka);
+    else if (i.aracId) aracId = i.aracId;
+    if (!aracId) return; // araç bulunamadıysa atla
+
+    state.islemler.push({
+      id: i.id || uid(),
+      aracId: aracId,
+      tur: i.tur || 'Bakım',
+      tarih: i.tarih || new Date().toISOString().slice(0,10),
+      bitis: i.bitis || null,
+      km: i.km || '',
+      maliyet: i.maliyet || '',
+      sonrakiKm: i.sonrakiKm || '',
+      sonrakiTarih: i.sonrakiTarih || '',
+      detay: i.detay || '',
+      not: i.not || '',
+      fotolar: i.fotolar || []
+    });
+    eklenenIslem++;
+  });
+
+  save();
+  renderAraclar();
+  updateBadge();
+
+  sonuc.innerHTML = `<span style="color:var(--success)">✅ ${eklenenArac} yeni araç, ${guncellenenArac} güncellenen araç, ${eklenenIslem} işlem eklendi.</span>`;
+
+  // Sheets'e bağlıysa yaz
+  if (API_URL) {
+    setTimeout(async () => {
+      const ok = await tumVeriyiSheetseYaz();
+      if (ok) sonuc.innerHTML += '<br><span style="color:var(--success)">☁️ Google Sheets\'e de yazıldı.</span>';
+    }, 300);
+  }
+}
+
 // BAŞLANGIÇ
-function seedVerileriYukle(zorla) {
+async function tumVeriyiSheetseYazManuel() {
+  if (!API_URL) { alert('Önce Apps Script Web App URL\'sini girip kaydetmelisin.'); return; }
+  if (!state.araclar.length) { alert('Yazılacak veri yok.'); return; }
+  if (!confirm(state.araclar.length + ' araç ve ' + state.islemler.length + ' işlem Google Sheets\'e yazılacak. Devam edilsin mi?')) return;
+  closeModal('ayarlar-modal');
+  const ok = await tumVeriyiSheetseYaz();
+  alert(ok ? 'Tüm veriler Google Sheets\'e yazıldı.' : 'Yazma sırasında hata oldu, tekrar deneyin.');
+}
+
+async function seedVerileriYukle(zorla) {
   if (!zorla && state.araclar.length) return;
-  if (zorla && !confirm('Hazır araç verileri yüklenecek. Mevcut yerel veriler değiştirilecek. Devam edilsin mi?')) return;
+  if (zorla && !confirm('Hazır araç verileri yüklenecek. Mevcut veriler (varsa Google Sheets dahil) bu verilerle değiştirilecek. Devam edilsin mi?')) return;
   state = JSON.parse(JSON.stringify(SEED_DATA));
   save();
   renderAraclar();
   updateBadge();
-  if (zorla) { closeModal('ayarlar-modal'); alert(state.araclar.length + ' araç ve ' + state.islemler.length + ' işlem kaydı yüklendi.'); }
+  if (zorla) {
+    closeModal('ayarlar-modal');
+    if (API_URL) {
+      // Sheets'e bağlıysa hepsini buluta yaz, yoksa F5'te kaybolur
+      const ok = await tumVeriyiSheetseYaz();
+      if (ok) alert(state.araclar.length + ' araç ve ' + state.islemler.length + ' işlem hem buraya hem Google Sheets\'e yüklendi.');
+      else alert(state.araclar.length + ' araç yerel olarak yüklendi ama Sheets\'e yazılamadı. Bağlantıyı kontrol edip tekrar deneyin.');
+    } else {
+      alert(state.araclar.length + ' araç ve ' + state.islemler.length + ' işlem kaydı yüklendi.');
+    }
+  }
 }
 
 async function init() {
