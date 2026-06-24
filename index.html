@@ -400,9 +400,16 @@
     <div class="page" id="page-hatirlatmalar">
       <div class="section-header" style="margin-top:1rem">
         <div class="section-title">Hatırlatmalar</div>
-        <div style="font-size:13px;color:var(--muted)">30 gün içindekiler gösteriliyor</div>
+        <div style="font-size:13px;color:var(--muted)">Yaklaşan ve geçmiş bildirimler</div>
       </div>
-      <div id="hatirlat-list"></div>
+      <div id="hatirlat-aktif-list"></div>
+      <div id="gecmis-bildirim-wrap" style="display:none;margin-top:2rem">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.75rem;flex-wrap:wrap;gap:8px">
+          <div style="font-size:14px;font-weight:600;color:var(--muted)">📁 Geçmiş Bildirimler</div>
+          <button class="btn outline" style="font-size:11px;padding:4px 12px" onclick="temizleGecmis()">Temizle</button>
+        </div>
+        <div id="hatirlat-gecmis-list"></div>
+      </div>
     </div>
 
     <!-- KULLANICILAR SAYFASI -->
@@ -1783,6 +1790,8 @@ function saveIslem() {
   const a = state.araclar.find(x => x.id === aracId);
   if (a) renderDetay(a);
   renderAraclar();
+  updateBadge();
+  if (document.getElementById('page-hatirlatmalar').classList.contains('active')) renderHatirlatmalar();
   syncIslem(islemObj);
 }
 
@@ -1798,47 +1807,125 @@ function silIslem(id) {
 // HATIRLATMALAR
 function renderHatirlatmalar() {
   const turler = ['Fenni Muayene','Egzoz Muayenesi','Trafik Sigortası','Kasko','Bakım'];
-  let items = [];
+  const temizleTs = localStorage.getItem('gecmis_temizle_ts') ? new Date(localStorage.getItem('gecmis_temizle_ts')) : null;
+  let aktif = [];
+  let gecmis = [];
+
+  // MTV genel bildirimi
+  const bugun = new Date();
+  const ay = bugun.getMonth() + 1;
+  const gunNo = bugun.getDate();
+  if (ay === 1) {
+    const kalan = 31 - gunNo;
+    aktif.push({ tip: 'genel', tur: '1. Taksit MTV Ödemesi', aciklama: 'Ocak ' + bugun.getFullYear(), gun: kalan, icon: '💰' });
+  } else if (ay === 7) {
+    const kalan = 31 - gunNo;
+    aktif.push({ tip: 'genel', tur: '2. Taksit MTV Ödemesi', aciklama: 'Temmuz ' + bugun.getFullYear(), gun: kalan, icon: '💰' });
+  }
+
+  // Araç bazlı bildirimler
   state.araclar.forEach(a => {
     const map = {};
-    state.islemler.filter(i => i.aracId === a.id && i.bitis).sort((x,y) => x.bitis > y.bitis ? 1 : -1).forEach(i => { map[i.tur] = i; });
+    state.islemler.filter(i => i.aracId === a.id && i.bitis)
+      .sort((x,y) => x.bitis > y.bitis ? 1 : -1)
+      .forEach(i => { map[i.tur] = i; });
     turler.forEach(tur => {
       const i = map[tur];
       if (!i) return;
-      const gun = gunFark(i.bitis);
-      if (gun !== null && gun <= 60) items.push({ a, tur, bitis: i.bitis, gun });
+      const g = gunFark(i.bitis);
+      if (g === null) return;
+      if (g < 0) {
+        if (!temizleTs || new Date(i.bitis) > temizleTs) {
+          gecmis.push({ a, tur, bitis: i.bitis, gun: g });
+        }
+      } else if (g <= 60) {
+        aktif.push({ tip: 'arac', a, tur, bitis: i.bitis, gun: g });
+      }
     });
     state.islemler.filter(i => i.aracId === a.id && i.sonrakiTarih).forEach(i => {
-      const gun = gunFark(i.sonrakiTarih);
-      if (gun !== null && gun <= 60) items.push({ a, tur: 'Sonraki Bakım (' + i.tur + ')', bitis: i.sonrakiTarih, gun });
+      const g = gunFark(i.sonrakiTarih);
+      if (g !== null && g >= 0 && g <= 60) {
+        aktif.push({ tip: 'arac', a, tur: 'Sonraki Bakım (' + i.tur + ')', bitis: i.sonrakiTarih, gun: g });
+      }
     });
   });
-  items.sort((a,b) => a.gun - b.gun);
-  const list = document.getElementById('hatirlat-list');
-  if (!items.length) { list.innerHTML = '<div class="empty-state"><div class="empty-icon">✅</div><div style="font-size:15px;font-weight:600;color:var(--text);margin-bottom:6px">Yaklaşan işlem yok</div><div style="font-size:13px">60 günlük periyotta herhangi bir hatırlatma bulunamadı</div></div>'; return; }
-  list.innerHTML = items.map(item => {
-    const cls = item.gun < 0 ? 'danger' : item.gun <= 15 ? 'danger' : item.gun <= 30 ? 'warn' : 'ok';
-    const icon = item.gun < 0 ? '🚨' : item.gun <= 15 ? '⚠️' : '🔔';
-    const kalan = item.gun < 0 ? `${Math.abs(item.gun)} gün geçti!` : item.gun === 0 ? 'Bugün!' : `${item.gun} gün kaldı`;
-    return `<div class="hatirlat-item ${cls}" onclick="showDetay('${item.a.id}')">
-      <div class="hatirlat-icon">${icon}</div>
-      <div class="hatirlat-info">
-        <div class="hatirlat-plaka">${item.a.plaka}</div>
-        <div class="hatirlat-tur">${item.tur}</div>
-        <div class="hatirlat-tarih">${formatTarih(item.bitis)}</div>
-      </div>
-      <div class="hatirlat-kalan ${cls}">${kalan}</div>
-    </div>`;
-  }).join('');
+
+  aktif.sort((a,b) => a.gun - b.gun);
+  gecmis.sort((a,b) => b.gun - a.gun);
+
+  // Aktif bildirimler
+  const aktifList = document.getElementById('hatirlat-aktif-list');
+  if (!aktif.length) {
+    aktifList.innerHTML = '<div class="empty-state"><div class="empty-icon">✅</div><div style="font-size:15px;font-weight:600;color:var(--text);margin-bottom:6px">Yaklaşan işlem yok</div><div style="font-size:13px">60 günlük periyotta herhangi bir hatırlatma bulunamadı</div></div>';
+  } else {
+    aktifList.innerHTML = aktif.map(item => {
+      if (item.tip === 'genel') {
+        const cls = item.gun <= 7 ? 'danger' : item.gun <= 15 ? 'warn' : 'ok';
+        const kalan = item.gun === 0 ? 'Bugün son gün!' : `${item.gun} gün kaldı`;
+        return `<div class="hatirlat-item ${cls}">
+          <div class="hatirlat-icon">${item.icon}</div>
+          <div class="hatirlat-info">
+            <div class="hatirlat-plaka" style="color:var(--warn)">GENEL BİLDİRİM</div>
+            <div class="hatirlat-tur">${item.tur}</div>
+            <div class="hatirlat-tarih">${item.aciklama}</div>
+          </div>
+          <div class="hatirlat-kalan ${cls}">${kalan}</div>
+        </div>`;
+      }
+      const cls = item.gun <= 15 ? 'danger' : item.gun <= 30 ? 'warn' : 'ok';
+      const icon = item.gun <= 15 ? '⚠️' : '🔔';
+      const kalan = item.gun === 0 ? 'Bugün!' : `${item.gun} gün kaldı`;
+      return `<div class="hatirlat-item ${cls}" onclick="showDetay('${item.a.id}')">
+        <div class="hatirlat-icon">${icon}</div>
+        <div class="hatirlat-info">
+          <div class="hatirlat-plaka">${item.a.plaka}</div>
+          <div class="hatirlat-tur">${item.tur}</div>
+          <div class="hatirlat-tarih">${formatTarih(item.bitis)}</div>
+        </div>
+        <div class="hatirlat-kalan ${cls}">${kalan}</div>
+      </div>`;
+    }).join('');
+  }
+
+  // Geçmiş bildirimler
+  const gecmisWrap = document.getElementById('gecmis-bildirim-wrap');
+  const gecmisList = document.getElementById('hatirlat-gecmis-list');
+  if (!gecmis.length) {
+    gecmisWrap.style.display = 'none';
+  } else {
+    gecmisWrap.style.display = 'block';
+    gecmisList.innerHTML = gecmis.map(item => `
+      <div class="hatirlat-item danger" onclick="showDetay('${item.a.id}')" style="opacity:0.7">
+        <div class="hatirlat-icon">🚨</div>
+        <div class="hatirlat-info">
+          <div class="hatirlat-plaka">${item.a.plaka}</div>
+          <div class="hatirlat-tur">${item.tur}</div>
+          <div class="hatirlat-tarih">Bitiş: ${formatTarih(item.bitis)}</div>
+        </div>
+        <div class="hatirlat-kalan danger">${Math.abs(item.gun)} gün geçti</div>
+      </div>`).join('');
+  }
+}
+
+function temizleGecmis() {
+  localStorage.setItem('gecmis_temizle_ts', new Date().toISOString());
+  renderHatirlatmalar();
 }
 
 function updateBadge() {
   const turler = ['Fenni Muayene','Egzoz Muayenesi','Trafik Sigortası','Kasko'];
   let count = 0;
+  // MTV genel bildirimi badge sayısına ekle
+  const ay = new Date().getMonth() + 1;
+  if (ay === 1 || ay === 7) count++;
   state.araclar.forEach(a => {
     const map = {};
     state.islemler.filter(i => i.aracId === a.id && i.bitis).forEach(i => { if (!map[i.tur] || i.bitis > map[i.tur]) map[i.tur] = i.bitis; });
-    turler.forEach(tur => { if (map[tur] && gunFark(map[tur]) <= 30) count++; });
+    turler.forEach(tur => {
+      if (!map[tur]) return;
+      const g = gunFark(map[tur]);
+      if (g !== null && g >= 0 && g <= 30) count++;
+    });
   });
   const badge = document.getElementById('hatirlat-badge');
   if (count > 0) { badge.textContent = count; badge.style.display = 'inline'; }
