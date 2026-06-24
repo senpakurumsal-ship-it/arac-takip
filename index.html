@@ -219,6 +219,20 @@
   }
 
   /* AI ASİSTAN — AÇILIR PANEL */
+  /* DURUM GÖSTERGELERİ */
+  .durum-indicator { display: flex; align-items: center; gap: 5px; font-size: 11px; font-weight: 700; color: var(--muted); letter-spacing: 0.3px; }
+  .durum-dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
+  .durum-dot.yesil { background: var(--success); box-shadow: 0 0 4px rgba(34,197,94,0.5); }
+  .durum-dot.kirmizi { background: var(--danger); animation: durum-blink 1s ease-in-out infinite; }
+  @keyframes durum-blink { 0%,100%{opacity:1;box-shadow:0 0 6px var(--danger)} 50%{opacity:0.2;box-shadow:none} }
+
+  /* TELEFON PREFIX */
+  .tel-wrap { display: flex; align-items: stretch; border: 1px solid var(--border); border-radius: var(--radius-sm); overflow: hidden; background: var(--bg3); }
+  .tel-prefix { padding: 0.55rem 0.6rem 0.55rem 0.85rem; font-size: 13px; color: var(--muted); white-space: nowrap; border-right: 1px solid var(--border); display: flex; align-items: center; user-select: none; }
+  .tel-wrap input { border: none; border-radius: 0; background: transparent; flex: 1; min-width: 0; }
+  .tel-wrap input:focus { border: none; outline: none; box-shadow: none; }
+  .tel-wrap:focus-within { border-color: var(--accent); }
+
   .ai-toggle-btn { background: var(--bg3); border: 1px solid var(--border); color: var(--text); cursor: pointer; padding: 0.5rem 0.95rem; border-radius: var(--radius-sm); font-size: 13px; font-weight: 600; display: flex; align-items: center; gap: 6px; transition: all 0.15s; }
   .ai-toggle-btn:hover, .ai-toggle-btn.active { border-color: var(--accent); color: var(--accent); background: rgba(79,110,247,0.1); }
   .ai-panel-backdrop { display: none; }
@@ -325,6 +339,16 @@
   <div class="mobile-header-title">
     <span class="mobile-header-logo">🚗</span> ARAÇ TAKİP
   </div>
+  <div style="position:absolute;right:44px;display:flex;align-items:center;gap:8px">
+    <div class="durum-indicator" title="MTV">
+      <span class="durum-dot mtv-dot yesil"></span>
+      <span style="font-size:10px">MTV</span>
+    </div>
+    <div class="durum-indicator" title="Lastik">
+      <span class="durum-dot lastik-dot yesil"></span>
+      <span style="font-size:10px">Lastik</span>
+    </div>
+  </div>
   <button class="mobile-ai-btn" onclick="toggleAiPanel()" title="AI Asistan">✨</button>
 </div>
 
@@ -369,6 +393,14 @@
   <!-- ANA İÇERİK -->
   <div class="main-content">
     <div class="main-topbar">
+      <div class="durum-indicator" title="MTV ödeme durumu">
+        <span class="durum-dot mtv-dot yesil"></span>
+        <span>MTV</span>
+      </div>
+      <div class="durum-indicator" title="Lastik değişim durumu">
+        <span class="durum-dot lastik-dot yesil"></span>
+        <span>Lastik Değişim</span>
+      </div>
       <button class="ai-toggle-btn" id="ai-toggle-btn" onclick="toggleAiPanel()">
         <span>✨</span> AI Asistan
       </button>
@@ -549,7 +581,10 @@
       </div>
       <div class="form-group">
         <label>Şoför WhatsApp Telefonu</label>
-        <input id="inp-telefon" placeholder="905XXXXXXXXX (başında 90, boşluksuz)">
+        <div class="tel-wrap">
+          <span class="tel-prefix">+90</span>
+          <input id="inp-telefon" placeholder="5XXXXXXXXX">
+        </div>
       </div>
       <div class="form-group">
         <label>Not</label>
@@ -663,7 +698,10 @@
       <div class="form-row">
         <div class="form-group">
           <label>Telefon</label>
-          <input id="inp-kul-telefon" placeholder="905XXXXXXXXX">
+          <div class="tel-wrap">
+            <span class="tel-prefix">+90</span>
+            <input id="inp-kul-telefon" placeholder="5XXXXXXXXX">
+          </div>
         </div>
         <div class="form-group">
           <label>Ünvan</label>
@@ -907,6 +945,42 @@ function save() {
   localStorage.setItem('arac_takip_cache', JSON.stringify(state));
 }
 function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2,6); }
+
+// TELEFON YARDIMCILARI — depolama: "905XXXXXXXXX", gösterim: "5XXXXXXXXX"
+function savePhone(val) {
+  val = (val || '').trim().replace(/\s/g,'');
+  if (!val) return '';
+  if (val.startsWith('90')) return val;
+  return '90' + val;
+}
+function displayPhone(val) {
+  val = (val || '').trim();
+  if (val.startsWith('90')) return val.slice(2);
+  return val;
+}
+
+// DURUM GÖSTERGELERİ
+function updateDurumIndicators() {
+  const ay = new Date().getMonth() + 1;
+
+  // MTV: Ocak (1) ve Temmuz (7) ödeme zamanı
+  const mtvUyari = ay === 1 || ay === 7;
+  document.querySelectorAll('.mtv-dot').forEach(el => {
+    el.className = 'durum-dot mtv-dot ' + (mtvUyari ? 'kirmizi' : 'yesil');
+  });
+
+  // Lastik: Kasım-Mart = kış sezonu (11,12,1,2,3), Nisan-Ekim = yaz sezonu
+  const kisSezon = ay >= 11 || ay <= 3;
+  let lastikUyari = false;
+  state.araclar.forEach(a => {
+    const kisLastikTakili = !!(a.lastik && a.lastik.kisLastik);
+    if (kisSezon && !kisLastikTakili) lastikUyari = true;
+    if (!kisSezon && kisLastikTakili) lastikUyari = true;
+  });
+  document.querySelectorAll('.lastik-dot').forEach(el => {
+    el.className = 'durum-dot lastik-dot ' + (lastikUyari ? 'kirmizi' : 'yesil');
+  });
+}
 
 function setSyncStatus(text, color) {
   const el = document.getElementById('sync-status');
@@ -1361,6 +1435,7 @@ function toggleKisLastik(aracId, val) {
   if (!a.lastik) a.lastik = {};
   a.lastik.kisLastik = val;
   save();
+  updateDurumIndicators();
 }
 
 function saveLastikBilgi(aracId) {
@@ -1489,7 +1564,7 @@ function openAracModal(id) {
     document.getElementById('inp-yil').value = a.yil || '';
     document.getElementById('inp-tip').value = a.tip || 'Otomobil';
     document.getElementById('inp-kullanici').value = a.kullanici || '';
-    document.getElementById('inp-telefon').value = a.telefon || '';
+    document.getElementById('inp-telefon').value = displayPhone(a.telefon);
     document.getElementById('inp-not').value = a.not || '';
   } else {
     ['inp-plaka','inp-model','inp-km','inp-yil','inp-kullanici','inp-telefon','inp-not'].forEach(id => document.getElementById(id).value = '');
@@ -1504,7 +1579,7 @@ function saveArac() {
   const model = document.getElementById('inp-model').value.trim();
   if (!plaka || !model) { alert('Plaka ve model zorunlu!'); return; }
   const id = document.getElementById('arac-edit-id').value;
-  const data = { plaka, model, km: document.getElementById('inp-km').value, yil: document.getElementById('inp-yil').value, tip: document.getElementById('inp-tip').value, kullanici: document.getElementById('inp-kullanici').value, telefon: document.getElementById('inp-telefon').value, not: document.getElementById('inp-not').value };
+  const data = { plaka, model, km: document.getElementById('inp-km').value, yil: document.getElementById('inp-yil').value, tip: document.getElementById('inp-tip').value, kullanici: document.getElementById('inp-kullanici').value, telefon: savePhone(document.getElementById('inp-telefon').value), not: document.getElementById('inp-not').value };
   let aracObj;
   if (id) { aracObj = state.araclar.find(x => x.id === id); Object.assign(aracObj, data); }
   else { aracObj = { id: uid(), anaFoto: '', ...data }; state.araclar.push(aracObj); }
@@ -1558,7 +1633,7 @@ function editKullanici(id) {
   document.getElementById('kullanici-modal-title').textContent = 'Kullanıcı Düzenle';
   document.getElementById('inp-kul-ad').value = k.ad || '';
   document.getElementById('inp-kul-soyad').value = k.soyad || '';
-  document.getElementById('inp-kul-telefon').value = k.telefon || '';
+  document.getElementById('inp-kul-telefon').value = displayPhone(k.telefon);
   document.getElementById('inp-kul-unvan').value = k.unvan || 'Teknisyen';
   document.getElementById('kullanici-modal').classList.add('open');
 }
@@ -1569,7 +1644,7 @@ function saveKullanici() {
   if (!ad || !soyad) { alert('Ad ve Soyad zorunludur.'); return; }
   const data = {
     ad, soyad,
-    telefon: document.getElementById('inp-kul-telefon').value.trim(),
+    telefon: savePhone(document.getElementById('inp-kul-telefon').value),
     unvan: document.getElementById('inp-kul-unvan').value
   };
   const id = document.getElementById('kullanici-edit-id').value;
@@ -2414,7 +2489,8 @@ async function init() {
   checkLogin();
   renderAraclar();
   updateBadge();
-  loadFromCloud(true).then(() => { renderAraclar(); updateBadge(); }).catch(() => {});
+  updateDurumIndicators();
+  loadFromCloud(true).then(() => { renderAraclar(); updateBadge(); updateDurumIndicators(); }).catch(() => {});
 }
 
 init();
