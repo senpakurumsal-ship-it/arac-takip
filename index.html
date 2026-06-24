@@ -576,7 +576,9 @@
         </div>
         <div class="form-group">
           <label>Araç Kullanıcısı</label>
-          <input id="inp-kullanici" placeholder="Aracı kullanan kişi adı">
+          <select id="inp-kullanici" onchange="kullaniciSecildi()">
+            <option value="">— Seçiniz —</option>
+          </select>
         </div>
       </div>
       <div class="form-group">
@@ -1553,6 +1555,23 @@ function buyukGoster(src) {
 }
 
 // ARAÇ KAYIT
+function doldurKullaniciSelect(secilenAd) {
+  const sel = document.getElementById('inp-kullanici');
+  sel.innerHTML = '<option value="">— Seçiniz —</option>' +
+    state.kullanicilar.map(k => {
+      const ad = k.ad + ' ' + k.soyad;
+      return `<option value="${ad}" data-tel="${k.telefon || ''}">${ad}${k.unvan ? ' · ' + k.unvan : ''}</option>`;
+    }).join('');
+  if (secilenAd) sel.value = secilenAd;
+}
+
+function kullaniciSecildi() {
+  const sel = document.getElementById('inp-kullanici');
+  const opt = sel.options[sel.selectedIndex];
+  const tel = opt ? opt.getAttribute('data-tel') : '';
+  document.getElementById('inp-telefon').value = displayPhone(tel);
+}
+
 function openAracModal(id) {
   document.getElementById('arac-edit-id').value = id || '';
   document.getElementById('arac-modal-title').textContent = id ? 'Araç Düzenle' : 'Araç Ekle';
@@ -1563,11 +1582,12 @@ function openAracModal(id) {
     document.getElementById('inp-km').value = a.km || '';
     document.getElementById('inp-yil').value = a.yil || '';
     document.getElementById('inp-tip').value = a.tip || 'Otomobil';
-    document.getElementById('inp-kullanici').value = a.kullanici || '';
+    doldurKullaniciSelect(a.kullanici || '');
     document.getElementById('inp-telefon').value = displayPhone(a.telefon);
     document.getElementById('inp-not').value = a.not || '';
   } else {
-    ['inp-plaka','inp-model','inp-km','inp-yil','inp-kullanici','inp-telefon','inp-not'].forEach(id => document.getElementById(id).value = '');
+    doldurKullaniciSelect('');
+    ['inp-plaka','inp-model','inp-km','inp-yil','inp-telefon','inp-not'].forEach(id => document.getElementById(id).value = '');
     document.getElementById('inp-tip').value = 'Otomobil';
   }
   document.getElementById('arac-modal').classList.add('open');
