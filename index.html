@@ -867,32 +867,41 @@
     <div class="modal-body" style="line-height:1.65;font-size:13.5px">
       <div style="background:var(--bg3);border-radius:var(--radius-sm);padding:1rem;margin-bottom:1.25rem">
         <div style="font-weight:700;margin-bottom:4px">🚗 Araç Takip nedir?</div>
-        Tüm araçlarının muayene, sigorta, kasko, bakım ve onarım kayıtlarını tek yerde tutan, yaklaşan tarihleri hatırlatan ve fatura/makbuzları AI ile okuyabilen bir takip sistemidir.
+        Tüm araçlarının muayene, sigorta, kasko, bakım, lastik ve onarım kayıtlarını tek yerde tutan, yaklaşan tarihleri hatırlatan, fatura/makbuzları AI ile okuyabilen ve verileri Google Sheets + Drive'a bulutta saklayan bir takip sistemidir.
       </div>
 
+      <div style="font-weight:700;color:var(--accent);margin-bottom:6px">🔐 Giriş</div>
+      <p style="margin-bottom:1rem">Uygulama şifre korumalıdır. Varsayılan şifre <strong>senpa2026</strong>'dır. Şifreyi Ayarlar sayfasından değiştirebilirsin. Çıkış yapmak için sol menünün altındaki <strong>Çıkış</strong> butonunu kullan.</p>
+
       <div style="font-weight:700;color:var(--accent);margin-bottom:6px">🚘 Araçlar</div>
-      <p style="margin-bottom:1rem">Ana sayfada tüm araçların kart halinde listelenir. Bir karta tıklayınca o aracın detayına girersin. <strong>+ Araç Ekle</strong> ile yeni araç tanımlarsın (plaka, marka/model, KM, araç tipi, şoför ve şoför telefonu). Bir araçta eksik bilgi varsa (örn. sigorta kaydı yok, şoför girilmemiş) kartın çerçevesi <span style="color:var(--danger)">kırmızı</span> olur ve köşesinde ⚠ uyarısı çıkar.</p>
+      <p style="margin-bottom:1rem">Ana sayfada tüm araçların kart halinde listelenir. Bir karta tıklayınca o aracın detayına girersin. <strong>+ Araç Ekle</strong> ile yeni araç tanımlarsın (plaka, marka/model, KM, araç tipi, araç kullanıcısı). Araç kullanıcısı Kullanıcılar sayfasına kayıtlı kişilerden seçilir. Eksik bilgi varsa kartın çerçevesi <span style="color:var(--danger)">kırmızı</span> olur ve ⚠ uyarısı çıkar.</p>
 
       <div style="font-weight:700;color:var(--accent);margin-bottom:6px">📄 Araç Detayı</div>
-      <p style="margin-bottom:1rem">Üç sekme vardır: <strong>Tarihler</strong> (muayene/sigorta/kasko bitiş durumları), <strong>İşlem Geçmişi</strong> (tüm bakım/onarım kayıtları, arama kutusuyla), <strong>Görseller</strong> (araç ve belge fotoğrafları). Buradan <strong>İşlem Ekle</strong>, <strong>KM Güncelle</strong>, <strong>Düzenle</strong> ve <strong>Sil</strong> yapabilirsin.</p>
+      <p style="margin-bottom:1rem">Dört sekme vardır: <strong>Tarihler</strong> (muayene/sigorta/kasko bitiş durumları), <strong>İşlem Geçmişi</strong> (tüm bakım/onarım kayıtları), <strong>Lastik</strong> (kış/yaz lastik takılı mı, son değişim tarihi), <strong>Görseller</strong> (araç ve belge fotoğrafları). Buradan <strong>İşlem Ekle</strong>, <strong>KM Güncelle</strong>, <strong>Düzenle</strong> ve <strong>Sil</strong> yapabilirsin.</p>
 
       <div style="font-weight:700;color:var(--accent);margin-bottom:6px">➕ İşlem Ekleme</div>
-      <p style="margin-bottom:1rem">İşlem türünü seçince (Fenni Muayene, Sigorta, Kasko, Bakım, Onarım, Yedek Parça...) forma sadece o türe uygun alanlar gelir. Muayene/sigortada bitiş tarihi, bakımda sonraki bakım hedefi gibi. Her işleme fatura/makbuz görseli ekleyebilirsin; görsel yüklersen Gemini otomatik okuyup formu doldurmayı teklif eder (onayınla).</p>
+      <p style="margin-bottom:1rem">İşlem türünü seçince (Fenni Muayene, Egzoz Muayenesi, Trafik Sigortası, Kasko, Bakım, Onarım, Yedek Parça...) forma sadece o türe uygun alanlar gelir. Her işleme fatura/makbuz görseli ekleyebilirsin — görseller otomatik olarak <strong>Google Drive</strong>'a yüklenir. Görsel yüklersen Gemini otomatik okuyup formu doldurmayı teklif eder.</p>
 
       <div style="font-weight:700;color:var(--accent);margin-bottom:6px">🔔 Hatırlatmalar</div>
-      <p style="margin-bottom:1rem">Yaklaşan veya geçmiş muayene/sigorta/kasko ve sonraki bakım tarihlerini öncelik sırasına göre gösterir. Menüdeki kırmızı sayı, 30 gün içinde işlem gereken araç sayısıdır.</p>
+      <p style="margin-bottom:1rem">Yaklaşan veya geçmiş muayene/sigorta/kasko/bakım tarihlerini öncelik sırasına göre gösterir. Ocak ve Temmuz aylarında MTV hatırlatması otomatik çıkar. Geçmiş bildirimleri ayrı bölümde görebilir, "Geçmişi Temizle" ile gizleyebilirsin. Menüdeki kırmızı sayı, 30 gün içinde işlem gereken araç sayısıdır.</p>
+
+      <div style="font-weight:700;color:var(--accent);margin-bottom:6px">🟢 Durum Göstergeleri</div>
+      <p style="margin-bottom:1rem">Sağ üst köşede <strong>MTV</strong> ve <strong>Lastik Değişim</strong> göstergeleri bulunur. Yeşil = normal, kırmızı yanıp sönen = dikkat gerekiyor. MTV Ocak/Temmuz aylarında, Lastik Değişim ise mevsime uygun lastik takılı değilse kırmızı yanar.</p>
+
+      <div style="font-weight:700;color:var(--accent);margin-bottom:6px">👥 Kullanıcılar</div>
+      <p style="margin-bottom:1rem">Sol menüden <strong>Kullanıcılar</strong> sayfasına girebilirsin. Şoför, yönetici gibi kişileri ad/soyad, telefon ve ünvan bilgileriyle kayıt edebilirsin. Kayıtlı kullanıcılar araç formunda "Araç Kullanıcısı" seçiminde otomatik listelenir.</p>
 
       <div style="font-weight:700;color:var(--accent);margin-bottom:6px">📋 Tüm İşlemler</div>
       <p style="margin-bottom:1rem">Tüm araçların işlemlerini tek listede gösterir. Plaka/araç/tür filtresi ve serbest arama vardır; üstte filtrelenen kayıtların toplam adedi ve toplam maliyeti görünür.</p>
 
       <div style="font-weight:700;color:var(--accent);margin-bottom:6px">✨ AI Asistan</div>
-      <p style="margin-bottom:1rem">Sağ üstteki <strong>AI Asistan</strong> tuşuyla açılır. "Hangi araçların sigortası bitiyor?", "Bu yıl toplam masraf ne kadar?" gibi sorular sorabilirsin. Fatura/makbuz görseli yükleyip otomatik işlem oluşturabilirsin. Kullanmak için Ayarlar'dan ücretsiz Gemini API anahtarı girmen gerekir.</p>
+      <p style="margin-bottom:1rem">Sağ üstteki <strong>AI Asistan</strong> tuşuyla açılır. "Hangi araçların sigortası bitiyor?", "Bu yıl toplam masraf ne kadar?" gibi sorular sorabilirsin. Fatura/makbuz görseli yükleyip otomatik işlem oluşturabilirsin.</p>
 
       <div style="font-weight:700;color:var(--accent);margin-bottom:6px">⚙️ Ayarlar</div>
-      <p style="margin-bottom:1rem">Google Sheets bağlantısı (verilerin buluta kaydedilip cihazlar arası senkron olması için), Gemini API anahtarı ve hazır araç verilerini yükleme buradadır. Sheets'e bağlanırsan veriler tüm cihazlarında ortak olur.</p>
+      <p style="margin-bottom:1rem">Uygulama şifresini değiştirebilir ve hazır araç verilerini içe aktarabilirsin. Veriler Google Sheets'e otomatik kaydedilir, tüm cihazlarda ortak çalışır.</p>
 
       <div style="background:var(--warn-bg);border:1px solid rgba(245,158,11,0.3);border-radius:var(--radius-sm);padding:0.85rem;font-size:12.5px">
-        💡 <strong>İpucu:</strong> Telefonda tarayıcı menüsünden "Ana ekrana ekle" dersen uygulama gibi açılır. WhatsApp ile şoförlere otomatik km sorma özelliği için kurulum rehberine bak.
+        💡 <strong>İpucu:</strong> Telefonda tarayıcı menüsünden "Ana ekrana ekle" dersen uygulama gibi açılır. WhatsApp ile şoförlere otomatik km sorma özelliği arka planda çalışır.
       </div>
 
       <div class="form-actions" style="margin-top:1.25rem">
