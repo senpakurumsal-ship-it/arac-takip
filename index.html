@@ -1713,21 +1713,26 @@ let islemBelgeGecici = [];
 
 function islemBelgeSec(event) {
   const files = Array.from(event.target.files);
-  let loaded = 0;
   if (!files.length) return;
-  const yeniGorseller = [];
+  const grid = document.getElementById('islem-belge-preview');
   files.forEach(f => {
+    const ph = document.createElement('div');
+    ph.style.cssText = 'width:72px;height:72px;border-radius:6px;background:var(--surface2);display:flex;align-items:center;justify-content:center;font-size:10px;color:var(--muted);text-align:center;flex-shrink:0';
+    ph.textContent = 'Yükleniyor…';
+    grid.appendChild(ph);
     const r = new FileReader();
-    r.onload = ev => {
-      islemBelgeGecici.push(ev.target.result);
-      yeniGorseller.push(ev.target.result);
-      loaded++;
-      if (loaded === files.length) {
-        renderIslemBelgePreview();
-        // Otomatik analiz: sadece tek görsel eklendiyse (en yaygın senaryo: bir fatura fotoğrafı)
-        if (GEMINI_KEY && yeniGorseller.length === 1) {
-          islemBelgeAnalizBaslat(yeniGorseller[0]);
-        }
+    r.onload = async ev => {
+      const base64 = ev.target.result;
+      let url = base64;
+      try {
+        const res = await apiCall('uploadPhoto', { base64, mimeType: f.type, fileName: f.name });
+        if (res && res.url) url = res.url;
+      } catch(e) {}
+      ph.remove();
+      islemBelgeGecici.push(url);
+      renderIslemBelgePreview();
+      if (GEMINI_KEY && files.length === 1) {
+        islemBelgeAnalizBaslat(base64);
       }
     };
     r.readAsDataURL(f);
