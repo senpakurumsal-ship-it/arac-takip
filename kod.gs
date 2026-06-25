@@ -52,7 +52,7 @@ function doPost(e) {
   if (action === 'deleteArac')  { satirSil('Araclar', body.id);       return jsonOut({ ok: true }); }
   if (action === 'saveIslem')   { satirKaydet('Islemler', body.data); return jsonOut({ ok: true }); }
   if (action === 'deleteIslem') { satirSil('Islemler', body.id);      return jsonOut({ ok: true }); }
-  if (action === 'uploadPhoto') { return jsonOut(uploadPhoto(body.base64, body.mimeType, body.fileName)); }
+  if (action === 'uploadPhoto') { return jsonOut(uploadPhoto(body.base64, body.mimeType, body.fileName, body.folder)); }
   return jsonOut({ error: 'bilinmeyen action' });
 }
 
@@ -112,12 +112,19 @@ function getOrCreateBelgeFolder() {
   return folders.hasNext() ? folders.next() : DriveApp.createFolder(name);
 }
 
-function uploadPhoto(base64, mimeType, fileName) {
+function getOrCreateSubFolder(subName) {
+  var parent = getOrCreateBelgeFolder();
+  var folders = parent.getFoldersByName(subName);
+  return folders.hasNext() ? folders.next() : parent.createFolder(subName);
+}
+
+function uploadPhoto(base64, mimeType, fileName, folderName) {
   try {
     var clean = base64.replace(/^data:[^;]+;base64,/, '');
     var bytes = Utilities.base64Decode(clean);
     var blob = Utilities.newBlob(bytes, mimeType || 'image/jpeg', fileName || ('belge_' + Date.now()));
-    var file = getOrCreateBelgeFolder().createFile(blob);
+    var folder = folderName ? getOrCreateSubFolder(folderName) : getOrCreateBelgeFolder();
+    var file = folder.createFile(blob);
     file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
     return { url: 'https://drive.google.com/uc?export=view&id=' + file.getId() };
   } catch(e) {

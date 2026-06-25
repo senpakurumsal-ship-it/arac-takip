@@ -1260,8 +1260,9 @@ function renderDetay(a) {
   const islemler = state.islemler.filter(i => i.aracId === a.id).sort((x,y) => y.tarih > x.tarih ? 1 : -1);
   const fotoIslem = state.islemler.filter(i => i.aracId === a.id && i.fotolar && i.fotolar.length);
   const tumFotolar = [];
-  fotoIslem.forEach(i => i.fotolar.forEach(f => tumFotolar.push(f)));
-  const anaFoto = a.anaFoto || (tumFotolar.length ? tumFotolar[0] : null);
+  fotoIslem.forEach(i => i.fotolar.forEach(f => tumFotolar.push({ url: f, islemId: i.id })));
+  _tumFotolarRef = tumFotolar;
+  const anaFoto = a.anaFoto || (tumFotolar.length ? tumFotolar[0].url : null);
   const eksikler = getAracEksikler(a);
 
   document.getElementById('detay-icerik').innerHTML = `
@@ -1274,8 +1275,11 @@ function renderDetay(a) {
       </div>
     </div>` : ''}
     <div class="detail-head">
-      <div class="detail-photo" onclick="triggerFotoUpload('${a.id}')" title="Fotoğraf eklemek için tıkla">
-        ${anaFoto ? `<img src="${anaFoto}" alt="">` : '📷'}
+      <div class="detail-photo" style="position:relative">
+        <div onclick="triggerFotoUpload('${a.id}')" title="Fotoğraf değiştirmek için tıkla" style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:32px">
+          ${anaFoto ? `<img src="${anaFoto}" alt="" style="width:100%;height:100%;object-fit:cover">` : '📷'}
+        </div>
+        ${anaFoto ? `<button onclick="event.stopPropagation();aracFotoSil('${a.id}')" style="position:absolute;top:3px;right:3px;background:rgba(0,0,0,0.7);border:none;color:#fff;border-radius:50%;width:20px;height:20px;font-size:11px;cursor:pointer;line-height:1;z-index:2">✕</button>` : ''}
       </div>
       <div class="detail-info">
         <div class="detail-plaka">${a.plaka}${a.tip === 'Motosiklet' ? ' 🏍️' : ''}</div>
@@ -1362,7 +1366,11 @@ function renderDetay(a) {
         <div style="font-size:11px;color:var(--muted);margin-top:4px">İlk fotoğraf araç kartında görünür</div>
       </div>
       <div class="photo-preview-grid" id="foto-grid" style="margin-top:1rem">
-        ${tumFotolar.map((f,idx) => `<img class="photo-thumb" src="${f}" onclick="buyukGoster('${f}')" title="${idx===0?'Ana fotoğraf':''}"`+`${idx===0?'style="border:2px solid var(--accent)"':''+""}>`).join('')}
+        ${tumFotolar.map((item, idx) => `
+          <div style="position:relative">
+            <img class="photo-thumb" src="${item.url}" onclick="buyukGoster('${item.url}')"${idx===0?' style="border:2px solid var(--accent)"':''}>
+            <button onclick="event.stopPropagation();fotoSil(${idx})" style="position:absolute;top:4px;right:4px;background:rgba(0,0,0,0.7);border:none;color:#fff;border-radius:50%;width:20px;height:20px;font-size:11px;cursor:pointer;line-height:1">✕</button>
+          </div>`).join('')}
       </div>
     </div>
   `;
@@ -1503,6 +1511,28 @@ function switchTab(name, btn) {
   document.getElementById('tab-' + name).classList.add('active');
 }
 
+let _tumFotolarRef = [];
+
+function fotoSil(idx) {
+  const item = _tumFotolarRef[idx];
+  if (!item || !confirm('Bu fotoğraf silinsin mi?')) return;
+  const islem = state.islemler.find(i => i.id === item.islemId);
+  if (!islem) return;
+  islem.fotolar = islem.fotolar.filter(f => f !== item.url);
+  const a = state.araclar.find(x => x.id === islem.aracId);
+  if (a && a.anaFoto === item.url) { a.anaFoto = ''; syncArac(a); }
+  save();
+  syncIslem(islem);
+  if (a) renderDetay(a);
+}
+
+function aracFotoSil(aracId) {
+  const a = state.araclar.find(x => x.id === aracId);
+  if (!a || !confirm('Ana fotoğraf silinsin mi?')) return;
+  a.anaFoto = '';
+  save(); renderDetay(a); syncArac(a);
+}
+
 function fileToBase64(file) {
   return new Promise((resolve, reject) => {
     const r = new FileReader();
@@ -1512,12 +1542,12 @@ function fileToBase64(file) {
   });
 }
 
-async function uploadToDrive(file) {
+async function uploadToDrive(file, folder) {
   const base64 = await fileToBase64(file);
-  if (!API_URL) return base64; // API bağlı değilse yerel base64 kullan (sadece bu tarayıcıda görünür)
-  const result = await apiCall('uploadFoto', { data: { base64, fileName: file.name, mimeType: file.type } });
+  if (!API_URL) return base64;
+  const result = await apiCall('uploadPhoto', { base64, mimeType: file.type, fileName: file.name, folder: folder || 'Araç Fotoğrafları' });
   if (result && result.url) return result.url;
-  return base64; // yükleme başarısız olursa yerel olarak sakla
+  return base64;
 }
 
 async function triggerFotoUpload(aracId) {
@@ -1730,7 +1760,7 @@ function islemBelgeSec(event) {
       const base64 = ev.target.result;
       let url = base64;
       try {
-        const res = await apiCall('uploadPhoto', { base64, mimeType: f.type, fileName: f.name });
+        const res = await apiCall('uploadPhoto', { base64, mimeType: f.type, fileName: f.name, folder: 'Fatura-Makbuz' });
         if (res && res.url) url = res.url;
       } catch(e) {}
       ph.remove();
@@ -2161,6 +2191,7 @@ async function geminiMetinCagrisi(sistemPrompt, gecmis, soru) {
 // ---- AI PANEL: BELGE YÜKLE & ARACA KAYDET ----
 let aiPanelAnaliz = null;
 let aiPanelBelgeData = null;
+let aiPanelDriveUrl = null;
 
 async function aiPanelBelgeSec(event) {
   const file = event.target.files[0];
@@ -2172,6 +2203,9 @@ async function aiPanelBelgeSec(event) {
   const r = new FileReader();
   r.onload = async ev => {
     aiPanelBelgeData = ev.target.result;
+    aiPanelDriveUrl = null;
+    apiCall('uploadPhoto', { base64: aiPanelBelgeData, mimeType: file.type, fileName: file.name, folder: 'AI Belgeleri' })
+      .then(res => { if (res && res.url) aiPanelDriveUrl = res.url; }).catch(() => {});
     sonuc.innerHTML = '<div style="font-size:12px;color:var(--accent);padding:0.5rem 0">✨ Gemini belgeyi okuyor...</div>';
     try {
       const analiz = await islemBelgeAnalizEt(aiPanelBelgeData);
@@ -2216,14 +2250,14 @@ function aiPanelBelgeKaydet() {
     bitis: a.bitis || null,
     km: a.km ? String(a.km) : '', maliyet: a.maliyet ? String(a.maliyet) : '',
     sonrakiKm: '', sonrakiTarih: '', detay: a.detay || '', not: 'Gemini ile belgeden eklendi',
-    fotolar: aiPanelBelgeData ? [aiPanelBelgeData] : []
+    fotolar: (aiPanelDriveUrl || aiPanelBelgeData) ? [(aiPanelDriveUrl || aiPanelBelgeData)] : []
   };
   state.islemler.push(islem);
   save();
   syncIslem(islem);
   renderAraclar();
   document.getElementById('ai-panel-belge-sonuc').innerHTML = '<div style="font-size:12px;color:var(--success);padding:0.5rem 0">✅ İşlem kaydedildi.</div>';
-  aiPanelAnaliz = null; aiPanelBelgeData = null;
+  aiPanelAnaliz = null; aiPanelBelgeData = null; aiPanelDriveUrl = null;
   setTimeout(() => { document.getElementById('ai-panel-belge-sonuc').innerHTML = ''; }, 3000);
 }
 
