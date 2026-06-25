@@ -1,0 +1,5 @@
+index.html
+.claude/
+memory/
+node_modules/
+*.md
