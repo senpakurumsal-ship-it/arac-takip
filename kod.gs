@@ -321,7 +321,14 @@ function tgCallbackIsle(chatId, data, from) {
 
 function tgMesajIsle(chatId, metin, from) {
   var st = tgStateOku(chatId);
-  if (!st || !st.durum) {
+  if ((metin || '').trim().toLowerCase() === '/start' || (!st || !st.durum)) {
+    if ((metin || '').trim().toLowerCase() === '/start') {
+      var k = tgKullaniciByTgId(chatId);
+      var msg = '👋 Merhaba!\n\n<b>Telegram ID:</b> <code>' + chatId + '</code>\n\n';
+      msg += k ? '✅ Kaydiniz mevcut. Gun sonu formunu otomatik alacaksiniz.' : 'Bu ID-yi yoneticinize iletin; sisteme eklendikten sonra gun sonu formunu alirsiniz.';
+      tgGonder(chatId, msg);
+      return;
+    }
     tgGonder(chatId, 'Merhaba! Gün sonu raporu için akşam göndereceğim mesajı bekleyin. 🚗');
     return;
   }
