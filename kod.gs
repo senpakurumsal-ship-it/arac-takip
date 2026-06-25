@@ -68,6 +68,7 @@ function doPost(e) {
   if (action === 'saveIslem')   { satirKaydet('Islemler', body.data); return jsonOut({ ok: true }); }
   if (action === 'deleteIslem') { satirSil('Islemler', body.id);      return jsonOut({ ok: true }); }
   if (action === 'uploadPhoto') { return jsonOut(uploadPhoto(body.base64, body.mimeType, body.fileName, body.folder)); }
+  if (action === 'deletePhoto') { return jsonOut(deletePhoto(body.url)); }
   return jsonOut({ error: 'bilinmeyen action' });
 }
 
@@ -134,6 +135,17 @@ function getOrCreateSubFolder(subName) {
   var parent = getOrCreateBelgeFolder();
   var folders = parent.getFoldersByName(subName);
   return folders.hasNext() ? folders.next() : parent.createFolder(subName);
+}
+
+function deletePhoto(url) {
+  try {
+    var m = String(url || '').match(/[-\w]{25,}/);
+    if (!m) return { error: 'id bulunamadi' };
+    DriveApp.getFileById(m[0]).setTrashed(true);
+    return { ok: true };
+  } catch(e) {
+    return { error: e.toString() };
+  }
 }
 
 function uploadPhoto(base64, mimeType, fileName, folderName) {
