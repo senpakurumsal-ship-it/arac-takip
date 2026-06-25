@@ -877,7 +877,7 @@
       <p style="margin-bottom:1rem">İşlem türünü seçince (Fenni Muayene, Egzoz Muayenesi, Trafik Sigortası, Kasko, Bakım, Onarım, Yedek Parça...) forma sadece o türe uygun alanlar gelir. Her işleme fatura/makbuz görseli ekleyebilirsin — görseller otomatik olarak Google Drive'daki <strong>Fatura-Makbuz</strong> klasörüne yüklenir. Görsellerin üstündeki ✕ ile silebilirsin. Görsel yüklersen Gemini otomatik okuyup formu doldurmayı teklif eder.</p>
 
       <div style="font-weight:700;color:var(--accent);margin-bottom:6px">📷 Fotoğraflar</div>
-      <p style="margin-bottom:1rem">Araç detayında ana fotoğraf ve Görseller sekmesindeki tüm fotoğraflar Google Drive'a yüklenir. Drive'da <strong>Araç Takip Belgeler</strong> ana klasörü altında türe göre ayrılır: <em>Araç Fotoğrafları</em>, <em>Fatura-Makbuz</em>, <em>AI Belgeleri</em>. Her fotoğrafın köşesindeki ✕ ile silebilirsin. Ana fotoğrafı değiştirmek için üzerine tıkla.</p>
+      <p style="margin-bottom:1rem">Tüm fotoğraflar Google Drive'a yüklenir. Drive'da <strong>Araç Takip Belgeler</strong> ana klasörü altında nereden eklendiğine göre ayrılır: <em>Araç Profil</em> (araç ana fotoğrafı), <em>Görseller</em> (Görseller sekmesi), <em>Fatura-Makbuz</em> (işlem belgeleri), <em>AI</em> (AI Asistan ile eklenenler). Her fotoğrafın köşesindeki ✕ ile silebilirsin. Ana fotoğrafa tıklayınca büyük açılır; sağ alttaki 📷 ile değiştirebilirsin.</p>
 
       <div style="font-weight:700;color:var(--accent);margin-bottom:6px">🔔 Hatırlatmalar</div>
       <p style="margin-bottom:1rem">Yaklaşan veya geçmiş muayene/sigorta/kasko/bakım tarihlerini öncelik sırasına göre gösterir. Ocak ve Temmuz aylarında MTV hatırlatması otomatik çıkar. Geçmiş bildirimleri ayrı bölümde görebilir, "Geçmişi Temizle" ile gizleyebilirsin. Menüdeki kırmızı sayı, 30 gün içinde işlem gereken araç sayısıdır.</p>
@@ -1279,10 +1279,13 @@ function renderDetay(a) {
     </div>` : ''}
     <div class="detail-head">
       <div class="detail-photo" style="position:relative">
-        <div onclick="triggerFotoUpload('${a.id}')" title="Fotoğraf değiştirmek için tıkla" style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:32px">
-          ${anaFoto ? `<img src="${anaFoto}" alt="" style="width:100%;height:100%;object-fit:cover">` : '📷'}
-        </div>
-        ${anaFoto ? `<button onclick="event.stopPropagation();aracFotoSil('${a.id}')" style="position:absolute;top:3px;right:3px;background:rgba(0,0,0,0.7);border:none;color:#fff;border-radius:50%;width:20px;height:20px;font-size:11px;cursor:pointer;line-height:1;z-index:2">✕</button>` : ''}
+        ${anaFoto ? `
+          <img src="${driveImg(anaFoto)}" alt="" onclick="buyukGoster('${anaFoto}')" title="Büyük göster" style="width:100%;height:100%;object-fit:cover;cursor:pointer">
+          <button onclick="event.stopPropagation();aracFotoSil('${a.id}')" title="Sil" style="position:absolute;top:3px;right:3px;background:rgba(0,0,0,0.7);border:none;color:#fff;border-radius:50%;width:20px;height:20px;font-size:11px;cursor:pointer;line-height:1;z-index:2">✕</button>
+          <button onclick="event.stopPropagation();triggerFotoUpload('${a.id}')" title="Değiştir" style="position:absolute;bottom:3px;right:3px;background:rgba(0,0,0,0.7);border:none;color:#fff;border-radius:50%;width:22px;height:22px;font-size:11px;cursor:pointer;line-height:1;z-index:2">📷</button>
+        ` : `
+          <div onclick="triggerFotoUpload('${a.id}')" title="Fotoğraf ekle" style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:32px">📷</div>
+        `}
       </div>
       <div class="detail-info">
         <div class="detail-plaka">${a.plaka}${a.tip === 'Motosiklet' ? ' 🏍️' : ''}</div>
@@ -1371,7 +1374,7 @@ function renderDetay(a) {
       <div class="photo-preview-grid" id="foto-grid" style="margin-top:1rem">
         ${tumFotolar.map((item, idx) => `
           <div style="position:relative">
-            <img class="photo-thumb" src="${item.url}" onclick="buyukGoster('${item.url}')"${idx===0?' style="border:2px solid var(--accent)"':''}>
+            <img class="photo-thumb" src="${driveImg(item.url)}" onclick="buyukGoster('${item.url}')"${idx===0?' style="border:2px solid var(--accent)"':''}>
             <button onclick="event.stopPropagation();fotoSil(${idx})" style="position:absolute;top:4px;right:4px;background:rgba(0,0,0,0.7);border:none;color:#fff;border-radius:50%;width:20px;height:20px;font-size:11px;cursor:pointer;line-height:1">✕</button>
           </div>`).join('')}
       </div>
@@ -1488,7 +1491,7 @@ function islemItemHTML(i) {
       ${i.detay ? `<div class="islem-detay">${i.detay}</div>` : ''}
       ${i.not ? `<div style="font-size:12px;color:var(--muted);margin-top:4px">${i.not}</div>` : ''}
       ${i.maliyet ? `<div class="islem-maliyet">💰 ${Number(i.maliyet).toLocaleString('tr-TR')} ₺</div>` : ''}
-      ${i.fotolar && i.fotolar.length ? `<div class="photo-preview-grid" style="margin-top:8px">${i.fotolar.map(f => `<img class="photo-thumb" src="${f}" onclick="buyukGoster('${f}')">`).join('')}</div>` : ''}
+      ${i.fotolar && i.fotolar.length ? `<div class="photo-preview-grid" style="margin-top:8px">${i.fotolar.map(f => `<img class="photo-thumb" src="${driveImg(f)}" onclick="buyukGoster('${f}')">`).join('')}</div>` : ''}
     </div>`;
 }
 
@@ -1536,6 +1539,16 @@ function aracFotoSil(aracId) {
   save(); renderDetay(a); syncArac(a);
 }
 
+// Drive görsel URL'ini <img> içinde çalışan thumbnail formatına çevirir.
+// Hem eski (uc?export=view) hem yeni URL'leri, hem de base64'ü destekler.
+function driveImg(url, size) {
+  if (!url) return '';
+  if (String(url).indexOf('data:') === 0) return url;
+  const m = String(url).match(/[-\w]{25,}/);
+  if (m) return 'https://drive.google.com/thumbnail?id=' + m[0] + '&sz=' + (size || 'w1000');
+  return url;
+}
+
 function fileToBase64(file) {
   return new Promise((resolve, reject) => {
     const r = new FileReader();
@@ -1559,7 +1572,7 @@ async function triggerFotoUpload(aracId) {
   inp.onchange = async e => {
     const f = e.target.files[0]; if (!f) return;
     showLoading('Fotoğraf yükleniyor...');
-    const url = await uploadToDrive(f);
+    const url = await uploadToDrive(f, 'Araç Profil');
     hideLoading();
     const a = state.araclar.find(x => x.id === aracId);
     if (a) { a.anaFoto = url; save(); renderDetay(a); syncArac(a); }
@@ -1575,7 +1588,7 @@ async function uploadFotoBulk(event, aracId) {
   const newFotos = [];
   for (let i = 0; i < files.length; i++) {
     document.getElementById('loading-text').textContent = `${i+1}/${files.length} fotoğraf yükleniyor...`;
-    const url = await uploadToDrive(files[i]);
+    const url = await uploadToDrive(files[i], 'Görseller');
     newFotos.push(url);
   }
   hideLoading();
@@ -1588,7 +1601,7 @@ async function uploadFotoBulk(event, aracId) {
 }
 
 function buyukGoster(src) {
-  document.getElementById('foto-buyuk').src = src;
+  document.getElementById('foto-buyuk').src = driveImg(src, 'w1600');
   document.getElementById('foto-modal').classList.add('open');
 }
 
@@ -1803,7 +1816,7 @@ function renderIslemBelgePreview() {
   const grid = document.getElementById('islem-belge-preview');
   grid.innerHTML = islemBelgeGecici.map((f, idx) => `
     <div style="position:relative">
-      <img class="photo-thumb" src="${f}" onclick="buyukGoster('${f}')">
+      <img class="photo-thumb" src="${driveImg(f)}" onclick="buyukGoster('${f}')">
       <button onclick="event.stopPropagation();islemBelgeSil(${idx})" style="position:absolute;top:4px;right:4px;background:rgba(0,0,0,0.65);border:none;color:#fff;border-radius:50%;width:20px;height:20px;font-size:12px;cursor:pointer;line-height:1">✕</button>
     </div>
   `).join('');
@@ -2207,7 +2220,7 @@ async function aiPanelBelgeSec(event) {
   r.onload = async ev => {
     aiPanelBelgeData = ev.target.result;
     aiPanelDriveUrl = null;
-    apiCall('uploadPhoto', { base64: aiPanelBelgeData, mimeType: file.type, fileName: file.name, folder: 'AI Belgeleri' })
+    apiCall('uploadPhoto', { base64: aiPanelBelgeData, mimeType: file.type, fileName: file.name, folder: 'AI' })
       .then(res => { if (res && res.url) aiPanelDriveUrl = res.url; }).catch(() => {});
     sonuc.innerHTML = '<div style="font-size:12px;color:var(--accent);padding:0.5rem 0">✨ Gemini belgeyi okuyor...</div>';
     try {

@@ -126,7 +126,7 @@ function uploadPhoto(base64, mimeType, fileName, folderName) {
     var folder = folderName ? getOrCreateSubFolder(folderName) : getOrCreateBelgeFolder();
     var file = folder.createFile(blob);
     file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
-    return { url: 'https://drive.google.com/uc?export=view&id=' + file.getId() };
+    return { url: 'https://drive.google.com/thumbnail?id=' + file.getId() + '&sz=w1000', id: file.getId() };
   } catch(e) {
     return { error: e.toString() };
   }
