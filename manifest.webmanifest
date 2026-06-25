@@ -1,0 +1,15 @@
+{
+  "name": "Senpa Araç Takip",
+  "short_name": "Araç Takip",
+  "description": "Araç muayene, sigorta, kasko, bakım ve lastik takip sistemi",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#0f1117",
+  "theme_color": "#4F6EF7",
+  "orientation": "portrait-primary",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}

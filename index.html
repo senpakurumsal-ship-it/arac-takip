@@ -6,6 +6,11 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Araç Takip">
+<meta name="theme-color" content="#4F6EF7">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="icon" type="image/png" href="icon-192.png">
 <title>Araç Takip</title>
 <style>
   :root {
@@ -457,7 +462,7 @@
     <div class="page" id="page-hatirlatmalar">
       <div class="section-header" style="margin-top:1rem">
         <div class="section-title">Hatırlatmalar</div>
-        <div style="font-size:13px;color:var(--muted)">Yaklaşan ve geçmiş bildirimler</div>
+        <button class="btn outline" style="font-size:11px;padding:4px 12px" onclick="temizleGecmis()" title="Süresi geçmiş bildirimleri gizler">Geçmişi Temizle</button>
       </div>
       <div id="hatirlat-genel"></div>
       <div id="sofor-bildirim-wrap" style="display:none;margin-bottom:1.5rem">
@@ -692,8 +697,10 @@
         <label>Takip Edilecek Başlıklar</label>
         <div class="takip-kutular">
           <label class="takip-kutu"><input type="checkbox" id="tk-muayene" checked> Muayene & Egzoz</label>
-          <label class="takip-kutu"><input type="checkbox" id="tk-sigorta" checked> Sigorta & Kasko</label>
-          <label class="takip-kutu"><input type="checkbox" id="tk-bakim" checked> Bakım / Onarım</label>
+          <label class="takip-kutu"><input type="checkbox" id="tk-sigorta" checked> Trafik Sigortası</label>
+          <label class="takip-kutu"><input type="checkbox" id="tk-kasko" checked> Kasko</label>
+          <label class="takip-kutu"><input type="checkbox" id="tk-bakim" checked> Bakım</label>
+          <label class="takip-kutu"><input type="checkbox" id="tk-onarim" checked> Onarım</label>
           <label class="takip-kutu"><input type="checkbox" id="tk-yakit" checked> Yakıt / KM</label>
         </div>
         <div style="font-size:11px;color:var(--muted);margin-top:5px">İşareti kaldırılan başlık ekranda görünmeye devam eder ama uyarı/hatırlatma çıkmaz.</div>
@@ -725,6 +732,7 @@
           <label>İşlem Türü *</label>
           <select id="inp-islem-tur" onchange="updateIslemFormFields()">
             <option value="">Seç...</option>
+            <option>Fenni Muayene + Egzoz</option>
             <option>Fenni Muayene</option>
             <option>Egzoz Muayenesi</option>
             <option>Trafik Sigortası</option>
@@ -1024,19 +1032,19 @@
       <p style="margin-bottom:1rem">Her araca bir grup atayabilirsin; kart çerçevesi grubun rengini alır: <span style="color:#eab308">🟡 Nakliye</span>, <span style="color:#22c55e">🟢 Saha Teknisyeni</span>, <span style="color:#94a3b8">⚪ Yedek Araç</span>, <span style="color:#3b82f6">🔵 Bireysel / Şahsi</span>. Böylece araçları renkten ayırt edersin.</p>
 
       <div style="font-weight:700;color:var(--accent);margin-bottom:6px">🚦 Takip / Muafiyet</div>
-      <p style="margin-bottom:1rem">Araç düzenleme ekranında <strong>Takip Edilecek Başlıklar</strong> kutucukları vardır: Muayene&Egzoz, Sigorta&Kasko, Bakım/Onarım, Yakıt/KM. Bir başlığın işaretini kaldırırsan o araç için o başlıkta <strong>uyarı ve hatırlatma çıkmaz</strong> (ekranda görünmeye devam eder, istersen manuel ekleyebilirsin). Örnek: nakliye aracının bakımı nakliyeciye aitse "Bakım/Onarım" işaretini kaldır, uyarı almazsın.</p>
+      <p style="margin-bottom:1rem">Araç düzenleme ekranında <strong>Takip Edilecek Başlıklar</strong> kutucukları vardır: Muayene&Egzoz, Trafik Sigortası, Kasko, Bakım, Onarım, Yakıt/KM — her biri ayrı ayrı açılıp kapatılır. Bir başlığın işaretini kaldırırsan o araç için o başlıkta <strong>uyarı ve hatırlatma çıkmaz</strong> (ekranda görünmeye devam eder). Örnekler: kaskosu yapılamayan eski araçta "Kasko" işaretini kaldır; bakımı nakliyeciye ait araçta "Bakım"ı kaldır.</p>
 
       <div style="font-weight:700;color:var(--accent);margin-bottom:6px">📄 Araç Detayı</div>
       <p style="margin-bottom:1rem">Dört sekme vardır: <strong>Tarihler</strong> (muayene/sigorta/kasko bitiş durumları), <strong>İşlem Geçmişi</strong> (tüm bakım/onarım kayıtları), <strong>Lastik</strong> (kış/yaz lastik takılı mı, son değişim tarihi), <strong>Görseller</strong> (araç ve belge fotoğrafları). Buradan <strong>İşlem Ekle</strong>, <strong>KM Güncelle</strong>, <strong>Düzenle</strong> ve <strong>Sil</strong> yapabilirsin.</p>
 
       <div style="font-weight:700;color:var(--accent);margin-bottom:6px">➕ İşlem Ekleme</div>
-      <p style="margin-bottom:1rem">İşlem türünü seçince (Fenni Muayene, Egzoz Muayenesi, Trafik Sigortası, Kasko, Bakım, Onarım, Yedek Parça...) forma sadece o türe uygun alanlar gelir. Bakımda <strong>Sonraki Bakım</strong> alanını "+6 Ay / +1 Yıl / +10.000 km / +15.000 km" hızlı butonlarıyla işlem tarihine/km'sine göre otomatik doldurabilirsin. Her işleme fatura/makbuz görseli ekleyebilirsin — görseller otomatik olarak Google Drive'daki <strong>Fatura-Makbuz</strong> klasörüne yüklenir. Görsellerin üstündeki ✕ ile silebilirsin. Görsel yüklersen Gemini otomatik okuyup formu doldurmayı teklif eder.</p>
+      <p style="margin-bottom:1rem">İşlem türünü seçince (Fenni Muayene, Egzoz Muayenesi, Trafik Sigortası, Kasko, Bakım, Onarım, Yedek Parça...) forma sadece o türe uygun alanlar gelir. <strong>Fenni Muayene + Egzoz</strong> seçeneği ikisini tek seferde, aynı tarih/bitişle birlikte kaydeder (maliyet bir kez yazılır). Bakımda <strong>Sonraki Bakım</strong> alanını "+6 Ay / +1 Yıl / +10.000 km / +15.000 km" hızlı butonlarıyla işlem tarihine/km'sine göre otomatik doldurabilirsin. Her işleme fatura/makbuz görseli ekleyebilirsin — görseller otomatik olarak Google Drive'daki <strong>Fatura-Makbuz</strong> klasörüne yüklenir. Görsellerin üstündeki ✕ ile silebilirsin. Görsel yüklersen Gemini otomatik okuyup formu doldurmayı teklif eder.</p>
 
       <div style="font-weight:700;color:var(--accent);margin-bottom:6px">📷 Fotoğraflar</div>
       <p style="margin-bottom:1rem">Tüm fotoğraflar Google Drive'a yüklenir. Drive'da <strong>Araç Takip Belgeler</strong> ana klasörü altında nereden eklendiğine göre ayrılır: <em>Araç Profil</em> (araç ana fotoğrafı), <em>Görseller</em> (Görseller sekmesi), <em>Fatura-Makbuz</em> (işlem belgeleri), <em>AI</em> (AI Asistan ile eklenenler). Her fotoğrafın köşesindeki ✕ ile silebilirsin. Ana fotoğrafa tıklayınca büyük açılır; sağ alttaki 📷 ile değiştirebilirsin.</p>
 
       <div style="font-weight:700;color:var(--accent);margin-bottom:6px">🔔 Hatırlatmalar</div>
-      <p style="margin-bottom:1rem">Yaklaşan bildirimler <strong>3 sütunda</strong> gösterilir: <em>Muayene & Egzoz</em>, <em>Sigorta & Kasko</em>, <em>Tamir / Bakım / Onarım</em>. Her bildirime tıklayınca o aracın sayfasına gidersin. Bir araçta ilgili kayıt hiç yoksa "kaydı yok", 1 aydan uzun süredir bakım girişi yoksa "X gündür bakım girişi yok" uyarısı çıkar. Ocak/Temmuz'da MTV hatırlatması üstte genel bildirim olarak görünür. Geçmiş bildirimleri ayrı bölümde görebilir, "Temizle" ile gizleyebilirsin. Takip işareti kaldırılan başlıklar burada görünmez.</p>
+      <p style="margin-bottom:1rem">Bildirimler <strong>3 sütunda</strong> gösterilir: <em>Muayene & Egzoz</em>, <em>Sigorta & Kasko</em>, <em>Tamir / Bakım / Onarım</em>. Hem yaklaşanlar hem süresi geçmişler aynı sütunda listelenir (geçmiş olanlar 🚨 "X gün geçti" olarak üstte). Her bildirime tıklayınca o aracın sayfasına gidersin. Kayıt hiç yoksa "kaydı yok", 1 aydan uzun bakım girişi yoksa "X gündür bakım girişi yok" çıkar. Ocak/Temmuz'da MTV genel bildirimi üstte görünür. Sağ üstteki <strong>Geçmişi Temizle</strong> ile süresi geçmişleri gizleyebilirsin. Takip işareti kaldırılan başlıklar görünmez.</p>
 
       <div style="font-weight:700;color:var(--accent);margin-bottom:6px">🟢 Durum Göstergeleri</div>
       <p style="margin-bottom:1rem">Sağ üst köşede <strong>MTV</strong> ve <strong>Lastik Değişim</strong> göstergeleri bulunur. Yeşil = normal, kırmızı yanıp sönen = dikkat gerekiyor. MTV Ocak/Temmuz aylarında, Lastik Değişim ise mevsime uygun lastik takılı değilse kırmızı yanar.</p>
@@ -1063,7 +1071,7 @@
       <p style="margin-bottom:1rem">Uygulama şifresini değiştirebilir ve hazır araç verilerini içe aktarabilirsin. Veriler Google Sheets'e otomatik kaydedilir, tüm cihazlarda ortak çalışır.</p>
 
       <div style="background:var(--warn-bg);border:1px solid rgba(245,158,11,0.3);border-radius:var(--radius-sm);padding:0.85rem;font-size:12.5px">
-        💡 <strong>İpucu:</strong> Telefonda tarayıcı menüsünden "Ana ekrana ekle" dersen uygulama gibi açılır. WhatsApp ile şoförlere otomatik km sorma özelliği arka planda çalışır.
+        💡 <strong>İpucu:</strong> Bu bir uygulamadır (PWA) — telefon/bilgisayarda tarayıcı menüsünden "Ana ekrana ekle / Uygulamayı yükle" dersen kendi ikonuyla, tam ekran ve çevrimdışı açılır. Veriler buluttadır; Telegram gün sonu formu arka planda çalışır.
       </div>
 
       <div class="form-actions" style="margin-top:1.25rem">
@@ -1388,14 +1396,18 @@ function aracTakip(a) {
   return {
     muayene: t.muayene !== false,
     sigorta: t.sigorta !== false,
+    kasko:   t.kasko   !== false,
     bakim:   t.bakim   !== false,
+    onarim:  t.onarim  !== false,
     yakit:   t.yakit   !== false
   };
 }
 function turTakipKey(tur) {
   if (tur === 'Fenni Muayene' || tur === 'Egzoz Muayenesi') return 'muayene';
-  if (tur === 'Trafik Sigortası' || tur === 'Kasko') return 'sigorta';
-  if (tur === 'Bakım' || tur === 'Onarım' || tur === 'Yedek Parça') return 'bakim';
+  if (tur === 'Trafik Sigortası') return 'sigorta';
+  if (tur === 'Kasko') return 'kasko';
+  if (tur === 'Bakım') return 'bakim';
+  if (tur === 'Onarım' || tur === 'Yedek Parça') return 'onarim';
   return null;
 }
 function turTakipEdiliyor(a, tur) {
@@ -1565,6 +1577,7 @@ function renderDetay(a) {
     </div>
 
     <div class="tab-content" id="tab-muayene-egzoz">
+      <div style="margin-bottom:1.25rem"><button class="btn" onclick="openIslemModalTur('${a.id}','Fenni Muayene + Egzoz')">+ Fenni Muayene + Egzoz Ekle (birlikte)</button></div>
       ${ciftSekmeBolumHTML(a, 'Fenni Muayene', '🔧')}
       <div style="border-top:1px solid var(--border);margin:1.5rem 0"></div>
       ${ciftSekmeBolumHTML(a, 'Egzoz Muayenesi', '💨')}
@@ -1883,14 +1896,16 @@ function openAracModal(id) {
     const tk = aracTakip(a);
     document.getElementById('tk-muayene').checked = tk.muayene;
     document.getElementById('tk-sigorta').checked = tk.sigorta;
+    document.getElementById('tk-kasko').checked = tk.kasko;
     document.getElementById('tk-bakim').checked = tk.bakim;
+    document.getElementById('tk-onarim').checked = tk.onarim;
     document.getElementById('tk-yakit').checked = tk.yakit;
   } else {
     doldurKullaniciSelect('');
     ['inp-plaka','inp-model','inp-km','inp-yil','inp-telefon','inp-not'].forEach(id => document.getElementById(id).value = '');
     document.getElementById('inp-tip').value = 'Otomobil';
     document.getElementById('inp-grup').value = '';
-    ['tk-muayene','tk-sigorta','tk-bakim','tk-yakit'].forEach(id => document.getElementById(id).checked = true);
+    ['tk-muayene','tk-sigorta','tk-kasko','tk-bakim','tk-onarim','tk-yakit'].forEach(id => document.getElementById(id).checked = true);
   }
   document.getElementById('arac-modal').classList.add('open');
 }
@@ -1906,7 +1921,9 @@ function saveArac() {
     takip: {
       muayene: document.getElementById('tk-muayene').checked,
       sigorta: document.getElementById('tk-sigorta').checked,
+      kasko: document.getElementById('tk-kasko').checked,
       bakim: document.getElementById('tk-bakim').checked,
+      onarim: document.getElementById('tk-onarim').checked,
       yakit: document.getElementById('tk-yakit').checked
     }
   };
@@ -2123,6 +2140,7 @@ function islemBelgeSil(idx) {
 // bakim: km + sonraki bakım + parça + maliyet
 // onarim/parca: km + parça/detay + maliyet (sonraki bakım yok)
 const ISLEM_FIELD_CONFIG = {
+  'Fenni Muayene + Egzoz': { km: false, bitis: true, sonraki: false, detay: false },
   'Fenni Muayene':     { km: false, bitis: true,  sonraki: false, detay: false },
   'Egzoz Muayenesi':   { km: false, bitis: true,  sonraki: false, detay: false },
   'Trafik Sigortası':  { km: false, bitis: true,  sonraki: false, detay: false },
@@ -2132,6 +2150,7 @@ const ISLEM_FIELD_CONFIG = {
   'Bakım':             { km: true,  bitis: false, sonraki: true,  detay: true },
 };
 const ISLEM_BITIS_LABEL = {
+  'Fenni Muayene + Egzoz': 'Muayene/Egzoz Bitiş Tarihi *',
   'Fenni Muayene': 'Muayene Bitiş Tarihi *',
   'Egzoz Muayenesi': 'Egzoz Pulu Bitiş Tarihi *',
   'Trafik Sigortası': 'Sigorta Bitiş Tarihi *',
@@ -2224,7 +2243,25 @@ function saveIslem() {
   if (!tur || !tarih) { alert('İşlem türü ve tarih zorunlu!'); return; }
   const aracId = document.getElementById('islem-arac-id').value;
   const id = document.getElementById('islem-edit-id').value;
-  const data = { aracId, tur, tarih, km: document.getElementById('inp-islem-km').value, maliyet: document.getElementById('inp-islem-maliyet').value, bitis: document.getElementById('inp-islem-bitis').value, sonrakiKm: document.getElementById('inp-sonraki-km').value, sonrakiTarih: document.getElementById('inp-sonraki-tarih').value, detay: document.getElementById('inp-islem-detay').value, not: document.getElementById('inp-islem-not').value, fotolar: islemBelgeGecici.slice() };
+  const base = { aracId, tarih, km: document.getElementById('inp-islem-km').value, maliyet: document.getElementById('inp-islem-maliyet').value, bitis: document.getElementById('inp-islem-bitis').value, sonrakiKm: document.getElementById('inp-sonraki-km').value, sonrakiTarih: document.getElementById('inp-sonraki-tarih').value, detay: document.getElementById('inp-islem-detay').value, not: document.getElementById('inp-islem-not').value, fotolar: islemBelgeGecici.slice() };
+
+  if (tur === 'Fenni Muayene + Egzoz' && !id) {
+    // Fenni muayene ve egzoz tek seferde iki ayrı kayıt olarak eklenir (aynı tarih/bitiş)
+    const fenni = { id: uid(), tur: 'Fenni Muayene', ...base };
+    const egzoz = { id: uid(), aracId, tur: 'Egzoz Muayenesi', tarih: base.tarih, bitis: base.bitis, km: '', maliyet: '', sonrakiKm: '', sonrakiTarih: '', detay: '', not: 'Fenni muayene ile birlikte yapıldı', fotolar: [] };
+    state.islemler.push(fenni, egzoz);
+    save(); closeModal('islem-modal');
+    const a1 = state.araclar.find(x => x.id === aracId);
+    if (a1) renderDetay(a1);
+    renderAraclar(); updateBadge();
+    if (document.getElementById('page-hatirlatmalar').classList.contains('active')) renderHatirlatmalar();
+    syncIslem(fenni); syncIslem(egzoz);
+    return;
+  }
+
+  // Düzenlemede birleşik seçilirse Fenni Muayene olarak kaydet
+  const gercekTur = tur === 'Fenni Muayene + Egzoz' ? 'Fenni Muayene' : tur;
+  const data = { tur: gercekTur, ...base };
   let islemObj;
   if (id) { islemObj = state.islemler.find(x => x.id === id); Object.assign(islemObj, data); }
   else { islemObj = { id: uid(), ...data }; state.islemler.push(islemObj); }
@@ -2429,6 +2466,17 @@ function hatItemHTML(item) {
       </div>
     </div>`;
   }
+  if (item.gecmis) {
+    return `<div class="hatirlat-item danger" onclick="showDetay('${item.a.id}')">
+      <div class="hatirlat-icon">🚨</div>
+      <div class="hatirlat-info">
+        <div class="hatirlat-plaka">${item.a.plaka}</div>
+        <div class="hatirlat-tur">${item.tur}</div>
+        <div class="hatirlat-tarih">Bitiş: ${formatTarih(item.bitis)}</div>
+      </div>
+      <div class="hatirlat-kalan danger">${Math.abs(item.gun)} gün geçti</div>
+    </div>`;
+  }
   const cls = item.gun <= 15 ? 'danger' : item.gun <= 30 ? 'warn' : 'ok';
   const icon = item.gun <= 15 ? '⚠️' : '🔔';
   const kalan = item.gun === 0 ? 'Bugün!' : `${item.gun} gün`;
@@ -2475,7 +2523,6 @@ function renderHatirlatmalar() {
   const temizleTs = localStorage.getItem('gecmis_temizle_ts') ? new Date(localStorage.getItem('gecmis_temizle_ts')) : null;
   const genel = [];
   const kol = { muayene: [], sigorta: [], bakim: [] };
-  const gecmis = [];
 
   const muayeneTurler = ['Fenni Muayene','Egzoz Muayenesi'];
   const sigortaTurler = ['Trafik Sigortası','Kasko'];
@@ -2494,30 +2541,33 @@ function renderHatirlatmalar() {
       .sort((x,y) => x.bitis > y.bitis ? 1 : -1)
       .forEach(i => { sonIslem[i.tur] = i; });
 
+    // gun<0 → geçmiş (aynı sütunda danger), 0-60 → yaklaşan
     const ekle = (kolAdi, tur, bitis, gun) => {
       if (gun < 0) {
-        if (!temizleTs || new Date(bitis) > temizleTs) gecmis.push({ a, tur, bitis, gun });
+        if (!temizleTs || new Date(bitis) > temizleTs) kol[kolAdi].push({ a, tur, bitis, gun, gecmis: true });
       } else if (gun <= 60) {
         kol[kolAdi].push({ a, tur, bitis, gun });
       }
     };
 
     // Muayene & Egzoz
-    if (tk.muayene) muayeneTurler.forEach(tur => {
+    muayeneTurler.forEach(tur => {
+      if (!turTakipEdiliyor(a, tur)) return;
       const i = sonIslem[tur];
       if (i) { const g = gunFark(i.bitis); if (g !== null) ekle('muayene', tur, i.bitis, g); }
       else kol.muayene.push({ a, tur: tur + ' kaydı yok', hic: true });
     });
 
-    // Sigorta & Kasko
-    if (tk.sigorta) sigortaTurler.forEach(tur => {
+    // Sigorta & Kasko (her biri kendi muafiyetine göre)
+    sigortaTurler.forEach(tur => {
+      if (!turTakipEdiliyor(a, tur)) return;
       const i = sonIslem[tur];
       if (i) { const g = gunFark(i.bitis); if (g !== null) ekle('sigorta', tur, i.bitis, g); }
       else kol.sigorta.push({ a, tur: tur + ' kaydı yok', hic: true });
     });
 
     // Tamir / Bakım / Onarım
-    if (tk.bakim) {
+    if (tk.bakim || tk.onarim) {
       state.islemler.filter(i => i.aracId === a.id && i.sonrakiTarih).forEach(i => {
         const g = gunFark(i.sonrakiTarih);
         if (g !== null) ekle('bakim', 'Sonraki Bakım (' + i.tur + ')', i.sonrakiTarih, g);
@@ -2533,6 +2583,7 @@ function renderHatirlatmalar() {
     }
   });
 
+  // sıralama: geçmiş (negatif gün) en üstte, sonra yaklaşanlar; hic/hareketsiz en altta
   const sortFn = (x,y) => (x.hic||x.hareketsiz ? 9999 : x.gun) - (y.hic||y.hareketsiz ? 9999 : y.gun);
   const fill = (id, arr) => {
     const el = document.getElementById(id);
@@ -2561,25 +2612,9 @@ function renderHatirlatmalar() {
   fill('kol-sigorta', kol.sigorta);
   fill('kol-bakim', kol.bakim);
 
-  // Geçmiş bildirimler
-  gecmis.sort((a,b) => b.gun - a.gun);
+  // Geçmiş bildirimler artık sütunların içinde (üsttekilerle aynı stilde) gösteriliyor.
   const gecmisWrap = document.getElementById('gecmis-bildirim-wrap');
-  const gecmisList = document.getElementById('hatirlat-gecmis-list');
-  if (!gecmis.length) {
-    gecmisWrap.style.display = 'none';
-  } else {
-    gecmisWrap.style.display = 'block';
-    gecmisList.innerHTML = gecmis.map(item => `
-      <div class="hatirlat-item danger" onclick="showDetay('${item.a.id}')" style="opacity:0.7">
-        <div class="hatirlat-icon">🚨</div>
-        <div class="hatirlat-info">
-          <div class="hatirlat-plaka">${item.a.plaka}</div>
-          <div class="hatirlat-tur">${item.tur}</div>
-          <div class="hatirlat-tarih">Bitiş: ${formatTarih(item.bitis)}</div>
-        </div>
-        <div class="hatirlat-kalan danger">${Math.abs(item.gun)} gün geçti</div>
-      </div>`).join('');
-  }
+  if (gecmisWrap) gecmisWrap.style.display = 'none';
 }
 
 function temizleGecmis() {
@@ -3128,6 +3163,13 @@ async function init() {
 }
 
 init();
+
+// PWA — service worker kaydı (kurulabilir + çevrimdışı)
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js').catch(() => {});
+  });
+}
 </script>
 </body>
 </html>
