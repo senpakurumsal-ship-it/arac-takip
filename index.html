@@ -84,6 +84,7 @@
   .arac-card .km-info { font-size: 12px; color: var(--muted); margin-top: 0.75rem; }
   .arac-card { border-left-width: 4px; }
   .eksik-nokta { position: absolute; top: 12px; right: 12px; width: 11px; height: 11px; border-radius: 50%; background: var(--danger); box-shadow: 0 0 0 3px rgba(239,68,68,0.18); }
+  .ariza-rozet { position: absolute; top: 9px; right: 28px; font-size: 13px; line-height: 1; }
   .grup-etiket { font-size: 11px; font-weight: 700; margin-bottom: 0.55rem; display: inline-flex; align-items: center; gap: 5px; }
   .grup-etiket::before { content: '●'; }
   .takip-kutular { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
@@ -93,6 +94,15 @@
   .hatirlat-kolon { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 0.85rem; }
   .kolon-baslik { font-size: 13px; font-weight: 700; margin-bottom: 0.75rem; padding-bottom: 0.5rem; border-bottom: 1px solid var(--border); }
   .kolon-bos { font-size: 12px; color: var(--muted); text-align: center; padding: 1.25rem 0; }
+  .mesaj-duzen { display: grid; grid-template-columns: 320px 1fr; gap: 1.25rem; align-items: start; }
+  .mesaj-sol, .mesaj-sag { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 1rem; }
+  .mesaj-kul { display: flex; align-items: center; gap: 9px; padding: 8px 9px; border-radius: 6px; font-size: 13px; cursor: pointer; }
+  .mesaj-kul:hover { background: var(--bg3); }
+  .mesaj-kul.pasif { opacity: 0.45; cursor: not-allowed; }
+  .mesaj-kul input { width: auto; margin: 0; }
+  .mesaj-kul .unv { font-size: 11px; color: var(--muted); margin-left: auto; }
+  .mesaj-gecmis-item { font-size: 12px; color: var(--muted); padding: 7px 0; border-top: 1px solid var(--border); }
+  @media (max-width: 768px) { .mesaj-duzen { grid-template-columns: 1fr; } }
 
   /* SECTION HEADER */
   .section-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.25rem; }
@@ -384,6 +394,9 @@
       <button class="nav-btn" onclick="showPage('kullanicilar', this)">
         <span class="nav-icon">👥</span> <span class="nav-label">Kullanıcılar</span>
       </button>
+      <button class="nav-btn" onclick="showPage('mesajlar', this)">
+        <span class="nav-icon">✈️</span> <span class="nav-label">Mesajlar</span>
+      </button>
       <button class="nav-btn" onclick="showPage('cop', this)">
         <span class="nav-icon">🗑️</span> <span class="nav-label">Çöp Kutusu</span> <span id="cop-badge" style="display:none;background:var(--muted);color:#fff;font-size:10px;font-weight:700;padding:1px 6px;border-radius:20px;margin-left:2px;"></span>
       </button>
@@ -447,6 +460,10 @@
         <div style="font-size:13px;color:var(--muted)">Yaklaşan ve geçmiş bildirimler</div>
       </div>
       <div id="hatirlat-genel"></div>
+      <div id="sofor-bildirim-wrap" style="display:none;margin-bottom:1.5rem">
+        <div style="font-size:14px;font-weight:700;color:var(--warn);margin-bottom:0.6rem">⚠️ Şoför Bildirimleri</div>
+        <div id="sofor-bildirim-list"></div>
+      </div>
       <div class="hatirlat-kolonlar">
         <div class="hatirlat-kolon">
           <div class="kolon-baslik">🔧 Muayene & Egzoz</div>
@@ -507,6 +524,35 @@
       </div>
       <div id="islem-toplam-ozet" style="font-size:13px;color:var(--muted);margin-bottom:1rem"></div>
       <div id="tum-islem-list"></div>
+    </div>
+
+    <!-- MESAJLAR SAYFASI -->
+    <div class="page" id="page-mesajlar">
+      <div class="section-header" style="margin-top:1rem">
+        <div class="section-title">✈️ Mesajlar</div>
+        <div style="font-size:13px;color:var(--muted)">Telegram üzerinden toplu mesaj</div>
+      </div>
+      <div class="mesaj-duzen">
+        <div class="mesaj-sol">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+            <div style="font-size:13px;font-weight:600">Alıcılar</div>
+            <div style="display:flex;gap:6px">
+              <button class="btn outline" style="font-size:11px;padding:3px 9px" onclick="mesajTumunuSec(true)">Tümünü Seç</button>
+              <button class="btn outline" style="font-size:11px;padding:3px 9px" onclick="mesajTumunuSec(false)">Temizle</button>
+            </div>
+          </div>
+          <div id="mesaj-kullanici-list"></div>
+        </div>
+        <div class="mesaj-sag">
+          <div style="font-size:13px;font-weight:600;margin-bottom:8px">Mesaj</div>
+          <textarea id="mesaj-metin" placeholder="Göndermek istediğin mesajı yaz..." style="min-height:160px"></textarea>
+          <div id="mesaj-sonuc" style="font-size:12px;min-height:18px;margin:8px 0"></div>
+          <div class="form-actions" style="justify-content:flex-end">
+            <button class="btn" onclick="mesajGonder()">✈️ Gönder</button>
+          </div>
+          <div id="mesaj-gecmis" style="margin-top:1.5rem"></div>
+        </div>
+      </div>
     </div>
 
     <!-- ÇÖP KUTUSU SAYFASI -->
@@ -790,6 +836,11 @@
           </select>
         </div>
       </div>
+      <div class="form-group">
+        <label>Telegram ID</label>
+        <input id="inp-kul-telegram" placeholder="Örn: 8553590297" inputmode="numeric">
+        <div style="font-size:11px;color:var(--muted);margin-top:4px">Şoför gün sonu formu ve mesaj alabilsin diye gerekli. Kullanıcı bota /start yazıp ID'sini öğrenebilir.</div>
+      </div>
       <div class="form-actions">
         <button class="btn outline" onclick="closeModal('kullanici-modal')">İptal</button>
         <button class="btn" onclick="saveKullanici()">Kaydet</button>
@@ -820,6 +871,26 @@
       <div id="sifre-sonuc" style="font-size:12px;min-height:16px;margin-bottom:0.5rem"></div>
       <div class="form-actions" style="justify-content:flex-end;margin-top:0.5rem">
         <button class="btn outline" onclick="sifreDegistir()">Şifreyi Kaydet</button>
+      </div>
+
+      <div style="border-top:1px solid var(--border);margin:1.25rem 0 0;padding-top:1rem">
+        <div style="font-size:13px;font-weight:600;margin-bottom:6px">✈️ Telegram Bot</div>
+        <div style="font-size:12px;color:var(--muted);margin-bottom:0.75rem;line-height:1.6">
+          Gün sonu formu ve mesajlar bu bot üzerinden gönderilir. Token güvenlik için sunucuda (Apps Script) saklanır, repoda tutulmaz.
+        </div>
+        <div class="form-group">
+          <label>Bot Token</label>
+          <input id="inp-tg-token" type="password" placeholder="123456:ABC-...">
+        </div>
+        <div class="form-group">
+          <label>Yönetici Telegram ID</label>
+          <input id="inp-tg-admin" placeholder="8553590297" inputmode="numeric">
+        </div>
+        <div id="tg-sonuc" style="font-size:12px;min-height:16px;margin-bottom:0.5rem"></div>
+        <div class="form-actions" style="justify-content:flex-end;gap:8px;flex-wrap:wrap;margin-top:0.5rem">
+          <button class="btn outline" onclick="telegramAyarKaydet()">Kaydet</button>
+          <button class="btn" onclick="telegramBotTest()">Botu Test Et</button>
+        </div>
       </div>
       <div style="border-top:1px solid var(--border);margin:1.25rem 0 0;padding-top:1rem">
         <div style="font-size:13px;font-weight:600;margin-bottom:6px">📋 Hazır Araç Verileri</div>
@@ -971,7 +1042,13 @@
       <p style="margin-bottom:1rem">Sağ üst köşede <strong>MTV</strong> ve <strong>Lastik Değişim</strong> göstergeleri bulunur. Yeşil = normal, kırmızı yanıp sönen = dikkat gerekiyor. MTV Ocak/Temmuz aylarında, Lastik Değişim ise mevsime uygun lastik takılı değilse kırmızı yanar.</p>
 
       <div style="font-weight:700;color:var(--accent);margin-bottom:6px">👥 Kullanıcılar</div>
-      <p style="margin-bottom:1rem">Sol menüden <strong>Kullanıcılar</strong> sayfasına girebilirsin. Şoför, yönetici gibi kişileri ad/soyad, telefon ve ünvan bilgileriyle kayıt edebilirsin. Kayıtlı kullanıcılar araç formunda "Araç Kullanıcısı" seçiminde otomatik listelenir.</p>
+      <p style="margin-bottom:1rem">Sol menüden <strong>Kullanıcılar</strong> sayfasına girebilirsin. Şoför, yönetici gibi kişileri ad/soyad, telefon, ünvan ve <strong>Telegram ID</strong> bilgileriyle kayıt edebilirsin. Kayıtlı kullanıcılar araç formunda "Araç Kullanıcısı" seçiminde otomatik listelenir.</p>
+
+      <div style="font-weight:700;color:var(--accent);margin-bottom:6px">✈️ Telegram & Gün Sonu Formu</div>
+      <p style="margin-bottom:1rem">Telegram ID'si girilen şoförlere her gün (Pazar hariç) 17:00'da bot otomatik sorar: "Bugün araç kullandınız mı?". Evet derse araç seçer, güncel km'yi yazar (araç km'si otomatik güncellenir), ardından arıza/durum bildirir. Arıza bildirimi <strong>Hatırlatmalar</strong> sayfasında "⚠️ Şoför Bildirimleri" altında listelenir, ilgili araç kartında sarı ⚠️ işareti çıkar ve yöneticiye anlık Telegram bildirimi gider. Kurulum: Ayarlar → Telegram → token + yönetici ID gir, Kaydet, Botu Test Et.</p>
+
+      <div style="font-weight:700;color:var(--accent);margin-bottom:6px">📨 Mesajlar</div>
+      <p style="margin-bottom:1rem">Sol menüdeki <strong>Mesajlar</strong> sayfasından, Telegram ID'si olan kullanıcılara toplu mesaj gönderebilirsin. Soldan kişileri seç (Telegram'ı olmayanlar gri/pasif), sağa mesajı yaz, Gönder. Gönderim sonucu ve son 10 mesajın geçmişi görünür.</p>
 
       <div style="font-weight:700;color:var(--accent);margin-bottom:6px">📋 Tüm İşlemler</div>
       <p style="margin-bottom:1rem">Tüm araçların işlemlerini tek listede gösterir. Plaka/araç/tür filtresi ve serbest arama vardır; üstte filtrelenen kayıtların toplam adedi ve toplam maliyeti görünür.</p>
@@ -1134,6 +1211,13 @@ async function loadFromCloud(silent) {
     bitis: tarihNormalize(i.bitis),
     sonrakiTarih: tarihNormalize(i.sonrakiTarih)
   }));
+  // Kullanıcılar: bulutta varsa onları al; bulut boş ama yerelde varsa buluta tohumla
+  const cloudK = result.kullanicilar || [];
+  if (cloudK.length) {
+    state.kullanicilar = cloudK.map(k => ({ ...k, id: String(k.id) }));
+  } else if (state.kullanicilar.length) {
+    state.kullanicilar.forEach(k => syncKullanici(k));
+  }
   save();
   isOnline = true;
   setSyncStatus('✅ Senkron — ' + new Date().toLocaleTimeString('tr-TR', {hour:'2-digit',minute:'2-digit'}), 'var(--success)');
@@ -1200,6 +1284,7 @@ function showPage(name, btn) {
   if (name === 'araclar') renderAraclar();
   if (name === 'kullanicilar') renderKullanicilar();
   if (name === 'cop') renderCop();
+  if (name === 'mesajlar') renderMesajlar();
   closeMobileSidebar();
 }
 
@@ -1363,8 +1448,10 @@ function renderAraclar() {
     }).filter(Boolean).join('');
     const eksikler = getAracEksikler(a);
     const renk = grupRenk(a);
+    const arizaVar = state.islemler.some(i => i.aracId === a.id && i.tur === 'Arıza Bildirimi');
     return `<div class="arac-card" onclick="showDetay('${a.id}')" style="border-color:${renk}">
       ${eksikler.length ? `<span class="eksik-nokta" title="${eksikler.join(', ')}"></span>` : ''}
+      ${arizaVar ? `<span class="ariza-rozet" title="Şoför arıza bildirdi">⚠️</span>` : ''}
       ${a.grup ? `<div class="grup-etiket" style="color:${renk}">${a.grup}</div>` : ''}
       <div class="plaka">${a.plaka}${a.tip === 'Motosiklet' ? ' 🏍️' : ''}</div>
       <div class="model">${a.model}${a.yil ? ' · ' + a.yil : ''}</div>
@@ -1871,6 +1958,7 @@ function renderKullanicilar() {
         <span class="kullanici-unvan" style="color:${unvanRenk[k.unvan]||'#818cf8'}">${k.unvan}</span>
       </div>
       ${k.telefon ? `<div class="kullanici-tel">📞 ${k.telefon}</div>` : ''}
+      <div class="kullanici-tel" style="color:${k.telegramId ? 'var(--success)' : 'var(--muted)'}">✈️ ${k.telegramId ? 'Telegram: ' + k.telegramId : 'Telegram bağlı değil'}</div>
       <div class="kullanici-actions">
         <button class="btn outline" style="padding:4px 10px;font-size:11px" onclick="editKullanici('${k.id}')">✏️ Düzenle</button>
         <button class="btn danger" style="padding:4px 10px;font-size:11px" onclick="silKullanici('${k.id}')">🗑️ Sil</button>
@@ -1881,7 +1969,7 @@ function renderKullanicilar() {
 function openKullaniciModal() {
   document.getElementById('kullanici-edit-id').value = '';
   document.getElementById('kullanici-modal-title').textContent = 'Kullanıcı Ekle';
-  ['inp-kul-ad','inp-kul-soyad','inp-kul-telefon'].forEach(x => document.getElementById(x).value = '');
+  ['inp-kul-ad','inp-kul-soyad','inp-kul-telefon','inp-kul-telegram'].forEach(x => document.getElementById(x).value = '');
   document.getElementById('inp-kul-unvan').value = 'Teknisyen';
   document.getElementById('kullanici-modal').classList.add('open');
 }
@@ -1895,6 +1983,7 @@ function editKullanici(id) {
   document.getElementById('inp-kul-soyad').value = k.soyad || '';
   document.getElementById('inp-kul-telefon').value = displayPhone(k.telefon);
   document.getElementById('inp-kul-unvan').value = k.unvan || 'Teknisyen';
+  document.getElementById('inp-kul-telegram').value = k.telegramId || '';
   document.getElementById('kullanici-modal').classList.add('open');
 }
 
@@ -1905,18 +1994,31 @@ function saveKullanici() {
   const data = {
     ad, soyad,
     telefon: savePhone(document.getElementById('inp-kul-telefon').value),
-    unvan: document.getElementById('inp-kul-unvan').value
+    unvan: document.getElementById('inp-kul-unvan').value,
+    telegramId: document.getElementById('inp-kul-telegram').value.trim().replace(/\D/g,'')
   };
   const id = document.getElementById('kullanici-edit-id').value;
-  if (id) { const k = state.kullanicilar.find(x => x.id === id); if (k) Object.assign(k, data); }
-  else { state.kullanicilar.push({ id: uid(), ...data }); }
+  let kObj;
+  if (id) { kObj = state.kullanicilar.find(x => x.id === id); if (kObj) Object.assign(kObj, data); }
+  else { kObj = { id: uid(), ...data }; state.kullanicilar.push(kObj); }
   save(); closeModal('kullanici-modal'); renderKullanicilar();
+  syncKullanici(kObj);
 }
 
 function silKullanici(id) {
   if (!confirm('Bu kullanıcı silinecek. Emin misiniz?')) return;
   state.kullanicilar = state.kullanicilar.filter(x => x.id !== id);
   save(); renderKullanicilar();
+  syncDeleteKullanici(id);
+}
+
+async function syncKullanici(data) {
+  if (!API_URL || !data) return;
+  await apiCall('saveKullanici', { data });
+}
+async function syncDeleteKullanici(id) {
+  if (!API_URL) return;
+  await apiCall('deleteKullanici', { id });
 }
 
 // KM GÜNCELLEME
@@ -2228,6 +2330,67 @@ function copKaliciSil(copId) {
   renderCop();
 }
 
+// MESAJLAR (Telegram toplu mesaj)
+function renderMesajlar() {
+  const list = document.getElementById('mesaj-kullanici-list');
+  if (!list) return;
+  if (!state.kullanicilar.length) {
+    list.innerHTML = '<div class="kolon-bos">Önce Kullanıcılar sayfasından kişi ekle</div>';
+  } else {
+    list.innerHTML = state.kullanicilar.map(k => {
+      const var_ = !!k.telegramId;
+      return `<label class="mesaj-kul ${var_ ? '' : 'pasif'}">
+        <input type="checkbox" class="mesaj-cb" value="${k.telegramId || ''}" ${var_ ? '' : 'disabled'}>
+        <span>${k.ad} ${k.soyad}</span>
+        <span class="unv">${var_ ? (k.unvan || '') : 'Telegram yok'}</span>
+      </label>`;
+    }).join('');
+  }
+  renderMesajGecmis();
+}
+
+function mesajTumunuSec(sec) {
+  document.querySelectorAll('#mesaj-kullanici-list .mesaj-cb:not([disabled])').forEach(cb => cb.checked = sec);
+}
+
+async function mesajGonder() {
+  const metin = document.getElementById('mesaj-metin').value.trim();
+  const sonuc = document.getElementById('mesaj-sonuc');
+  const idler = [...document.querySelectorAll('#mesaj-kullanici-list .mesaj-cb:checked')].map(cb => cb.value).filter(Boolean);
+  if (!metin) { sonuc.innerHTML = '<span style="color:var(--danger)">Mesaj boş</span>'; return; }
+  if (!idler.length) { sonuc.innerHTML = '<span style="color:var(--danger)">En az bir alıcı seç</span>'; return; }
+  sonuc.innerHTML = '<span style="color:var(--muted)">Gönderiliyor...</span>';
+  const r = await apiCall('topluMesaj', { idler, mesaj: metin });
+  if (r && r.ok) {
+    sonuc.innerHTML = `<span style="color:var(--success)">✅ ${r.basarili}/${r.toplam} kişiye gönderildi${r.basarisiz ? `, ${r.basarisiz} başarısız` : ''}</span>`;
+    mesajGecmiseEkle(metin, r.basarili, r.toplam);
+    document.getElementById('mesaj-metin').value = '';
+    mesajTumunuSec(false);
+  } else {
+    sonuc.innerHTML = '<span style="color:var(--danger)">⚠️ ' + ((r && r.error) || 'Gönderilemedi') + '</span>';
+  }
+}
+
+function mesajGecmiseEkle(metin, basarili, toplam) {
+  const gecmis = JSON.parse(localStorage.getItem('mesaj_gecmis') || '[]');
+  gecmis.unshift({ metin, basarili, toplam, ts: new Date().toISOString() });
+  localStorage.setItem('mesaj_gecmis', JSON.stringify(gecmis.slice(0, 10)));
+  renderMesajGecmis();
+}
+
+function renderMesajGecmis() {
+  const el = document.getElementById('mesaj-gecmis');
+  if (!el) return;
+  const gecmis = JSON.parse(localStorage.getItem('mesaj_gecmis') || '[]');
+  if (!gecmis.length) { el.innerHTML = ''; return; }
+  el.innerHTML = '<div style="font-size:12px;font-weight:600;color:var(--muted);margin-bottom:4px">Son Gönderilenler</div>' +
+    gecmis.map(g => {
+      const t = new Date(g.ts).toLocaleString('tr-TR', { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' });
+      const ksa = g.metin.length > 60 ? g.metin.slice(0,60) + '…' : g.metin;
+      return `<div class="mesaj-gecmis-item">${t} · ${g.basarili}/${g.toplam} kişi · "${ksa}"</div>`;
+    }).join('');
+}
+
 function copTumunuSil() {
   if (!state.cop.length || !confirm('Çöp kutusundaki TÜM kayıtlar kalıcı silinecek. Emin misiniz?')) return;
   const urller = [];
@@ -2280,7 +2443,35 @@ function hatItemHTML(item) {
   </div>`;
 }
 
+function getArizaBildirimleri() {
+  return state.islemler
+    .filter(i => i.tur === 'Arıza Bildirimi')
+    .sort((x,y) => (y.tarih||'') > (x.tarih||'') ? 1 : -1);
+}
+
+function renderSoforBildirimleri() {
+  const wrap = document.getElementById('sofor-bildirim-wrap');
+  const list = document.getElementById('sofor-bildirim-list');
+  if (!wrap || !list) return;
+  const arizalar = getArizaBildirimleri();
+  if (!arizalar.length) { wrap.style.display = 'none'; return; }
+  wrap.style.display = 'block';
+  list.innerHTML = arizalar.map(i => {
+    const a = state.araclar.find(x => x.id === i.aracId);
+    const bildiren = (i.not || '').replace(/^.*Bildiren:\s*/, '') || '';
+    return `<div class="hatirlat-item warn" onclick="showDetay('${i.aracId}')">
+      <div class="hatirlat-icon">⚠️</div>
+      <div class="hatirlat-info">
+        <div class="hatirlat-plaka">${a ? a.plaka : 'Araç'}${a && a.model ? ' · ' + a.model : ''}</div>
+        <div class="hatirlat-tur">${i.detay || 'Arıza bildirimi'}</div>
+        <div class="hatirlat-tarih">${formatTarih(i.tarih)}${bildiren ? ' · ' + bildiren : ''}</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
 function renderHatirlatmalar() {
+  renderSoforBildirimleri();
   const temizleTs = localStorage.getItem('gecmis_temizle_ts') ? new Date(localStorage.getItem('gecmis_temizle_ts')) : null;
   const genel = [];
   const kol = { muayene: [], sigorta: [], bakim: [] };
@@ -2715,8 +2906,36 @@ function openAyarlarModal() {
   document.getElementById('inp-yeni-sifre').value = '';
   document.getElementById('inp-yeni-sifre2').value = '';
   document.getElementById('sifre-sonuc').textContent = '';
+  document.getElementById('inp-tg-token').value = localStorage.getItem('tg_token') || '';
+  document.getElementById('inp-tg-admin').value = localStorage.getItem('tg_admin') || '';
+  document.getElementById('tg-sonuc').textContent = '';
   document.getElementById('ayarlar-modal').classList.add('open');
   closeMobileSidebar();
+}
+
+async function telegramAyarKaydet() {
+  const token = document.getElementById('inp-tg-token').value.trim();
+  const admin = document.getElementById('inp-tg-admin').value.trim().replace(/\D/g,'');
+  const sonuc = document.getElementById('tg-sonuc');
+  if (!token && !admin) { sonuc.innerHTML = '<span style="color:var(--danger)">Token veya yönetici ID girin</span>'; return; }
+  sonuc.innerHTML = '<span style="color:var(--muted)">Kaydediliyor...</span>';
+  // Sunucuya (Script Properties) yaz
+  const r = await apiCall('telegramAyar', { token, admin });
+  if (r && r.ok) {
+    if (token) localStorage.setItem('tg_token', token);
+    if (admin) localStorage.setItem('tg_admin', admin);
+    sonuc.innerHTML = '<span style="color:var(--success)">✅ Kaydedildi (sunucuda saklanıyor)</span>';
+  } else {
+    sonuc.innerHTML = '<span style="color:var(--danger)">⚠️ ' + ((r && r.error) || 'Hata') + '</span>';
+  }
+}
+
+async function telegramBotTest() {
+  const sonuc = document.getElementById('tg-sonuc');
+  sonuc.innerHTML = '<span style="color:var(--muted)">Test mesajı gönderiliyor...</span>';
+  const r = await apiCall('telegramTest', {});
+  if (r && r.ok) sonuc.innerHTML = '<span style="color:var(--success)">✅ Yöneticiye test mesajı gönderildi!</span>';
+  else sonuc.innerHTML = '<span style="color:var(--danger)">⚠️ ' + ((r && r.error) || 'Gönderilemedi') + '</span>';
 }
 
 function sifreDegistir() {
