@@ -12,7 +12,7 @@ function sheetKur() {
   var ss = getSS();
   if (!ss.getSheetByName('Araclar')) {
     var s = ss.insertSheet('Araclar');
-    s.appendRow(['id','plaka','model','yil','km','tip','kullanici','telefon','not','anaFoto']);
+    s.appendRow(['id','plaka','model','yil','km','tip','kullanici','telefon','not','anaFoto','grup','takip']);
   }
   if (!ss.getSheetByName('Islemler')) {
     var s = ss.insertSheet('Islemler');
@@ -22,6 +22,21 @@ function sheetKur() {
     var s = ss.insertSheet('WAState');
     s.appendRow(['telefon','aracId','soruTarihi']);
   }
+  // Mevcut Araclar sayfasına eksik sütunları ekle (geriye dönük uyum)
+  sutunGarantile(ss.getSheetByName('Araclar'), ['grup','takip']);
+}
+
+function sutunGarantile(sheet, sutunlar) {
+  if (!sheet) return;
+  var son = sheet.getLastColumn();
+  var header = sheet.getRange(1, 1, 1, son).getValues()[0];
+  sutunlar.forEach(function (s) {
+    if (header.indexOf(s) === -1) {
+      son++;
+      sheet.getRange(1, son).setValue(s);
+      header.push(s);
+    }
+  });
 }
 
 function doGet(e) {
@@ -72,6 +87,8 @@ function tabloOku(sheetName) {
       var v = values[i][j];
       if (headers[j] === 'fotolar') {
         try { obj[headers[j]] = v ? JSON.parse(v) : []; } catch (e2) { obj[headers[j]] = []; }
+      } else if (headers[j] === 'takip') {
+        try { obj[headers[j]] = v ? JSON.parse(v) : {}; } catch (e3) { obj[headers[j]] = {}; }
       } else {
         obj[headers[j]] = (v === null || v === undefined) ? '' : String(v);
       }
@@ -87,6 +104,7 @@ function satirKaydet(sheetName, data) {
   var headers = values[0];
   var satir = headers.map(function(h) {
     if (h === 'fotolar') return JSON.stringify(data.fotolar || []);
+    if (h === 'takip') return JSON.stringify(data.takip || {});
     return data[h] !== undefined && data[h] !== null ? data[h] : '';
   });
   for (var i = 1; i < values.length; i++) {

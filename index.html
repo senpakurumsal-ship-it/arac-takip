@@ -82,6 +82,17 @@
   .badge.warn { background: var(--warn-bg); color: var(--warn); border: 1px solid rgba(245,158,11,0.3); }
   .badge.danger { background: var(--red-bg); color: var(--danger); border: 1px solid rgba(239,68,68,0.3); }
   .arac-card .km-info { font-size: 12px; color: var(--muted); margin-top: 0.75rem; }
+  .arac-card { border-left-width: 4px; }
+  .eksik-nokta { position: absolute; top: 12px; right: 12px; width: 11px; height: 11px; border-radius: 50%; background: var(--danger); box-shadow: 0 0 0 3px rgba(239,68,68,0.18); }
+  .grup-etiket { font-size: 11px; font-weight: 700; margin-bottom: 0.55rem; display: inline-flex; align-items: center; gap: 5px; }
+  .grup-etiket::before { content: '●'; }
+  .takip-kutular { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+  .takip-kutu { display: flex; align-items: center; gap: 7px; font-size: 13px; font-weight: 500; cursor: pointer; padding: 7px 9px; background: var(--bg3); border-radius: 6px; }
+  .takip-kutu input { width: auto; margin: 0; }
+  .hatirlat-kolonlar { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; align-items: start; margin-top: 1rem; }
+  .hatirlat-kolon { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 0.85rem; }
+  .kolon-baslik { font-size: 13px; font-weight: 700; margin-bottom: 0.75rem; padding-bottom: 0.5rem; border-bottom: 1px solid var(--border); }
+  .kolon-bos { font-size: 12px; color: var(--muted); text-align: center; padding: 1.25rem 0; }
 
   /* SECTION HEADER */
   .section-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.25rem; }
@@ -142,6 +153,8 @@
 
   /* HATIRLATMALAR */
   .hatirlat-item { display: flex; align-items: center; gap: 12px; padding: 0.9rem 1rem; border-radius: var(--radius-sm); margin-bottom: 0.6rem; border: 1px solid transparent; }
+  .hatirlat-item[onclick] { cursor: pointer; transition: filter 0.15s; }
+  .hatirlat-item[onclick]:hover { filter: brightness(1.18); }
   .hatirlat-item.danger { background: var(--red-bg); border-color: rgba(239,68,68,0.2); }
   .hatirlat-item.warn { background: var(--warn-bg); border-color: rgba(245,158,11,0.2); }
   .hatirlat-item.ok { background: var(--ok-bg); border-color: rgba(34,197,94,0.15); }
@@ -215,6 +228,8 @@
     .kullanici-grid { grid-template-columns: 1fr; }
     .hatirlat-item { flex-wrap: wrap; }
     .hatirlat-kalan { margin-left: auto; }
+    .hatirlat-kolonlar { grid-template-columns: 1fr; }
+    .takip-kutular { grid-template-columns: 1fr; }
     .ai-panel { width: 100%; right: 0; left: 0; border-radius: 0; max-height: calc(100vh - 52px); top: 52px; }
   }
 
@@ -428,7 +443,21 @@
         <div class="section-title">Hatırlatmalar</div>
         <div style="font-size:13px;color:var(--muted)">Yaklaşan ve geçmiş bildirimler</div>
       </div>
-      <div id="hatirlat-aktif-list"></div>
+      <div id="hatirlat-genel"></div>
+      <div class="hatirlat-kolonlar">
+        <div class="hatirlat-kolon">
+          <div class="kolon-baslik">🔧 Muayene & Egzoz</div>
+          <div id="kol-muayene"></div>
+        </div>
+        <div class="hatirlat-kolon">
+          <div class="kolon-baslik">🛡️ Sigorta & Kasko</div>
+          <div id="kol-sigorta"></div>
+        </div>
+        <div class="hatirlat-kolon">
+          <div class="kolon-baslik">🛠️ Tamir / Bakım / Onarım</div>
+          <div id="kol-bakim"></div>
+        </div>
+      </div>
       <div id="gecmis-bildirim-wrap" style="display:none;margin-top:2rem">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.75rem;flex-wrap:wrap;gap:8px">
           <div style="font-size:14px;font-weight:600;color:var(--muted)">📁 Geçmiş Bildirimler</div>
@@ -582,6 +611,29 @@
           <input id="inp-telefon" placeholder="5XXXXXXXXX">
         </div>
       </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Araç Grubu</label>
+          <select id="inp-grup">
+            <option value="">— Yok —</option>
+            <option value="Nakliye">🟡 Nakliye</option>
+            <option value="Saha Teknisyeni">🟢 Saha Teknisyeni</option>
+            <option value="Yedek Araç">⚪ Yedek Araç</option>
+            <option value="Bireysel">🔵 Bireysel / Şahsi</option>
+          </select>
+        </div>
+        <div class="form-group"></div>
+      </div>
+      <div class="form-group">
+        <label>Takip Edilecek Başlıklar</label>
+        <div class="takip-kutular">
+          <label class="takip-kutu"><input type="checkbox" id="tk-muayene" checked> Muayene & Egzoz</label>
+          <label class="takip-kutu"><input type="checkbox" id="tk-sigorta" checked> Sigorta & Kasko</label>
+          <label class="takip-kutu"><input type="checkbox" id="tk-bakim" checked> Bakım / Onarım</label>
+          <label class="takip-kutu"><input type="checkbox" id="tk-yakit" checked> Yakıt / KM</label>
+        </div>
+        <div style="font-size:11px;color:var(--muted);margin-top:5px">İşareti kaldırılan başlık ekranda görünmeye devam eder ama uyarı/hatırlatma çıkmaz.</div>
+      </div>
       <div class="form-group">
         <label>Not</label>
         <textarea id="inp-not" placeholder="Ek bilgiler..."></textarea>
@@ -645,6 +697,15 @@
         <div class="form-group">
           <label>Sonraki Bakım Tarihi</label>
           <input id="inp-sonraki-tarih" type="date">
+        </div>
+      </div>
+      <div class="form-group" id="field-sonraki-hizli" style="margin-top:-0.5rem">
+        <div style="font-size:11px;color:var(--muted);margin-bottom:5px">Hızlı doldur (işlem tarihi/km'sine göre):</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap">
+          <button type="button" class="btn outline" style="font-size:11px;padding:4px 10px" onclick="sonrakiHesapla('ay',6)">+6 Ay</button>
+          <button type="button" class="btn outline" style="font-size:11px;padding:4px 10px" onclick="sonrakiHesapla('ay',12)">+1 Yıl</button>
+          <button type="button" class="btn outline" style="font-size:11px;padding:4px 10px" onclick="sonrakiHesapla('km',10000)">+10.000 km</button>
+          <button type="button" class="btn outline" style="font-size:11px;padding:4px 10px" onclick="sonrakiHesapla('km',15000)">+15.000 km</button>
         </div>
       </div>
       <div class="form-group" id="field-islem-detay">
@@ -868,19 +929,25 @@
       <p style="margin-bottom:1rem">Uygulama şifre korumalıdır. Varsayılan şifre <strong>senpa2026</strong>'dır. Şifreyi Ayarlar sayfasından değiştirebilirsin. Çıkış yapmak için sol menünün altındaki <strong>Çıkış</strong> butonunu kullan.</p>
 
       <div style="font-weight:700;color:var(--accent);margin-bottom:6px">🚘 Araçlar</div>
-      <p style="margin-bottom:1rem">Ana sayfada tüm araçların kart halinde listelenir. Bir karta tıklayınca o aracın detayına girersin. <strong>+ Araç Ekle</strong> ile yeni araç tanımlarsın (plaka, marka/model, KM, araç tipi, araç kullanıcısı). Araç kullanıcısı Kullanıcılar sayfasına kayıtlı kişilerden seçilir. Eksik bilgi varsa kartın çerçevesi <span style="color:var(--danger)">kırmızı</span> olur ve ⚠ uyarısı çıkar.</p>
+      <p style="margin-bottom:1rem">Ana sayfada tüm araçların kart halinde listelenir. Bir karta tıklayınca o aracın detayına girersin. <strong>+ Araç Ekle</strong> ile yeni araç tanımlarsın (plaka, marka/model, KM, araç tipi, araç kullanıcısı). Araç kullanıcısı Kullanıcılar sayfasına kayıtlı kişilerden seçilir. Eksik bilgi varsa kartın sağ üst köşesinde <span style="color:var(--danger)">kırmızı nokta</span> belirir (üstüne gelince eksikleri yazar).</p>
+
+      <div style="font-weight:700;color:var(--accent);margin-bottom:6px">🎨 Araç Grupları</div>
+      <p style="margin-bottom:1rem">Her araca bir grup atayabilirsin; kart çerçevesi grubun rengini alır: <span style="color:#eab308">🟡 Nakliye</span>, <span style="color:#22c55e">🟢 Saha Teknisyeni</span>, <span style="color:#94a3b8">⚪ Yedek Araç</span>, <span style="color:#3b82f6">🔵 Bireysel / Şahsi</span>. Böylece araçları renkten ayırt edersin.</p>
+
+      <div style="font-weight:700;color:var(--accent);margin-bottom:6px">🚦 Takip / Muafiyet</div>
+      <p style="margin-bottom:1rem">Araç düzenleme ekranında <strong>Takip Edilecek Başlıklar</strong> kutucukları vardır: Muayene&Egzoz, Sigorta&Kasko, Bakım/Onarım, Yakıt/KM. Bir başlığın işaretini kaldırırsan o araç için o başlıkta <strong>uyarı ve hatırlatma çıkmaz</strong> (ekranda görünmeye devam eder, istersen manuel ekleyebilirsin). Örnek: nakliye aracının bakımı nakliyeciye aitse "Bakım/Onarım" işaretini kaldır, uyarı almazsın.</p>
 
       <div style="font-weight:700;color:var(--accent);margin-bottom:6px">📄 Araç Detayı</div>
       <p style="margin-bottom:1rem">Dört sekme vardır: <strong>Tarihler</strong> (muayene/sigorta/kasko bitiş durumları), <strong>İşlem Geçmişi</strong> (tüm bakım/onarım kayıtları), <strong>Lastik</strong> (kış/yaz lastik takılı mı, son değişim tarihi), <strong>Görseller</strong> (araç ve belge fotoğrafları). Buradan <strong>İşlem Ekle</strong>, <strong>KM Güncelle</strong>, <strong>Düzenle</strong> ve <strong>Sil</strong> yapabilirsin.</p>
 
       <div style="font-weight:700;color:var(--accent);margin-bottom:6px">➕ İşlem Ekleme</div>
-      <p style="margin-bottom:1rem">İşlem türünü seçince (Fenni Muayene, Egzoz Muayenesi, Trafik Sigortası, Kasko, Bakım, Onarım, Yedek Parça...) forma sadece o türe uygun alanlar gelir. Her işleme fatura/makbuz görseli ekleyebilirsin — görseller otomatik olarak Google Drive'daki <strong>Fatura-Makbuz</strong> klasörüne yüklenir. Görsellerin üstündeki ✕ ile silebilirsin. Görsel yüklersen Gemini otomatik okuyup formu doldurmayı teklif eder.</p>
+      <p style="margin-bottom:1rem">İşlem türünü seçince (Fenni Muayene, Egzoz Muayenesi, Trafik Sigortası, Kasko, Bakım, Onarım, Yedek Parça...) forma sadece o türe uygun alanlar gelir. Bakımda <strong>Sonraki Bakım</strong> alanını "+6 Ay / +1 Yıl / +10.000 km / +15.000 km" hızlı butonlarıyla işlem tarihine/km'sine göre otomatik doldurabilirsin. Her işleme fatura/makbuz görseli ekleyebilirsin — görseller otomatik olarak Google Drive'daki <strong>Fatura-Makbuz</strong> klasörüne yüklenir. Görsellerin üstündeki ✕ ile silebilirsin. Görsel yüklersen Gemini otomatik okuyup formu doldurmayı teklif eder.</p>
 
       <div style="font-weight:700;color:var(--accent);margin-bottom:6px">📷 Fotoğraflar</div>
       <p style="margin-bottom:1rem">Tüm fotoğraflar Google Drive'a yüklenir. Drive'da <strong>Araç Takip Belgeler</strong> ana klasörü altında nereden eklendiğine göre ayrılır: <em>Araç Profil</em> (araç ana fotoğrafı), <em>Görseller</em> (Görseller sekmesi), <em>Fatura-Makbuz</em> (işlem belgeleri), <em>AI</em> (AI Asistan ile eklenenler). Her fotoğrafın köşesindeki ✕ ile silebilirsin. Ana fotoğrafa tıklayınca büyük açılır; sağ alttaki 📷 ile değiştirebilirsin.</p>
 
       <div style="font-weight:700;color:var(--accent);margin-bottom:6px">🔔 Hatırlatmalar</div>
-      <p style="margin-bottom:1rem">Yaklaşan veya geçmiş muayene/sigorta/kasko/bakım tarihlerini öncelik sırasına göre gösterir. Ocak ve Temmuz aylarında MTV hatırlatması otomatik çıkar. Geçmiş bildirimleri ayrı bölümde görebilir, "Geçmişi Temizle" ile gizleyebilirsin. Menüdeki kırmızı sayı, 30 gün içinde işlem gereken araç sayısıdır.</p>
+      <p style="margin-bottom:1rem">Yaklaşan bildirimler <strong>3 sütunda</strong> gösterilir: <em>Muayene & Egzoz</em>, <em>Sigorta & Kasko</em>, <em>Tamir / Bakım / Onarım</em>. Her bildirime tıklayınca o aracın sayfasına gidersin. Bir araçta ilgili kayıt hiç yoksa "kaydı yok", 1 aydan uzun süredir bakım girişi yoksa "X gündür bakım girişi yok" uyarısı çıkar. Ocak/Temmuz'da MTV hatırlatması üstte genel bildirim olarak görünür. Geçmiş bildirimleri ayrı bölümde görebilir, "Temizle" ile gizleyebilirsin. Takip işareti kaldırılan başlıklar burada görünmez.</p>
 
       <div style="font-weight:700;color:var(--accent);margin-bottom:6px">🟢 Durum Göstergeleri</div>
       <p style="margin-bottom:1rem">Sağ üst köşede <strong>MTV</strong> ve <strong>Lastik Değişim</strong> göstergeleri bulunur. Yeşil = normal, kırmızı yanıp sönen = dikkat gerekiyor. MTV Ocak/Temmuz aylarında, Lastik Değişim ise mevsime uygun lastik takılı değilse kırmızı yanar.</p>
@@ -1198,17 +1265,63 @@ function statusClass(gun) {
 }
 
 // ARAÇLAR
+// GRUP RENKLERİ
+const GRUP_RENK = {
+  'Nakliye': '#eab308',
+  'Saha Teknisyeni': '#22c55e',
+  'Yedek Araç': '#94a3b8',
+  'Bireysel': '#3b82f6'
+};
+function grupRenk(a) { return GRUP_RENK[a && a.grup] || 'var(--border)'; }
+
+// Araç takip muafiyetleri — eksik/eski araçlarda varsayılan true
+function aracTakip(a) {
+  const t = (a && a.takip) || {};
+  return {
+    muayene: t.muayene !== false,
+    sigorta: t.sigorta !== false,
+    bakim:   t.bakim   !== false,
+    yakit:   t.yakit   !== false
+  };
+}
+function turTakipKey(tur) {
+  if (tur === 'Fenni Muayene' || tur === 'Egzoz Muayenesi') return 'muayene';
+  if (tur === 'Trafik Sigortası' || tur === 'Kasko') return 'sigorta';
+  if (tur === 'Bakım' || tur === 'Onarım' || tur === 'Yedek Parça') return 'bakim';
+  return null;
+}
+function turTakipEdiliyor(a, tur) {
+  const key = turTakipKey(tur);
+  if (!key) return true;
+  return aracTakip(a)[key];
+}
+
+// İşlem formunda "sonraki bakım" alanını işlem tarihi/km'sine göre doldurur
+function sonrakiHesapla(tip, miktar) {
+  if (tip === 'ay') {
+    const baz = document.getElementById('inp-islem-tarih').value;
+    const d = baz ? new Date(baz) : new Date();
+    d.setMonth(d.getMonth() + miktar);
+    document.getElementById('inp-sonraki-tarih').value = d.toISOString().slice(0,10);
+  } else {
+    const baz = parseInt(document.getElementById('inp-islem-km').value || '0', 10) || 0;
+    document.getElementById('inp-sonraki-km').value = baz + miktar;
+  }
+}
+
 // EKSİK BİLGİ TESPİTİ
 function getAracEksikler(a) {
   const eksikler = [];
+  const tk = aracTakip(a);
   const tarihler = getAracTarihler(a.id);
   tarihler.forEach(t => {
+    if (!turTakipEdiliyor(a, t.ad)) return; // muaf başlık → uyarı yok
     if (!t.bitis) { eksikler.push(`${t.ad} kaydı yok`); return; }
     const gun = gunFark(t.bitis);
     if (gun < 0) eksikler.push(`${t.ad} süresi doldu`);
   });
   if (!a.kullanici || !a.kullanici.trim()) eksikler.push('Araç kullanıcısı girilmemiş');
-  if (!a.km) eksikler.push('Güncel KM girilmemiş');
+  if (tk.yakit && !a.km) eksikler.push('Güncel KM girilmemiş');
   return eksikler;
 }
 
@@ -1219,15 +1332,17 @@ function renderAraclar() {
   empty.style.display = 'none';
   grid.innerHTML = state.araclar.map(a => {
     const tarihler = getAracTarihler(a.id);
-    const badges = tarihler.filter(t => t.bitis).map(t => {
+    const badges = tarihler.filter(t => t.bitis && turTakipEdiliyor(a, t.ad)).map(t => {
       const gun = gunFark(t.bitis);
       const cls = statusClass(gun);
       const label = gun < 0 ? `${t.ad} süresi doldu` : gun <= 30 ? `${t.ad} – ${gun}g` : '';
       return cls !== 'ok' && cls ? `<span class="badge ${cls}">${label}</span>` : '';
     }).filter(Boolean).join('');
     const eksikler = getAracEksikler(a);
-    return `<div class="arac-card ${eksikler.length ? 'eksik-var' : ''}" onclick="showDetay('${a.id}')">
-      ${eksikler.length ? `<span class="eksik-rozet" title="${eksikler.join(', ')}">⚠ ${eksikler.length}</span>` : ''}
+    const renk = grupRenk(a);
+    return `<div class="arac-card" onclick="showDetay('${a.id}')" style="border-color:${renk}">
+      ${eksikler.length ? `<span class="eksik-nokta" title="${eksikler.join(', ')}"></span>` : ''}
+      ${a.grup ? `<div class="grup-etiket" style="color:${renk}">${a.grup}</div>` : ''}
       <div class="plaka">${a.plaka}${a.tip === 'Motosiklet' ? ' 🏍️' : ''}</div>
       <div class="model">${a.model}${a.yil ? ' · ' + a.yil : ''}</div>
       <div class="badges">${badges || '<span class="badge ok">Tümü geçerli</span>'}</div>
@@ -1636,10 +1751,18 @@ function openAracModal(id) {
     doldurKullaniciSelect(a.kullanici || '');
     document.getElementById('inp-telefon').value = displayPhone(a.telefon);
     document.getElementById('inp-not').value = a.not || '';
+    document.getElementById('inp-grup').value = a.grup || '';
+    const tk = aracTakip(a);
+    document.getElementById('tk-muayene').checked = tk.muayene;
+    document.getElementById('tk-sigorta').checked = tk.sigorta;
+    document.getElementById('tk-bakim').checked = tk.bakim;
+    document.getElementById('tk-yakit').checked = tk.yakit;
   } else {
     doldurKullaniciSelect('');
     ['inp-plaka','inp-model','inp-km','inp-yil','inp-telefon','inp-not'].forEach(id => document.getElementById(id).value = '');
     document.getElementById('inp-tip').value = 'Otomobil';
+    document.getElementById('inp-grup').value = '';
+    ['tk-muayene','tk-sigorta','tk-bakim','tk-yakit'].forEach(id => document.getElementById(id).checked = true);
   }
   document.getElementById('arac-modal').classList.add('open');
 }
@@ -1650,7 +1773,15 @@ function saveArac() {
   const model = document.getElementById('inp-model').value.trim();
   if (!plaka || !model) { alert('Plaka ve model zorunlu!'); return; }
   const id = document.getElementById('arac-edit-id').value;
-  const data = { plaka, model, km: document.getElementById('inp-km').value, yil: document.getElementById('inp-yil').value, tip: document.getElementById('inp-tip').value, kullanici: document.getElementById('inp-kullanici').value, telefon: savePhone(document.getElementById('inp-telefon').value), not: document.getElementById('inp-not').value };
+  const data = { plaka, model, km: document.getElementById('inp-km').value, yil: document.getElementById('inp-yil').value, tip: document.getElementById('inp-tip').value, kullanici: document.getElementById('inp-kullanici').value, telefon: savePhone(document.getElementById('inp-telefon').value), not: document.getElementById('inp-not').value,
+    grup: document.getElementById('inp-grup').value,
+    takip: {
+      muayene: document.getElementById('tk-muayene').checked,
+      sigorta: document.getElementById('tk-sigorta').checked,
+      bakim: document.getElementById('tk-bakim').checked,
+      yakit: document.getElementById('tk-yakit').checked
+    }
+  };
   let aracObj;
   if (id) { aracObj = state.araclar.find(x => x.id === id); Object.assign(aracObj, data); }
   else { aracObj = { id: uid(), anaFoto: '', ...data }; state.araclar.push(aracObj); }
@@ -1956,89 +2087,132 @@ function silIslem(id) {
 }
 
 // HATIRLATMALAR
+function hatItemHTML(item) {
+  if (item.hic) {
+    return `<div class="hatirlat-item warn" onclick="showDetay('${item.a.id}')">
+      <div class="hatirlat-icon">❓</div>
+      <div class="hatirlat-info">
+        <div class="hatirlat-plaka">${item.a.plaka}</div>
+        <div class="hatirlat-tur">${item.tur}</div>
+        <div class="hatirlat-tarih">Kayıt bekleniyor</div>
+      </div>
+    </div>`;
+  }
+  if (item.hareketsiz) {
+    return `<div class="hatirlat-item warn" onclick="showDetay('${item.a.id}')">
+      <div class="hatirlat-icon">🕗</div>
+      <div class="hatirlat-info">
+        <div class="hatirlat-plaka">${item.a.plaka}</div>
+        <div class="hatirlat-tur">${item.tur}</div>
+      </div>
+    </div>`;
+  }
+  const cls = item.gun <= 15 ? 'danger' : item.gun <= 30 ? 'warn' : 'ok';
+  const icon = item.gun <= 15 ? '⚠️' : '🔔';
+  const kalan = item.gun === 0 ? 'Bugün!' : `${item.gun} gün`;
+  return `<div class="hatirlat-item ${cls}" onclick="showDetay('${item.a.id}')">
+    <div class="hatirlat-icon">${icon}</div>
+    <div class="hatirlat-info">
+      <div class="hatirlat-plaka">${item.a.plaka}</div>
+      <div class="hatirlat-tur">${item.tur}</div>
+      <div class="hatirlat-tarih">${formatTarih(item.bitis)}</div>
+    </div>
+    <div class="hatirlat-kalan ${cls}">${kalan}</div>
+  </div>`;
+}
+
 function renderHatirlatmalar() {
-  const turler = ['Fenni Muayene','Egzoz Muayenesi','Trafik Sigortası','Kasko','Bakım'];
   const temizleTs = localStorage.getItem('gecmis_temizle_ts') ? new Date(localStorage.getItem('gecmis_temizle_ts')) : null;
-  let aktif = [];
-  let gecmis = [];
+  const genel = [];
+  const kol = { muayene: [], sigorta: [], bakim: [] };
+  const gecmis = [];
+
+  const muayeneTurler = ['Fenni Muayene','Egzoz Muayenesi'];
+  const sigortaTurler = ['Trafik Sigortası','Kasko'];
 
   // MTV genel bildirimi
   const bugun = new Date();
   const ay = bugun.getMonth() + 1;
   const gunNo = bugun.getDate();
-  if (ay === 1) {
-    const kalan = 31 - gunNo;
-    aktif.push({ tip: 'genel', tur: '1. Taksit MTV Ödemesi', aciklama: 'Ocak ' + bugun.getFullYear(), gun: kalan, icon: '💰' });
-  } else if (ay === 7) {
-    const kalan = 31 - gunNo;
-    aktif.push({ tip: 'genel', tur: '2. Taksit MTV Ödemesi', aciklama: 'Temmuz ' + bugun.getFullYear(), gun: kalan, icon: '💰' });
-  }
+  if (ay === 1) genel.push({ tur: '1. Taksit MTV Ödemesi', aciklama: 'Ocak ' + bugun.getFullYear(), gun: 31 - gunNo, icon: '💰' });
+  else if (ay === 7) genel.push({ tur: '2. Taksit MTV Ödemesi', aciklama: 'Temmuz ' + bugun.getFullYear(), gun: 31 - gunNo, icon: '💰' });
 
-  // Araç bazlı bildirimler
   state.araclar.forEach(a => {
-    const map = {};
+    const tk = aracTakip(a);
+    const sonIslem = {};
     state.islemler.filter(i => i.aracId === a.id && i.bitis)
       .sort((x,y) => x.bitis > y.bitis ? 1 : -1)
-      .forEach(i => { map[i.tur] = i; });
-    turler.forEach(tur => {
-      const i = map[tur];
-      if (!i) return;
-      const g = gunFark(i.bitis);
-      if (g === null) return;
-      if (g < 0) {
-        if (!temizleTs || new Date(i.bitis) > temizleTs) {
-          gecmis.push({ a, tur, bitis: i.bitis, gun: g });
-        }
-      } else if (g <= 60) {
-        aktif.push({ tip: 'arac', a, tur, bitis: i.bitis, gun: g });
+      .forEach(i => { sonIslem[i.tur] = i; });
+
+    const ekle = (kolAdi, tur, bitis, gun) => {
+      if (gun < 0) {
+        if (!temizleTs || new Date(bitis) > temizleTs) gecmis.push({ a, tur, bitis, gun });
+      } else if (gun <= 60) {
+        kol[kolAdi].push({ a, tur, bitis, gun });
       }
+    };
+
+    // Muayene & Egzoz
+    if (tk.muayene) muayeneTurler.forEach(tur => {
+      const i = sonIslem[tur];
+      if (i) { const g = gunFark(i.bitis); if (g !== null) ekle('muayene', tur, i.bitis, g); }
+      else kol.muayene.push({ a, tur: tur + ' kaydı yok', hic: true });
     });
-    state.islemler.filter(i => i.aracId === a.id && i.sonrakiTarih).forEach(i => {
-      const g = gunFark(i.sonrakiTarih);
-      if (g !== null && g >= 0 && g <= 60) {
-        aktif.push({ tip: 'arac', a, tur: 'Sonraki Bakım (' + i.tur + ')', bitis: i.sonrakiTarih, gun: g });
+
+    // Sigorta & Kasko
+    if (tk.sigorta) sigortaTurler.forEach(tur => {
+      const i = sonIslem[tur];
+      if (i) { const g = gunFark(i.bitis); if (g !== null) ekle('sigorta', tur, i.bitis, g); }
+      else kol.sigorta.push({ a, tur: tur + ' kaydı yok', hic: true });
+    });
+
+    // Tamir / Bakım / Onarım
+    if (tk.bakim) {
+      state.islemler.filter(i => i.aracId === a.id && i.sonrakiTarih).forEach(i => {
+        const g = gunFark(i.sonrakiTarih);
+        if (g !== null) ekle('bakim', 'Sonraki Bakım (' + i.tur + ')', i.sonrakiTarih, g);
+      });
+      const bakimlar = state.islemler.filter(i => i.aracId === a.id && ['Bakım','Onarım','Yedek Parça'].includes(i.tur));
+      if (!bakimlar.length) {
+        kol.bakim.push({ a, tur: 'Bakım/onarım kaydı hiç yok', hic: true });
+      } else {
+        const sonTarih = bakimlar.map(i => i.tarih).filter(Boolean).sort().pop();
+        const g = sonTarih ? gunFark(sonTarih) : null;
+        if (g !== null && g <= -30) kol.bakim.push({ a, tur: Math.abs(g) + ' gündür bakım girişi yok', hareketsiz: true });
       }
-    });
+    }
   });
 
-  aktif.sort((a,b) => a.gun - b.gun);
-  gecmis.sort((a,b) => b.gun - a.gun);
+  const sortFn = (x,y) => (x.hic||x.hareketsiz ? 9999 : x.gun) - (y.hic||y.hareketsiz ? 9999 : y.gun);
+  const fill = (id, arr) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    arr.sort(sortFn);
+    el.innerHTML = arr.length ? arr.map(hatItemHTML).join('') : '<div class="kolon-bos">✅ Bu başlıkta yaklaşan yok</div>';
+  };
 
-  // Aktif bildirimler
-  const aktifList = document.getElementById('hatirlat-aktif-list');
-  if (!aktif.length) {
-    aktifList.innerHTML = '<div class="empty-state"><div class="empty-icon">✅</div><div style="font-size:15px;font-weight:600;color:var(--text);margin-bottom:6px">Yaklaşan işlem yok</div><div style="font-size:13px">60 günlük periyotta herhangi bir hatırlatma bulunamadı</div></div>';
-  } else {
-    aktifList.innerHTML = aktif.map(item => {
-      if (item.tip === 'genel') {
-        const cls = item.gun <= 7 ? 'danger' : item.gun <= 15 ? 'warn' : 'ok';
-        const kalan = item.gun === 0 ? 'Bugün son gün!' : `${item.gun} gün kaldı`;
-        return `<div class="hatirlat-item ${cls}">
-          <div class="hatirlat-icon">${item.icon}</div>
-          <div class="hatirlat-info">
-            <div class="hatirlat-plaka" style="color:var(--warn)">GENEL BİLDİRİM</div>
-            <div class="hatirlat-tur">${item.tur}</div>
-            <div class="hatirlat-tarih">${item.aciklama}</div>
-          </div>
-          <div class="hatirlat-kalan ${cls}">${kalan}</div>
-        </div>`;
-      }
-      const cls = item.gun <= 15 ? 'danger' : item.gun <= 30 ? 'warn' : 'ok';
-      const icon = item.gun <= 15 ? '⚠️' : '🔔';
-      const kalan = item.gun === 0 ? 'Bugün!' : `${item.gun} gün kaldı`;
-      return `<div class="hatirlat-item ${cls}" onclick="showDetay('${item.a.id}')">
-        <div class="hatirlat-icon">${icon}</div>
-        <div class="hatirlat-info">
-          <div class="hatirlat-plaka">${item.a.plaka}</div>
-          <div class="hatirlat-tur">${item.tur}</div>
-          <div class="hatirlat-tarih">${formatTarih(item.bitis)}</div>
-        </div>
-        <div class="hatirlat-kalan ${cls}">${kalan}</div>
-      </div>`;
-    }).join('');
-  }
+  // Genel bildirimler
+  const genelEl = document.getElementById('hatirlat-genel');
+  genelEl.innerHTML = genel.map(item => {
+    const cls = item.gun <= 7 ? 'danger' : item.gun <= 15 ? 'warn' : 'ok';
+    const kalan = item.gun <= 0 ? 'Bugün son gün!' : `${item.gun} gün kaldı`;
+    return `<div class="hatirlat-item ${cls}">
+      <div class="hatirlat-icon">${item.icon}</div>
+      <div class="hatirlat-info">
+        <div class="hatirlat-plaka" style="color:var(--warn)">GENEL BİLDİRİM</div>
+        <div class="hatirlat-tur">${item.tur}</div>
+        <div class="hatirlat-tarih">${item.aciklama}</div>
+      </div>
+      <div class="hatirlat-kalan ${cls}">${kalan}</div>
+    </div>`;
+  }).join('');
+
+  fill('kol-muayene', kol.muayene);
+  fill('kol-sigorta', kol.sigorta);
+  fill('kol-bakim', kol.bakim);
 
   // Geçmiş bildirimler
+  gecmis.sort((a,b) => b.gun - a.gun);
   const gecmisWrap = document.getElementById('gecmis-bildirim-wrap');
   const gecmisList = document.getElementById('hatirlat-gecmis-list');
   if (!gecmis.length) {
@@ -2074,6 +2248,7 @@ function updateBadge() {
     state.islemler.filter(i => i.aracId === a.id && i.bitis).forEach(i => { if (!map[i.tur] || i.bitis > map[i.tur]) map[i.tur] = i.bitis; });
     turler.forEach(tur => {
       if (!map[tur]) return;
+      if (!turTakipEdiliyor(a, tur)) return;
       const g = gunFark(map[tur]);
       if (g !== null && g >= 0 && g <= 30) count++;
     });
