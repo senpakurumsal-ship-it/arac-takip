@@ -6,12 +6,12 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Araç Takip">
+<meta name="apple-mobile-web-app-title" content="Şenpa Panel">
 <meta name="theme-color" content="#4F6EF7">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icon-192.png">
 <link rel="icon" type="image/png" href="icon-192.png">
-<title>Araç Takip</title>
+<title>Şenpa Panel</title>
 <style>
   :root {
     --bg: #0f1117;
@@ -92,6 +92,10 @@
   .ariza-rozet { position: absolute; top: 9px; right: 28px; font-size: 13px; line-height: 1; }
   .grup-etiket { font-size: 11px; font-weight: 700; margin-bottom: 0.55rem; display: inline-flex; align-items: center; gap: 5px; }
   .grup-etiket::before { content: '●'; }
+  .arac-filtre { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 1.1rem; }
+  .filtre-chip { font-size: 12px; font-weight: 600; padding: 6px 13px; border-radius: 20px; background: var(--card); border: 1px solid var(--border); color: var(--muted); cursor: pointer; transition: all 0.15s; }
+  .filtre-chip:hover { border-color: var(--accent); }
+  .filtre-chip.active { background: var(--accent); color: #fff; border-color: var(--accent); }
   .takip-kutular { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
   .takip-kutu { display: flex; align-items: center; gap: 7px; font-size: 13px; font-weight: 500; cursor: pointer; padding: 7px 9px; background: var(--bg3); border-radius: 6px; }
   .takip-kutu input { width: auto; margin: 0; }
@@ -174,11 +178,11 @@
   .hatirlat-item.warn { background: var(--warn-bg); border-color: rgba(245,158,11,0.2); }
   .hatirlat-item.ok { background: var(--ok-bg); border-color: rgba(34,197,94,0.15); }
   .hatirlat-icon { font-size: 20px; flex-shrink: 0; }
-  .hatirlat-info { flex: 1; }
+  .hatirlat-info { flex: 1; min-width: 0; }
   .hatirlat-plaka { font-size: 12px; font-weight: 700; letter-spacing: 1px; }
-  .hatirlat-tur { font-size: 13px; font-weight: 600; }
+  .hatirlat-tur { font-size: 13px; font-weight: 600; overflow-wrap: anywhere; }
   .hatirlat-tarih { font-size: 12px; color: var(--muted); }
-  .hatirlat-kalan { font-size: 12px; font-weight: 700; padding: 3px 10px; border-radius: 20px; flex-shrink: 0; }
+  .hatirlat-kalan { font-size: 11px; font-weight: 700; padding: 3px 9px; border-radius: 20px; flex-shrink: 0; white-space: nowrap; align-self: center; }
   .hatirlat-kalan.danger { color: var(--danger); background: rgba(239,68,68,0.18); }
   .hatirlat-kalan.warn { color: var(--warn); background: rgba(245,158,11,0.18); }
 
@@ -348,7 +352,7 @@
 <div class="login-screen" id="login-screen">
   <div class="login-box">
     <div class="login-logo">🚗</div>
-    <div class="login-title">ARAÇ TAKİP</div>
+    <div class="login-title">ŞENPA PANEL</div>
     <div class="login-sub">Devam etmek için şifreyi girin</div>
     <div class="form-group" style="width:100%">
       <label>Şifre</label>
@@ -367,7 +371,7 @@
     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
   </button>
   <div class="mobile-header-title">
-    <span class="mobile-header-logo">🚗</span> ARAÇ TAKİP
+    <span class="mobile-header-logo">🚗</span> ŞENPA PANEL
   </div>
   <div style="position:absolute;right:44px;display:flex;align-items:center;gap:10px">
     <span class="durum-dot mtv-dot yesil" title="MTV"></span>
@@ -381,14 +385,14 @@
   <div class="sidebar" id="sidebar">
     <div class="sidebar-top">
       <span class="sidebar-logo">🚗</span>
-      <span class="sidebar-title">ARAÇ TAKİP</span>
+      <span class="sidebar-title">ŞENPA PANEL</span>
       <button class="sidebar-toggle" onclick="toggleSidebar()" title="Daralt/Genişlet">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
       </button>
     </div>
     <div class="sidebar-nav">
       <button class="nav-btn active" onclick="showPage('araclar', this)">
-        <span class="nav-icon">🚘</span> <span class="nav-label">Araçlar</span>
+        <span class="nav-icon">🚘</span> <span class="nav-label">Araçlar</span> <span id="arac-badge" style="display:none;background:var(--accent);color:#fff;font-size:10px;font-weight:700;padding:1px 6px;border-radius:20px;margin-left:2px;"></span>
       </button>
       <button class="nav-btn" onclick="showPage('hatirlatmalar', this)">
         <span class="nav-icon">🔔</span> <span class="nav-label">Hatırlatmalar</span> <span id="hatirlat-badge" style="display:none;background:var(--danger);color:#fff;font-size:10px;font-weight:700;padding:1px 6px;border-radius:20px;margin-left:2px;"></span>
@@ -441,6 +445,13 @@
       <div class="section-header" style="margin-top:1rem">
         <div class="section-title">Araçlarım</div>
         <button class="btn" onclick="openAracModal()">+ Araç Ekle</button>
+      </div>
+      <div class="arac-filtre" id="arac-filtre">
+        <button class="filtre-chip active" onclick="setAracFiltre('', this)">Tümü</button>
+        <button class="filtre-chip" onclick="setAracFiltre('Saha Teknisyeni', this)">🟢 Saha Teknisyeni</button>
+        <button class="filtre-chip" onclick="setAracFiltre('Nakliye', this)">🟡 Nakliye</button>
+        <button class="filtre-chip" onclick="setAracFiltre('Yedek Araç', this)">⚪ Yedek</button>
+        <button class="filtre-chip" onclick="setAracFiltre('Bireysel', this)">🔵 Şahsi</button>
       </div>
       <div class="arac-grid" id="arac-grid"></div>
       <div class="empty-state" id="arac-empty" style="display:none">
@@ -747,6 +758,10 @@
           <input id="inp-islem-tarih" type="date">
         </div>
       </div>
+      <div class="form-group" id="field-guncel-km">
+        <label>Aracın Güncel KM'si <span style="color:var(--muted);font-weight:400;font-size:11px">(boş bırakılmazsa araç bilgisini günceller)</span></label>
+        <input id="inp-guncel-km" type="number" placeholder="Örn: 142000" inputmode="numeric">
+      </div>
       <div class="form-row" id="field-row-km-maliyet">
         <div class="form-group" id="field-islem-km">
           <label>İşlem KM</label>
@@ -900,6 +915,26 @@
           <button class="btn" onclick="telegramBotTest()">Botu Test Et</button>
         </div>
       </div>
+
+      <div style="border-top:1px solid var(--border);margin:1.25rem 0 0;padding-top:1rem">
+        <div style="font-size:13px;font-weight:600;margin-bottom:6px">🔌 Bağlantı Ayarları</div>
+        <div style="font-size:12px;color:var(--muted);margin-bottom:0.75rem;line-height:1.6">
+          Google Sheets (Apps Script) adresi ve Gemini API anahtarı. Hazır dolu gelir; değiştirmek istersen düzenleyip kaydet.
+        </div>
+        <div class="form-group">
+          <label>Apps Script URL</label>
+          <input id="inp-api-url" placeholder="https://script.google.com/.../exec">
+        </div>
+        <div class="form-group">
+          <label>Gemini API Anahtarı</label>
+          <input id="inp-gemini-key" type="password" placeholder="AIza...">
+        </div>
+        <div id="baglanti-sonuc" style="font-size:12px;min-height:16px;margin-bottom:0.5rem"></div>
+        <div class="form-actions" style="justify-content:flex-end;gap:8px;margin-top:0.5rem">
+          <button class="btn outline" onclick="baglantiVarsayilana()">Varsayılana Dön</button>
+          <button class="btn" onclick="baglantiKaydet()">Kaydet</button>
+        </div>
+      </div>
       <div style="border-top:1px solid var(--border);margin:1.25rem 0 0;padding-top:1rem">
         <div style="font-size:13px;font-weight:600;margin-bottom:6px">📋 Hazır Araç Verileri</div>
         <div style="font-size:12px;color:var(--muted);margin-bottom:0.75rem;line-height:1.6">
@@ -1018,7 +1053,7 @@
     </div>
     <div class="modal-body" style="line-height:1.65;font-size:13.5px">
       <div style="background:var(--bg3);border-radius:var(--radius-sm);padding:1rem;margin-bottom:1.25rem">
-        <div style="font-weight:700;margin-bottom:4px">🚗 Araç Takip nedir?</div>
+        <div style="font-weight:700;margin-bottom:4px">🚗 Şenpa Panel nedir?</div>
         Tüm araçlarının muayene, sigorta, kasko, bakım, lastik ve onarım kayıtlarını tek yerde tutan, yaklaşan tarihleri hatırlatan, fatura/makbuzları AI ile okuyabilen ve verileri Google Sheets + Drive'a bulutta saklayan bir takip sistemidir.
       </div>
 
@@ -1026,7 +1061,7 @@
       <p style="margin-bottom:1rem">Uygulama şifre korumalıdır. Varsayılan şifre <strong>senpa2026</strong>'dır. Şifreyi Ayarlar sayfasından değiştirebilirsin. Çıkış yapmak için sol menünün altındaki <strong>Çıkış</strong> butonunu kullan.</p>
 
       <div style="font-weight:700;color:var(--accent);margin-bottom:6px">🚘 Araçlar</div>
-      <p style="margin-bottom:1rem">Ana sayfada tüm araçların kart halinde listelenir. Bir karta tıklayınca o aracın detayına girersin. <strong>+ Araç Ekle</strong> ile yeni araç tanımlarsın (plaka, marka/model, KM, araç tipi, araç kullanıcısı). Araç kullanıcısı Kullanıcılar sayfasına kayıtlı kişilerden seçilir. Eksik bilgi varsa kartın sağ üst köşesinde <span style="color:var(--danger)">kırmızı nokta</span> belirir (üstüne gelince eksikleri yazar).</p>
+      <p style="margin-bottom:1rem">Ana sayfada araçlar gruba göre sıralı listelenir: önce Saha Teknisyeni, sonra Nakliye, Yedek ve Şahsi. Üstteki <strong>filtre düğmeleriyle</strong> (Tümü / Saha Teknisyeni / Nakliye / Yedek / Şahsi) sadece o kategoriyi gösterebilirsin. Sol menüde "Araçlar" yanındaki sayı toplam araç adedidir. Bir karta tıklayınca detayına girersin. <strong>+ Araç Ekle</strong> ile yeni araç tanımlarsın. Eksik bilgi varsa kartın sağ üst köşesinde <span style="color:var(--danger)">kırmızı nokta</span>, şoför arıza bildirdiyse sarı ⚠️ belirir.</p>
 
       <div style="font-weight:700;color:var(--accent);margin-bottom:6px">🎨 Araç Grupları</div>
       <p style="margin-bottom:1rem">Her araca bir grup atayabilirsin; kart çerçevesi grubun rengini alır: <span style="color:#eab308">🟡 Nakliye</span>, <span style="color:#22c55e">🟢 Saha Teknisyeni</span>, <span style="color:#94a3b8">⚪ Yedek Araç</span>, <span style="color:#3b82f6">🔵 Bireysel / Şahsi</span>. Böylece araçları renkten ayırt edersin.</p>
@@ -1038,7 +1073,7 @@
       <p style="margin-bottom:1rem">Dört sekme vardır: <strong>Tarihler</strong> (muayene/sigorta/kasko bitiş durumları), <strong>İşlem Geçmişi</strong> (tüm bakım/onarım kayıtları), <strong>Lastik</strong> (kış/yaz lastik takılı mı, son değişim tarihi), <strong>Görseller</strong> (araç ve belge fotoğrafları). Buradan <strong>İşlem Ekle</strong>, <strong>KM Güncelle</strong>, <strong>Düzenle</strong> ve <strong>Sil</strong> yapabilirsin.</p>
 
       <div style="font-weight:700;color:var(--accent);margin-bottom:6px">➕ İşlem Ekleme</div>
-      <p style="margin-bottom:1rem">İşlem türünü seçince (Fenni Muayene, Egzoz Muayenesi, Trafik Sigortası, Kasko, Bakım, Onarım, Yedek Parça...) forma sadece o türe uygun alanlar gelir. <strong>Fenni Muayene + Egzoz</strong> seçeneği ikisini tek seferde, aynı tarih/bitişle birlikte kaydeder (maliyet bir kez yazılır). Bakımda <strong>Sonraki Bakım</strong> alanını "+6 Ay / +1 Yıl / +10.000 km / +15.000 km" hızlı butonlarıyla işlem tarihine/km'sine göre otomatik doldurabilirsin. Her işleme fatura/makbuz görseli ekleyebilirsin — görseller otomatik olarak Google Drive'daki <strong>Fatura-Makbuz</strong> klasörüne yüklenir. Görsellerin üstündeki ✕ ile silebilirsin. Görsel yüklersen Gemini otomatik okuyup formu doldurmayı teklif eder.</p>
+      <p style="margin-bottom:1rem">İşlem türünü seçince (Fenni Muayene, Egzoz Muayenesi, Trafik Sigortası, Kasko, Bakım, Onarım, Yedek Parça...) forma sadece o türe uygun alanlar gelir. <strong>Fenni Muayene + Egzoz</strong> seçeneği ikisini tek seferde, aynı tarih/bitişle birlikte kaydeder (maliyet bir kez yazılır). Formdaki <strong>Aracın Güncel KM'si</strong> alanını doldurursan aracın km bilgisi de güncellenir (ayrı KM Güncelle'ye gerek kalmaz). Bakımda <strong>Sonraki Bakım</strong> alanını "+6 Ay / +1 Yıl / +10.000 km / +15.000 km" hızlı butonlarıyla işlem tarihine/km'sine göre otomatik doldurabilirsin. Her işleme fatura/makbuz görseli ekleyebilirsin — görseller otomatik olarak Google Drive'daki <strong>Fatura-Makbuz</strong> klasörüne yüklenir. Görsellerin üstündeki ✕ ile silebilirsin. Görsel yüklersen Gemini otomatik okuyup formu doldurmayı teklif eder.</p>
 
       <div style="font-weight:700;color:var(--accent);margin-bottom:6px">📷 Fotoğraflar</div>
       <p style="margin-bottom:1rem">Tüm fotoğraflar Google Drive'a yüklenir. Drive'da <strong>Araç Takip Belgeler</strong> ana klasörü altında nereden eklendiğine göre ayrılır: <em>Araç Profil</em> (araç ana fotoğrafı), <em>Görseller</em> (Görseller sekmesi), <em>Fatura-Makbuz</em> (işlem belgeleri), <em>AI</em> (AI Asistan ile eklenenler). Her fotoğrafın köşesindeki ✕ ile silebilirsin. Ana fotoğrafa tıklayınca büyük açılır; sağ alttaki 📷 ile değiştirebilirsin.</p>
@@ -1120,8 +1155,11 @@ let state = JSON.parse(localStorage.getItem('arac_takip_cache') || '{"araclar":[
 if (!state.kullanicilar) state.kullanicilar = [];
 if (!state.cop) state.cop = [];
 let currentAracId = null;
-const API_URL = 'https://script.google.com/macros/s/AKfycbzJCYFTYDLr4t06ZewVj5j0dbim4LShcd7zMPVorboEPxq9XUeQboeFvgc71tC8Pu32/exec';
-const GEMINI_KEY = 'AIzaSyAQ.Ab8RN6LM80TqlrHPPi_iSyiIssWWiy_AfQ6yHA2HbGnxYbnfiQ';
+// Varsayılan değerler (Ayarlar'dan değiştirilebilir; değiştirilince localStorage'a yazılır)
+const API_URL_DEFAULT = 'https://script.google.com/macros/s/AKfycbzJCYFTYDLr4t06ZewVj5j0dbim4LShcd7zMPVorboEPxq9XUeQboeFvgc71tC8Pu32/exec';
+const GEMINI_KEY_DEFAULT = 'AIzaSyAQ.Ab8RN6LM80TqlrHPPi_iSyiIssWWiy_AfQ6yHA2HbGnxYbnfiQ';
+let API_URL = localStorage.getItem('cfg_api_url') || API_URL_DEFAULT;
+let GEMINI_KEY = localStorage.getItem('cfg_gemini_key') || GEMINI_KEY_DEFAULT;
 let isOnline = false;
 let pendingSync = false;
 
@@ -1445,12 +1483,40 @@ function getAracEksikler(a) {
   return eksikler;
 }
 
+let aracFiltreGrup = '';
+function setAracFiltre(grup, btn) {
+  aracFiltreGrup = grup;
+  document.querySelectorAll('#arac-filtre .filtre-chip').forEach(c => c.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  renderAraclar();
+}
+function updateAracBadge() {
+  const b = document.getElementById('arac-badge');
+  if (!b) return;
+  const n = state.araclar.length;
+  if (n > 0) { b.textContent = n; b.style.display = 'inline'; }
+  else b.style.display = 'none';
+}
+
 function renderAraclar() {
   const grid = document.getElementById('arac-grid');
   const empty = document.getElementById('arac-empty');
   if (!state.araclar.length) { grid.innerHTML = ''; empty.style.display = 'block'; return; }
   empty.style.display = 'none';
-  grid.innerHTML = state.araclar.map(a => {
+  updateAracBadge();
+  const grupSira = { 'Saha Teknisyeni': 1, 'Nakliye': 2, 'Yedek Araç': 3, 'Bireysel': 4 };
+  let sirali = [...state.araclar].sort((x, y) => {
+    const sx = grupSira[x.grup] || 9, sy = grupSira[y.grup] || 9;
+    if (sx !== sy) return sx - sy;
+    return (x.plaka || '').localeCompare(y.plaka || '', 'tr');
+  });
+  if (aracFiltreGrup) sirali = sirali.filter(a => (a.grup || '') === aracFiltreGrup);
+  if (!sirali.length) {
+    grid.innerHTML = '<div class="empty-state" style="grid-column:1/-1"><div class="empty-icon">🔍</div><div style="font-size:13px">Bu kategoride araç yok</div></div>';
+    updateBadge();
+    return;
+  }
+  grid.innerHTML = sirali.map(a => {
     const tarihler = getAracTarihler(a.id);
     const badges = tarihler.filter(t => t.bitis && turTakipEdiliyor(a, t.ad)).map(t => {
       const gun = gunFark(t.bitis);
@@ -2218,6 +2284,8 @@ function openIslemModal(aracId, islemId) {
     document.getElementById('inp-islem-tarih').value = new Date().toISOString().slice(0,10);
     islemBelgeGecici = [];
   }
+  const _arac = state.araclar.find(x => x.id === document.getElementById('islem-arac-id').value);
+  document.getElementById('inp-guncel-km').value = _arac ? (_arac.km || '') : '';
   renderIslemBelgePreview();
   updateIslemFormFields();
   document.getElementById('islem-modal').classList.add('open');
@@ -2243,6 +2311,12 @@ function saveIslem() {
   if (!tur || !tarih) { alert('İşlem türü ve tarih zorunlu!'); return; }
   const aracId = document.getElementById('islem-arac-id').value;
   const id = document.getElementById('islem-edit-id').value;
+  // Aracın güncel km'sini güncelle (girilmişse)
+  const guncelKm = document.getElementById('inp-guncel-km').value.trim();
+  if (guncelKm) {
+    const arc = state.araclar.find(x => x.id === aracId);
+    if (arc && String(arc.km || '') !== guncelKm) { arc.km = guncelKm; syncArac(arc); }
+  }
   const base = { aracId, tarih, km: document.getElementById('inp-islem-km').value, maliyet: document.getElementById('inp-islem-maliyet').value, bitis: document.getElementById('inp-islem-bitis').value, sonrakiKm: document.getElementById('inp-sonraki-km').value, sonrakiTarih: document.getElementById('inp-sonraki-tarih').value, detay: document.getElementById('inp-islem-detay').value, not: document.getElementById('inp-islem-not').value, fotolar: islemBelgeGecici.slice() };
 
   if (tur === 'Fenni Muayene + Egzoz' && !id) {
@@ -2944,8 +3018,33 @@ function openAyarlarModal() {
   document.getElementById('inp-tg-token').value = localStorage.getItem('tg_token') || '';
   document.getElementById('inp-tg-admin').value = localStorage.getItem('tg_admin') || '';
   document.getElementById('tg-sonuc').textContent = '';
+  document.getElementById('inp-api-url').value = API_URL || '';
+  document.getElementById('inp-gemini-key').value = GEMINI_KEY || '';
+  document.getElementById('baglanti-sonuc').textContent = '';
   document.getElementById('ayarlar-modal').classList.add('open');
   closeMobileSidebar();
+}
+
+function baglantiKaydet() {
+  const url = document.getElementById('inp-api-url').value.trim();
+  const key = document.getElementById('inp-gemini-key').value.trim();
+  const sonuc = document.getElementById('baglanti-sonuc');
+  localStorage.setItem('cfg_api_url', url);
+  localStorage.setItem('cfg_gemini_key', key);
+  API_URL = url || API_URL_DEFAULT;
+  GEMINI_KEY = key || GEMINI_KEY_DEFAULT;
+  sonuc.innerHTML = '<span style="color:var(--success)">✅ Kaydedildi. Veriler yeniden yükleniyor...</span>';
+  loadFromCloud(true).then(() => { renderAraclar(); updateBadge(); updateDurumIndicators(); }).catch(() => {});
+}
+
+function baglantiVarsayilana() {
+  localStorage.removeItem('cfg_api_url');
+  localStorage.removeItem('cfg_gemini_key');
+  API_URL = API_URL_DEFAULT;
+  GEMINI_KEY = GEMINI_KEY_DEFAULT;
+  document.getElementById('inp-api-url').value = API_URL;
+  document.getElementById('inp-gemini-key').value = GEMINI_KEY;
+  document.getElementById('baglanti-sonuc').innerHTML = '<span style="color:var(--success)">✅ Varsayılan değerlere dönüldü</span>';
 }
 
 async function telegramAyarKaydet() {

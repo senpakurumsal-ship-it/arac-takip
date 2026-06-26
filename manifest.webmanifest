@@ -1,6 +1,6 @@
 {
-  "name": "Senpa Araç Takip",
-  "short_name": "Araç Takip",
+  "name": "Şenpa Panel",
+  "short_name": "Şenpa Panel",
   "description": "Araç muayene, sigorta, kasko, bakım ve lastik takip sistemi",
   "start_url": "./",
   "scope": "./",
