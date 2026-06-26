@@ -45,6 +45,10 @@ function sheetKur() {
     var s = ss.insertSheet('TgState');
     s.appendRow(['chatId','durum','aracId','ad','guncelleme']);
   }
+  if (!ss.getSheetByName('Kullanim')) {
+    var s = ss.insertSheet('Kullanim');
+    s.appendRow(['id','tarih','aracId','kullaniciAd','telegramId','km']);
+  }
   sutunGarantile(ss.getSheetByName('Araclar'), ['grup','takip']);
   sutunGarantile(ss.getSheetByName('Kullanicilar'), ['telegramId']);
 }
@@ -65,11 +69,15 @@ function sutunGarantile(sheet, sutunlar) {
 function doGet(e) {
   sheetKur();
   if (e.parameter.action === 'getAll') {
-    return jsonOut({ araclar: tabloOku('Araclar'), islemler: tabloOku('Islemler'), kullanicilar: tabloOku('Kullanicilar') });
+    return jsonOut({ araclar: tabloOku('Araclar'), islemler: tabloOku('Islemler'), kullanicilar: tabloOku('Kullanicilar'), kullanim: tabloOku('Kullanim') });
   }
   if (e.parameter.action === 'formAraclar') {
     var ar = tabloOku('Araclar').map(function(a){ return { id: a.id, plaka: a.plaka, model: a.model }; });
     return jsonOut({ araclar: ar });
+  }
+  if (e.parameter.action === 'formKullanicilar') {
+    var ks = tabloOku('Kullanicilar').map(function(k){ return { id: k.id, ad: k.ad, soyad: k.soyad, telegramId: k.telegramId }; });
+    return jsonOut({ kullanicilar: ks });
   }
   return jsonOut({ error: 'bilinmeyen action' });
 }
@@ -258,12 +266,19 @@ function gunSonuFormGonder(idler) {
 // Web formundan gelen gün sonu verisini işler
 function gunSonuKaydet(d) {
   try {
-    var ad = '';
-    if (d.telegramId) { var k = tgKullaniciByTgId(d.telegramId); if (k) ad = (k.ad + ' ' + (k.soyad || '')).trim(); }
     if (d.kullandi === false) return { ok: true };
-    if (d.km && d.aracId) kmGuncelle(d.aracId, String(d.km).replace(/[^0-9]/g, ''));
+    // Gerçek sürücü: formda seçilen "kullanan"; yoksa link sahibi
+    var surucuId = d.kullananTgId || d.telegramId || '';
+    var ad = d.kullananAd || '';
+    if (!ad && surucuId) { var k = tgKullaniciByTgId(surucuId); if (k) ad = (k.ad + ' ' + (k.soyad || '')).trim(); }
+    var bugun = Utilities.formatDate(new Date(), Session.getScriptTimeZone() || 'Europe/Istanbul', 'yyyy-MM-dd');
+    var temizKm = String(d.km || '').replace(/[^0-9]/g, '');
+    if (temizKm && d.aracId) kmGuncelle(d.aracId, temizKm);
+    // Kullanım kaydı (kim, hangi araç, hangi gün)
+    if (d.aracId) {
+      satirKaydet('Kullanim', { id: 'kl_' + Date.now(), tarih: bugun, aracId: d.aracId, kullaniciAd: ad, telegramId: surucuId, km: temizKm });
+    }
     if (d.arizaVar && d.arizaDetay) {
-      var bugun = Utilities.formatDate(new Date(), Session.getScriptTimeZone() || 'Europe/Istanbul', 'yyyy-MM-dd');
       satirKaydet('Islemler', { id: 'frm_' + Date.now(), aracId: d.aracId, tur: 'Arıza Bildirimi', tarih: bugun, detay: d.arizaDetay, not: 'Form · Bildiren: ' + ad });
       var a = aracBul(d.aracId);
       if (TG_ADMIN()) tgGonder(TG_ADMIN(), '⚠️ <b>' + (ad || 'Bir şoför') + '</b> arıza bildirdi\n🚗 ' + (a ? (a.plaka + ' ' + (a.model || '')) : d.aracId) + '\n📝 ' + d.arizaDetay);

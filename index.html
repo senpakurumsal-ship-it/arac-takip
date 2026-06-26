@@ -1161,6 +1161,7 @@ const SEED_DATA = {"araclar":[{"id":"a793948309e","plaka":"72 ACV 611","model":"
 let state = JSON.parse(localStorage.getItem('arac_takip_cache') || '{"araclar":[],"islemler":[],"kullanicilar":[]}');
 if (!state.kullanicilar) state.kullanicilar = [];
 if (!state.cop) state.cop = [];
+if (!state.kullanim) state.kullanim = [];
 let currentAracId = null;
 // Varsayılan değerler (Ayarlar'dan değiştirilebilir; değiştirilince localStorage'a yazılır)
 const API_URL_DEFAULT = 'https://script.google.com/macros/s/AKfycbzJCYFTYDLr4t06ZewVj5j0dbim4LShcd7zMPVorboEPxq9XUeQboeFvgc71tC8Pu32/exec';
@@ -1271,6 +1272,7 @@ async function loadFromCloud(silent) {
   } else if (state.kullanicilar.length) {
     state.kullanicilar.forEach(k => syncKullanici(k));
   }
+  state.kullanim = (result.kullanim || []).map(k => ({ ...k, id: String(k.id), aracId: String(k.aracId) }));
   save();
   isOnline = true;
   setSyncStatus('✅ Senkron — ' + new Date().toLocaleTimeString('tr-TR', {hour:'2-digit',minute:'2-digit'}), 'var(--success)');
@@ -1619,6 +1621,7 @@ function renderDetay(a) {
       <button class="tab" onclick="switchTab('bakim',this)">🔩 Bakım</button>
       <button class="tab" onclick="switchTab('onarim',this)">🛠️ Onarım</button>
       <button class="tab" onclick="switchTab('parca',this)">⚙️ Yedek Parça</button>
+      <button class="tab" onclick="switchTab('kullanim',this)">👤 Kullanım Geçmişi</button>
       <button class="tab" onclick="switchTab('gorseller',this)">🖼️ Görseller</button>
       <button class="tab" onclick="switchTab('islemler',this)">📋 Tüm İşlem Geçmişi</button>
     </div>
@@ -1675,6 +1678,8 @@ function renderDetay(a) {
       </div>
     </div>
 
+    ${kullanimSekmesiHTML(a)}
+
     <div class="tab-content" id="tab-gorseller">
       <div class="photo-upload-area" onclick="document.getElementById('foto-input-bulk').click()">
         <input type="file" id="foto-input-bulk" accept="image/*" multiple onchange="uploadFotoBulk(event,'${a.id}')">
@@ -1720,6 +1725,30 @@ function ciftSekmeBolumHTML(a, turAdi, ikon) {
         <button class="btn" style="padding:6px 12px;font-size:12px" onclick="openIslemModalTur('${a.id}','${turAdi}')">+ ${turAdi} Ekle</button>
       </div>
       ${kayitlar.length ? kayitlar.map(i => islemItemHTML(i)).join('') : `<div class="empty-state" style="padding:1.5rem"><div class="empty-icon" style="font-size:32px">${ikon}</div><div style="font-size:13px">Bu araç için ${turAdi.toLocaleLowerCase('tr-TR')} kaydı yok</div></div>`}
+    </div>`;
+}
+
+function kullanimSekmesiHTML(a) {
+  const kayitlar = (state.kullanim || [])
+    .filter(k => k.aracId === a.id)
+    .sort((x,y) => (y.tarih || '') > (x.tarih || '') ? 1 : -1);
+  const sayac = {};
+  kayitlar.forEach(k => { const ad = k.kullaniciAd || 'Bilinmiyor'; sayac[ad] = (sayac[ad] || 0) + 1; });
+  const ozet = Object.keys(sayac).sort((x,y) => sayac[y] - sayac[x])
+    .map(ad => `<span class="badge" style="background:rgba(79,110,247,0.15);color:#818cf8">${ad}: ${sayac[ad]} gün</span>`).join(' ');
+  return `
+    <div class="tab-content" id="tab-kullanim">
+      <div style="font-size:14px;font-weight:600;margin-bottom:0.75rem">👤 Kullanım Geçmişi <span style="font-size:12px;color:var(--muted);font-weight:400">(${kayitlar.length} kayıt)</span></div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:1rem">Sabit kullanıcı: <strong style="color:var(--text)">${a.kullanici || '—'}</strong>. Aşağıda gün sonu formundan gelen gerçek kullanım kayıtları (başkası kullandıysa o görünür).</div>
+      ${ozet ? `<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:1rem">${ozet}</div>` : ''}
+      ${kayitlar.length ? kayitlar.map(k => `
+        <div class="hatirlat-item" style="cursor:default">
+          <div class="hatirlat-icon">🗓️</div>
+          <div class="hatirlat-info">
+            <div class="hatirlat-plaka">${k.kullaniciAd || 'Bilinmiyor'}</div>
+            <div class="hatirlat-tarih">${formatTarih(k.tarih)}${k.km ? ' · ' + Number(k.km).toLocaleString('tr-TR') + ' km' : ''}</div>
+          </div>
+        </div>`).join('') : '<div class="empty-state"><div class="empty-icon">🗓️</div><div>Henüz kullanım kaydı yok</div><div style="font-size:12px;color:var(--muted);margin-top:4px">Gün sonu formu dolduruldukça burada birikecek</div></div>'}
     </div>`;
 }
 

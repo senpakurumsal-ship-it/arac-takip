@@ -65,6 +65,11 @@
         <select id="arac"><option value="">— Yükleniyor —</option></select>
       </div>
       <div class="field">
+        <label>Aracı bugün kullanan</label>
+        <select id="kullanan"><option value="">— Yükleniyor —</option></select>
+        <div class="not">Sen kullandıysan kendin seçili kalsın; başkası kullandıysa onu seç.</div>
+      </div>
+      <div class="field">
         <label>Güncel KM</label>
         <input id="km" type="number" inputmode="numeric" placeholder="Örn: 142000">
       </div>
@@ -113,6 +118,25 @@ async function araclariYukle(){
 }
 araclariYukle();
 
+let kullaniciListesi = [];
+async function kullanicilariYukle(){
+  try{
+    const res = await fetch(API_URL + '?action=formKullanicilar');
+    const data = await res.json();
+    kullaniciListesi = data.kullanicilar || [];
+    const sel = document.getElementById('kullanan');
+    sel.innerHTML = '<option value="">— Seçiniz —</option>' +
+      kullaniciListesi.map(k => {
+        const ad = ((k.ad||'') + ' ' + (k.soyad||'')).trim();
+        return `<option value="${k.id}" data-ad="${ad}" data-tg="${k.telegramId||''}">${ad}</option>`;
+      }).join('');
+    if (telegramId){ const m = kullaniciListesi.find(k => String(k.telegramId) === String(telegramId)); if (m) sel.value = m.id; }
+  }catch(e){
+    document.getElementById('kullanan').innerHTML = '<option value="">Liste yüklenemedi</option>';
+  }
+}
+kullanicilariYukle();
+
 function kullandiSec(v){
   kullandi = v;
   document.querySelector('.sec-evet').classList.toggle('on', v===true);
@@ -142,9 +166,14 @@ async function gonder(){
   const arizaDetay = document.getElementById('ariza-detay').value.trim();
   if(arizaVar && !arizaDetay){ hata.textContent = 'Lütfen arıza detayını yazın.'; return; }
 
+  const kSel = document.getElementById('kullanan');
+  const kOpt = kSel.options[kSel.selectedIndex];
+  const kullananAd = kOpt ? (kOpt.getAttribute('data-ad') || '') : '';
+  const kullananTgId = kOpt ? (kOpt.getAttribute('data-tg') || '') : '';
+
   const btn = document.getElementById('gonder-btn');
   btn.disabled = true; btn.textContent = 'Gönderiliyor...';
-  const r = await gonderApi({ telegramId, kullandi:true, aracId, km, arizaVar, arizaDetay });
+  const r = await gonderApi({ telegramId, kullandi:true, aracId, km, arizaVar, arizaDetay, kullananAd, kullananTgId });
   if(r && r.ok){
     sonucGoster(arizaVar?'⚠️':'✅', 'Teşekkürler, kaydedildi!', arizaVar ? 'Arıza bildiriminiz yöneticiye iletildi.' : 'Güncel km kaydedildi. İyi günler 👋');
   }else{
