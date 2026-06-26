@@ -1121,7 +1121,9 @@
 const VARSAYILAN_SIFRE = 'senpa2026';
 function getSifre() { return localStorage.getItem('arac_takip_sifre') || VARSAYILAN_SIFRE; }
 function checkLogin() {
-  const giris = localStorage.getItem('arac_takip_giris');
+  // Oturum sessionStorage'da tutulur: yenilemede sorulmaz, ama uygulama/sekme
+  // kapanıp tekrar açılınca (çıkış yapılmasa bile) şifre yeniden istenir.
+  const giris = sessionStorage.getItem('arac_takip_giris');
   if (giris === '1') { document.getElementById('login-screen').classList.add('hidden'); return true; }
   document.getElementById('login-input').focus();
   return false;
@@ -1129,7 +1131,7 @@ function checkLogin() {
 function doLogin() {
   const val = document.getElementById('login-input').value;
   if (val === getSifre()) {
-    localStorage.setItem('arac_takip_giris', '1');
+    sessionStorage.setItem('arac_takip_giris', '1');
     document.getElementById('login-screen').classList.add('hidden');
     document.getElementById('login-input').value = '';
     document.getElementById('login-error').textContent = '';
@@ -1141,7 +1143,7 @@ function doLogin() {
 }
 function doLogout() {
   if (!confirm('Çıkış yapmak istediğinize emin misiniz?')) return;
-  localStorage.removeItem('arac_takip_giris');
+  sessionStorage.removeItem('arac_takip_giris');
   const ls = document.getElementById('login-screen');
   ls.classList.remove('hidden');
   document.getElementById('login-input').value = '';
