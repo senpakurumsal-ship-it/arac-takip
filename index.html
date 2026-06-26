@@ -76,17 +76,17 @@
   .page.active { display: block; }
 
   /* CARDS GRID */
-  .arac-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 1rem; }
-  .arac-card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.25rem; cursor: pointer; transition: all 0.18s; position: relative; }
+  .arac-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(205px, 1fr)); gap: 0.7rem; }
+  .arac-card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 0.8rem 0.85rem; cursor: pointer; transition: all 0.18s; position: relative; }
   .arac-card:hover { border-color: var(--accent); transform: translateY(-2px); }
-  .arac-card .plaka { font-size: 18px; font-weight: 700; letter-spacing: 2px; color: var(--text); margin-bottom: 4px; }
-  .arac-card .model { font-size: 13px; color: var(--muted); margin-bottom: 1rem; }
+  .arac-card .plaka { font-size: 15px; font-weight: 700; letter-spacing: 1.5px; color: var(--text); margin-bottom: 2px; }
+  .arac-card .model { font-size: 12px; color: var(--muted); margin-bottom: 0.6rem; }
   .arac-card .badges { display: flex; flex-wrap: wrap; gap: 6px; }
   .badge { font-size: 11px; padding: 3px 8px; border-radius: 20px; font-weight: 600; }
   .badge.ok { background: var(--ok-bg); color: var(--success); border: 1px solid rgba(34,197,94,0.3); }
   .badge.warn { background: var(--warn-bg); color: var(--warn); border: 1px solid rgba(245,158,11,0.3); }
   .badge.danger { background: var(--red-bg); color: var(--danger); border: 1px solid rgba(239,68,68,0.3); }
-  .arac-card .km-info { font-size: 12px; color: var(--muted); margin-top: 0.75rem; }
+  .arac-card .km-info { font-size: 11px; color: var(--muted); margin-top: 0.4rem; }
   .arac-card { border-left-width: 4px; }
   .eksik-nokta { position: absolute; top: 12px; right: 12px; width: 11px; height: 11px; border-radius: 50%; background: var(--danger); box-shadow: 0 0 0 3px rgba(239,68,68,0.18); }
   .ariza-rozet { position: absolute; top: 9px; right: 28px; font-size: 13px; line-height: 1; }
@@ -404,7 +404,7 @@
         <span class="nav-icon">👥</span> <span class="nav-label">Kullanıcılar</span>
       </button>
       <button class="nav-btn" onclick="showPage('mesajlar', this)">
-        <span class="nav-icon">✈️</span> <span class="nav-label">Mesajlar</span>
+        <span class="nav-icon">✉️</span> <span class="nav-label">Mesajlar</span>
       </button>
       <button class="nav-btn" onclick="showPage('cop', this)">
         <span class="nav-icon">🗑️</span> <span class="nav-label">Çöp Kutusu</span> <span id="cop-badge" style="display:none;background:var(--muted);color:#fff;font-size:10px;font-weight:700;padding:1px 6px;border-radius:20px;margin-left:2px;"></span>
@@ -545,7 +545,7 @@
     <!-- MESAJLAR SAYFASI -->
     <div class="page" id="page-mesajlar">
       <div class="section-header" style="margin-top:1rem">
-        <div class="section-title">✈️ Mesajlar</div>
+        <div class="section-title">✉️ Mesajlar</div>
         <div style="font-size:13px;color:var(--muted)">Telegram üzerinden toplu mesaj</div>
       </div>
       <div class="mesaj-duzen">
@@ -569,7 +569,7 @@
           <textarea id="mesaj-metin" placeholder="Göndermek istediğin mesajı yaz..." style="min-height:140px"></textarea>
           <div id="mesaj-sonuc" style="font-size:12px;min-height:18px;margin:8px 0"></div>
           <div class="form-actions" style="justify-content:flex-end">
-            <button class="btn" onclick="mesajGonder()">✈️ Mesaj Gönder</button>
+            <button class="btn" onclick="mesajGonder()">✉️ Mesaj Gönder</button>
           </div>
           <div id="mesaj-gecmis" style="margin-top:1.5rem"></div>
         </div>
@@ -1988,6 +1988,7 @@ function saveArac() {
   const plaka = document.getElementById('inp-plaka').value.trim().toUpperCase();
   const model = document.getElementById('inp-model').value.trim();
   if (!plaka || !model) { alert('Plaka ve model zorunlu!'); return; }
+  if (!confirm('Araç bilgileri kaydedilsin mi?')) return;
   const id = document.getElementById('arac-edit-id').value;
   const data = { plaka, model, km: document.getElementById('inp-km').value, yil: document.getElementById('inp-yil').value, tip: document.getElementById('inp-tip').value, kullanici: document.getElementById('inp-kullanici').value, telefon: savePhone(document.getElementById('inp-telefon').value), not: document.getElementById('inp-not').value,
     grup: document.getElementById('inp-grup').value,
@@ -2081,6 +2082,7 @@ function saveKullanici() {
   const ad = document.getElementById('inp-kul-ad').value.trim();
   const soyad = document.getElementById('inp-kul-soyad').value.trim();
   if (!ad || !soyad) { alert('Ad ve Soyad zorunludur.'); return; }
+  if (!confirm('Kullanıcı kaydedilsin mi?')) return;
   const data = {
     ad, soyad,
     telefon: savePhone(document.getElementById('inp-kul-telefon').value),
@@ -2130,7 +2132,9 @@ function saveKm() {
   if (!a) return;
   const eskiKm = a.km;
   if (eskiKm && Number(yeniKm) < Number(eskiKm)) {
-    if (!confirm('Girdiğiniz KM mevcut değerden düşük. Yine de devam edilsin mi?')) return;
+    if (!confirm('Girdiğiniz KM mevcut değerden düşük. Yine de kaydedilsin mi?')) return;
+  } else {
+    if (!confirm('Yeni KM kaydedilsin mi?')) return;
   }
   a.km = yeniKm;
   save();
@@ -2316,6 +2320,7 @@ function saveIslem() {
   const tur = document.getElementById('inp-islem-tur').value;
   const tarih = document.getElementById('inp-islem-tarih').value;
   if (!tur || !tarih) { alert('İşlem türü ve tarih zorunlu!'); return; }
+  if (!confirm('İşlem kaydedilsin mi?')) return;
   const aracId = document.getElementById('islem-arac-id').value;
   const id = document.getElementById('islem-edit-id').value;
   // Aracın güncel km'sini güncelle (girilmişse)
