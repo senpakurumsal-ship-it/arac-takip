@@ -561,10 +561,15 @@
         </div>
         <div class="mesaj-sag">
           <div style="font-size:13px;font-weight:600;margin-bottom:8px">Mesaj</div>
-          <textarea id="mesaj-metin" placeholder="Göndermek istediğin mesajı yaz..." style="min-height:160px"></textarea>
+          <div style="background:var(--bg3);border-radius:8px;padding:10px 12px;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap">
+            <div style="font-size:12px;color:var(--muted)">Seçili kişilere (boşsa herkese) <strong style="color:var(--text)">gün sonu formu</strong> linki gönder</div>
+            <button class="btn outline" style="white-space:nowrap" onclick="gunSonuFormuGonder()">📝 Gün Sonu Formu Gönder</button>
+          </div>
+          <label style="font-size:13px;font-weight:600;margin-bottom:6px;display:block">Serbest Mesaj</label>
+          <textarea id="mesaj-metin" placeholder="Göndermek istediğin mesajı yaz..." style="min-height:140px"></textarea>
           <div id="mesaj-sonuc" style="font-size:12px;min-height:18px;margin:8px 0"></div>
           <div class="form-actions" style="justify-content:flex-end">
-            <button class="btn" onclick="mesajGonder()">✈️ Gönder</button>
+            <button class="btn" onclick="mesajGonder()">✈️ Mesaj Gönder</button>
           </div>
           <div id="mesaj-gecmis" style="margin-top:1.5rem"></div>
         </div>
@@ -862,7 +867,7 @@
       <div class="form-group">
         <label>Telegram ID</label>
         <input id="inp-kul-telegram" placeholder="Örn: 8553590297" inputmode="numeric">
-        <div style="font-size:11px;color:var(--muted);margin-top:4px">Şoför gün sonu formu ve mesaj alabilsin diye gerekli. Kullanıcı bota /start yazıp ID'sini öğrenebilir.</div>
+        <div style="font-size:11px;color:var(--muted);margin-top:4px">Şoför gün sonu formu ve mesaj alabilsin diye gerekli. Kişi Telegram'da <strong>@userinfobot</strong>'a yazıp ID'sini öğrenebilir (veya bizim bota /start). Ayrıca kişi <strong>@senpa_arac_bot</strong>'a bir kez /start demeli ki bot ona mesaj atabilsin.</div>
       </div>
       <div class="form-actions">
         <button class="btn outline" onclick="closeModal('kullanici-modal')">İptal</button>
@@ -1088,7 +1093,7 @@
       <p style="margin-bottom:1rem">Sol menüden <strong>Kullanıcılar</strong> sayfasına girebilirsin. Şoför, yönetici gibi kişileri ad/soyad, telefon, ünvan ve <strong>Telegram ID</strong> bilgileriyle kayıt edebilirsin. Kayıtlı kullanıcılar araç formunda "Araç Kullanıcısı" seçiminde otomatik listelenir.</p>
 
       <div style="font-weight:700;color:var(--accent);margin-bottom:6px">✈️ Telegram & Gün Sonu Formu</div>
-      <p style="margin-bottom:1rem">Telegram ID'si girilen şoförlere her gün (Pazar hariç) 17:00'da bot otomatik sorar: "Bugün araç kullandınız mı?". Evet derse araç seçer, güncel km'yi yazar (araç km'si otomatik güncellenir), ardından arıza/durum bildirir. Arıza bildirimi <strong>Hatırlatmalar</strong> sayfasında "⚠️ Şoför Bildirimleri" altında listelenir, ilgili araç kartında sarı ⚠️ işareti çıkar ve yöneticiye anlık Telegram bildirimi gider. Kurulum: Ayarlar → Telegram → token + yönetici ID gir, Kaydet, Botu Test Et.</p>
+      <p style="margin-bottom:1rem">Telegram ID'si girilen şoförlere her gün (Pazar hariç) 17:00'da bot bir <strong>form linki</strong> gönderir. Şoför linke tıklar, açılan tek sayfalık formu doldurur: araç kullandı mı → araç seç → güncel km (araç km'si otomatik güncellenir) → arıza var/yok + detay. Arıza bildirimi <strong>Hatırlatmalar</strong>'da "⚠️ Şoför Bildirimleri" altında listelenir, ilgili araç kartında sarı ⚠️ çıkar ve yöneticiye anlık Telegram bildirimi gider. Formu istediğin an <strong>Mesajlar</strong> sayfasından "📝 Gün Sonu Formu Gönder" ile manuel de gönderebilirsin. (Form web tabanlı olduğu için her zaman güvenilir çalışır.)</p>
 
       <div style="font-weight:700;color:var(--accent);margin-bottom:6px">📨 Mesajlar</div>
       <p style="margin-bottom:1rem">Sol menüdeki <strong>Mesajlar</strong> sayfasından, Telegram ID'si olan kullanıcılara toplu mesaj gönderebilirsin. Soldan kişileri seç (Telegram'ı olmayanlar gri/pasif), sağa mesajı yaz, Gönder. Gönderim sonucu ve son 10 mesajın geçmişi görünür.</p>
@@ -2464,6 +2469,17 @@ function renderMesajlar() {
 
 function mesajTumunuSec(sec) {
   document.querySelectorAll('#mesaj-kullanici-list .mesaj-cb:not([disabled])').forEach(cb => cb.checked = sec);
+}
+
+async function gunSonuFormuGonder() {
+  const sonuc = document.getElementById('mesaj-sonuc');
+  const idler = [...document.querySelectorAll('#mesaj-kullanici-list .mesaj-cb:checked')].map(cb => cb.value).filter(Boolean);
+  const kime = idler.length ? `${idler.length} kişiye` : 'Telegram ID\'si olan herkese';
+  if (!confirm(`Gün sonu formu ${kime} gönderilsin mi?`)) return;
+  sonuc.innerHTML = '<span style="color:var(--muted)">Form gönderiliyor...</span>';
+  const r = await apiCall('gunSonuGonder', { idler });
+  if (r && r.ok) sonuc.innerHTML = `<span style="color:var(--success)">✅ Gün sonu formu ${r.gonderilen}/${r.hedef} kişiye gönderildi</span>`;
+  else sonuc.innerHTML = '<span style="color:var(--danger)">⚠️ ' + ((r && r.error) || 'Gönderilemedi') + '</span>';
 }
 
 async function mesajGonder() {

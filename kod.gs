@@ -13,6 +13,9 @@
 
 function getSS() { return SpreadsheetApp.getActiveSpreadsheet(); }
 
+// Gün sonu web formunun adresi (GitHub Pages)
+var FORM_URL = 'https://senpakurumsal-ship-it.github.io/arac-takip/form.html';
+
 // --- Telegram ayarları (Script Properties) ---
 function tgProp(k) { return PropertiesService.getScriptProperties().getProperty(k) || ''; }
 function TG_TOKEN() { return tgProp('TELEGRAM_TOKEN'); }
@@ -64,6 +67,10 @@ function doGet(e) {
   if (e.parameter.action === 'getAll') {
     return jsonOut({ araclar: tabloOku('Araclar'), islemler: tabloOku('Islemler'), kullanicilar: tabloOku('Kullanicilar') });
   }
+  if (e.parameter.action === 'formAraclar') {
+    var ar = tabloOku('Araclar').map(function(a){ return { id: a.id, plaka: a.plaka, model: a.model }; });
+    return jsonOut({ araclar: ar });
+  }
   return jsonOut({ error: 'bilinmeyen action' });
 }
 
@@ -87,6 +94,8 @@ function doPost(e) {
   if (action === 'telegramAyar')    { return jsonOut(telegramAyarKaydet(body.token, body.admin)); }
   if (action === 'telegramTest')    { return jsonOut(telegramTest()); }
   if (action === 'topluMesaj')      { return jsonOut(topluMesajGonder(body.idler, body.mesaj)); }
+  if (action === 'gunSonuKaydet')   { return jsonOut(gunSonuKaydet(body)); }
+  if (action === 'gunSonuGonder')   { return jsonOut(gunSonuFormGonder(body.idler)); }
   return jsonOut({ error: 'bilinmeyen action' });
 }
 
@@ -221,19 +230,46 @@ function topluMesajGonder(idler, mesaj) {
   return { ok: true, basarili: basarili, basarisiz: basarisiz, toplam: (idler||[]).length };
 }
 
-// Gün sonu formu — tetikleyici çağırır
+// Gün sonu formu — tetikleyici çağırır (link gönderir; in-chat değil, güvenilir)
 function gunSonuMesajGonder() {
   sheetKur();
-  if (!TG_TOKEN()) return;
+  gunSonuFormGonder(null);
+}
+
+// Telegram ID'si olan kullanıcılara gün sonu form linkini gönderir.
+// idler verilirse sadece onlara; null ise herkese.
+function gunSonuFormGonder(idler) {
+  if (!TG_TOKEN()) return { error: 'Bot token tanımlı değil.' };
   var kullanicilar = tabloOku('Kullanicilar');
+  var n = 0, hedef = 0;
   kullanicilar.forEach(function(k) {
     if (!k.telegramId) return;
-    tgStateTemizle(k.telegramId);
-    tgGonder(k.telegramId,
-      '🚗 <b>Gün Sonu Raporu</b>\nMerhaba ' + (k.ad || '') + '!\n\nBugün araç kullandınız mı?',
-      [[ { text: 'Evet 🚗', callback_data: 'gun:evet' }, { text: 'Hayır', callback_data: 'gun:hayir' } ]]
-    );
+    if (idler && idler.length && idler.indexOf(String(k.telegramId)) < 0) return;
+    hedef++;
+    var link = FORM_URL + '?u=' + encodeURIComponent(k.telegramId);
+    var r = tgGonder(k.telegramId,
+      '🚗 <b>Gün Sonu Raporu</b>\nMerhaba ' + (k.ad || '') + '! Bugünün raporunu doldurmak için tıkla:',
+      [[ { text: '📝 Formu Doldur', url: link } ]]);
+    try { if (JSON.parse(r.getContentText()).ok) n++; } catch(e){}
   });
+  return { ok: true, gonderilen: n, hedef: hedef };
+}
+
+// Web formundan gelen gün sonu verisini işler
+function gunSonuKaydet(d) {
+  try {
+    var ad = '';
+    if (d.telegramId) { var k = tgKullaniciByTgId(d.telegramId); if (k) ad = (k.ad + ' ' + (k.soyad || '')).trim(); }
+    if (d.kullandi === false) return { ok: true };
+    if (d.km && d.aracId) kmGuncelle(d.aracId, String(d.km).replace(/[^0-9]/g, ''));
+    if (d.arizaVar && d.arizaDetay) {
+      var bugun = Utilities.formatDate(new Date(), Session.getScriptTimeZone() || 'Europe/Istanbul', 'yyyy-MM-dd');
+      satirKaydet('Islemler', { id: 'frm_' + Date.now(), aracId: d.aracId, tur: 'Arıza Bildirimi', tarih: bugun, detay: d.arizaDetay, not: 'Form · Bildiren: ' + ad });
+      var a = aracBul(d.aracId);
+      if (TG_ADMIN()) tgGonder(TG_ADMIN(), '⚠️ <b>' + (ad || 'Bir şoför') + '</b> arıza bildirdi\n🚗 ' + (a ? (a.plaka + ' ' + (a.model || '')) : d.aracId) + '\n📝 ' + d.arizaDetay);
+    }
+    return { ok: true };
+  } catch(e) { return { error: e.toString() }; }
 }
 
 // --- TgState (sohbet adım takibi) ---

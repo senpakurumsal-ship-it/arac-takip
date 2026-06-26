@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#4F6EF7">
+<title>Gün Sonu Raporu — Şenpa</title>
+<style>
+  :root{
+    --bg:#0f1117; --card:#161922; --bg3:#1d212c; --border:#262b38;
+    --text:#e7e9ee; --muted:#8b93a7; --accent:#4F6EF7; --success:#22c55e; --danger:#ef4444; --warn:#f59e0b;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,sans-serif;min-height:100vh;display:flex;align-items:flex-start;justify-content:center;padding:1rem}
+  .wrap{width:100%;max-width:440px}
+  .head{display:flex;align-items:center;gap:10px;margin:0.5rem 0 1.25rem}
+  .head .logo{font-size:30px}
+  .head h1{font-size:18px;margin:0;font-weight:800;letter-spacing:0.5px}
+  .head .sub{font-size:12px;color:var(--muted)}
+  .card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:1.1rem;margin-bottom:1rem}
+  label{display:block;font-size:13px;font-weight:600;margin-bottom:7px}
+  select,input,textarea{width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:9px;color:var(--text);padding:11px 12px;font-size:15px;font-family:inherit;outline:none}
+  select:focus,input:focus,textarea:focus{border-color:var(--accent)}
+  textarea{min-height:90px;resize:vertical}
+  .field{margin-bottom:1rem}
+  .field:last-child{margin-bottom:0}
+  .secim{display:flex;gap:10px}
+  .secim button{flex:1;padding:13px;border-radius:10px;border:1px solid var(--border);background:var(--bg3);color:var(--text);font-size:15px;font-weight:700;cursor:pointer}
+  .secim button.sec-evet.on{background:var(--success);border-color:var(--success);color:#fff}
+  .secim button.sec-hayir.on{background:var(--danger);border-color:var(--danger);color:#fff}
+  .gonder{width:100%;padding:15px;border:none;border-radius:11px;background:var(--accent);color:#fff;font-size:16px;font-weight:800;cursor:pointer;margin-top:0.5rem}
+  .gonder:disabled{opacity:0.5;cursor:default}
+  .sonuc{text-align:center;padding:2rem 1rem}
+  .sonuc .ico{font-size:54px;margin-bottom:0.5rem}
+  .sonuc .baslik{font-size:18px;font-weight:800;margin-bottom:6px}
+  .sonuc .alt{font-size:13px;color:var(--muted)}
+  .hidden{display:none}
+  .not{font-size:11px;color:var(--muted);margin-top:6px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="head">
+    <span class="logo">🚗</span>
+    <div>
+      <h1>GÜN SONU RAPORU</h1>
+      <div class="sub" id="selam">Şenpa Panel</div>
+    </div>
+  </div>
+
+  <div id="form-alan">
+    <div class="card">
+      <div class="field">
+        <label>Bugün araç kullandınız mı?</label>
+        <div class="secim">
+          <button type="button" class="sec-evet" onclick="kullandiSec(true)">Evet 🚗</button>
+          <button type="button" class="sec-hayir" onclick="kullandiSec(false)">Hayır</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="detay-kart" class="card hidden">
+      <div class="field">
+        <label>Hangi araç?</label>
+        <select id="arac"><option value="">— Yükleniyor —</option></select>
+      </div>
+      <div class="field">
+        <label>Güncel KM</label>
+        <input id="km" type="number" inputmode="numeric" placeholder="Örn: 142000">
+      </div>
+      <div class="field">
+        <label>Arıza / durum var mı?</label>
+        <div class="secim">
+          <button type="button" class="sec-evet ariza-yok" onclick="arizaSec(false)">Sorun Yok ✅</button>
+          <button type="button" class="sec-hayir ariza-var" onclick="arizaSec(true)">Arıza Var ⚠️</button>
+        </div>
+      </div>
+      <div class="field hidden" id="ariza-detay-alan">
+        <label>Arızayı kısaca yazın</label>
+        <textarea id="ariza-detay" placeholder="Örn: Ön fren sesi var, sağ sinyal yanmıyor..."></textarea>
+      </div>
+    </div>
+
+    <button class="gonder" id="gonder-btn" onclick="gonder()">Gönder</button>
+    <div class="not" id="hata" style="color:var(--danger)"></div>
+  </div>
+
+  <div id="sonuc-alan" class="hidden">
+    <div class="card sonuc">
+      <div class="ico" id="sonuc-ico">✅</div>
+      <div class="baslik" id="sonuc-baslik">Teşekkürler!</div>
+      <div class="alt" id="sonuc-alt">Kaydınız alındı. İyi günler 👋</div>
+    </div>
+  </div>
+</div>
+
+<script>
+const API_URL = 'https://script.google.com/macros/s/AKfycbzJCYFTYDLr4t06ZewVj5j0dbim4LShcd7zMPVorboEPxq9XUeQboeFvgc71tC8Pu32/exec';
+const params = new URLSearchParams(location.search);
+const telegramId = params.get('u') || '';
+let kullandi = null, arizaVar = false;
+
+async function araclariYukle(){
+  try{
+    const res = await fetch(API_URL + '?action=formAraclar');
+    const data = await res.json();
+    const sel = document.getElementById('arac');
+    sel.innerHTML = '<option value="">— Araç seçin —</option>' +
+      (data.araclar||[]).map(a => `<option value="${a.id}">${a.plaka} — ${a.model||''}</option>`).join('');
+  }catch(e){
+    document.getElementById('arac').innerHTML = '<option value="">Araçlar yüklenemedi</option>';
+  }
+}
+araclariYukle();
+
+function kullandiSec(v){
+  kullandi = v;
+  document.querySelector('.sec-evet').classList.toggle('on', v===true);
+  document.querySelector('.sec-hayir').classList.toggle('on', v===false);
+  document.getElementById('detay-kart').classList.toggle('hidden', !v);
+}
+function arizaSec(v){
+  arizaVar = v;
+  document.querySelector('.ariza-yok').classList.toggle('on', v===false);
+  document.querySelector('.ariza-var').classList.toggle('on', v===true);
+  document.getElementById('ariza-detay-alan').classList.toggle('hidden', !v);
+}
+
+async function gonder(){
+  const hata = document.getElementById('hata');
+  hata.textContent = '';
+  if(kullandi === null){ hata.textContent = 'Lütfen "Evet" veya "Hayır" seçin.'; return; }
+
+  if(kullandi === false){
+    sonucGoster('👋', 'Tamam, iyi günler!', 'Bugün için kaydedilecek bir şey yok.');
+    gonderApi({ telegramId, kullandi:false });
+    return;
+  }
+  const aracId = document.getElementById('arac').value;
+  const km = document.getElementById('km').value.trim();
+  if(!aracId){ hata.textContent = 'Lütfen araç seçin.'; return; }
+  const arizaDetay = document.getElementById('ariza-detay').value.trim();
+  if(arizaVar && !arizaDetay){ hata.textContent = 'Lütfen arıza detayını yazın.'; return; }
+
+  const btn = document.getElementById('gonder-btn');
+  btn.disabled = true; btn.textContent = 'Gönderiliyor...';
+  const r = await gonderApi({ telegramId, kullandi:true, aracId, km, arizaVar, arizaDetay });
+  if(r && r.ok){
+    sonucGoster(arizaVar?'⚠️':'✅', 'Teşekkürler, kaydedildi!', arizaVar ? 'Arıza bildiriminiz yöneticiye iletildi.' : 'Güncel km kaydedildi. İyi günler 👋');
+  }else{
+    btn.disabled = false; btn.textContent = 'Gönder';
+    hata.textContent = 'Gönderilemedi, tekrar deneyin. ' + ((r&&r.error)||'');
+  }
+}
+
+async function gonderApi(payload){
+  try{
+    const res = await fetch(API_URL, { method:'POST', headers:{'Content-Type':'text/plain'}, body: JSON.stringify({ action:'gunSonuKaydet', ...payload }) });
+    return await res.json();
+  }catch(e){ return { error: e.toString() }; }
+}
+
+function sonucGoster(ico, baslik, alt){
+  document.getElementById('form-alan').classList.add('hidden');
+  document.getElementById('sonuc-ico').textContent = ico;
+  document.getElementById('sonuc-baslik').textContent = baslik;
+  document.getElementById('sonuc-alt').textContent = alt;
+  document.getElementById('sonuc-alan').classList.remove('hidden');
+}
+</script>
+</body>
+</html>
