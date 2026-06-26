@@ -398,5 +398,5 @@ function tetikleyiciKur() {
   });
 }
 
-// NOT: Eski WhatsApp entegrasyonu (haftalikKmSor / waMesajGonder / whatsappGelenMesaj)
-// Telegram'a geçildiği için kaldırıldı. Gerekirse git geçmişindeki önceki kod.gs sürümünden geri alınabilir.
+// NOT: Eski otomatik km-sorma entegrasyonu kaldırıldı; artık Telegram kullanılıyor.
+// Gerekirse git geçmişindeki önceki kod.gs sürümünden geri alınabilir.
