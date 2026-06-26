@@ -271,6 +271,14 @@ function aracBul(aracId) {
 
 function telegramWebhook(update) {
   try {
+    // Tekilleştirme: Apps Script POST'a 302 döndürdüğü için Telegram aynı
+    // güncellemeyi tekrar gönderebilir. İşlenmiş update_id'yi atla (mükerrer mesaj olmasın).
+    var props = PropertiesService.getScriptProperties();
+    var son = Number(props.getProperty('TG_LAST_UPDATE') || '0');
+    if (update.update_id) {
+      if (update.update_id <= son) return jsonOut({ ok: true, skip: true });
+      props.setProperty('TG_LAST_UPDATE', String(update.update_id));
+    }
     if (update.callback_query) {
       var cq = update.callback_query;
       tgCallbackCevap(cq.id);

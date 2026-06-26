@@ -1,5 +1,4 @@
-index.html
-.claude/
-memory/
-node_modules/
-*.md
+# Sadece kod.gs ve appsscript.json Apps Script'e gitsin
+**/**
+!appsscript.json
+!kod.gs
