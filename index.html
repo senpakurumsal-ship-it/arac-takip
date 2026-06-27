@@ -12,6 +12,7 @@
 <link rel="apple-touch-icon" href="icon-192.png">
 <link rel="icon" type="image/png" href="icon-192.png">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <title>Şenpa Panel</title>
 <style>
   :root {
@@ -1008,10 +1009,10 @@
       <div style="border-top:1px solid var(--border);margin:1.25rem 0 0;padding-top:1rem">
         <div style="font-size:13px;font-weight:600;margin-bottom:6px">💾 PC'ye Aktar</div>
         <div style="font-size:12px;color:var(--muted);margin-bottom:0.75rem;line-height:1.6">
-          Tüm araç, işlem ve kullanım verilerini ZIP dosyası olarak indir. Drive'a erişmen gerekmez.
+          Tüm araç, işlem ve kullanım verilerini Excel dosyası olarak indir. Her veri türü ayrı sekmede açılır.
         </div>
         <div class="form-actions" style="justify-content:flex-end">
-          <button class="btn" onclick="pcyeAktar()">💾 ZIP İndir</button>
+          <button class="btn" onclick="pcyeAktar()">📊 Excel İndir (.xlsx)</button>
         </div>
       </div>
     </div>
@@ -1219,7 +1220,7 @@
         <strong>Apps Script URL & Gemini Key</strong> — bulut senkron ve AI için; varsayılan dolu, gerekirse değiştir.<br>
         <strong>Telegram</strong> — Bot Token ve Yönetici ID gir, "Kaydet" yap; "Botu Test Et" ile doğrula.<br>
         <strong>Yakıt Excel'i İçe Aktar</strong> — petrol istasyonu aylık çizelgesini (Plaka | Litre | Tutar) yapıştır, önizle, aktar.<br>
-        <strong>💾 ZIP İndir (PC'ye Aktar)</strong> — tüm veriyi (araçlar, işlemler, kullanım, kullanıcılar CSV + fotoğraf linkleri) tek ZIP dosyasında indirir.<br>
+        <strong>📊 Excel İndir (PC'ye Aktar)</strong> — tüm veriyi tek <code>.xlsx</code> dosyasında indirir; her veri türü ayrı sekmede (Araçlar, İşlemler, Yakıt, Kullanım, Kullanıcılar, Fotoğraf Linkleri). Direkt çift tıkla Excel'de açılır.<br>
         <strong>İçe Aktar / Dışa Aktar</strong> — veriyi JSON formatında yedekle veya geri yükle.
       </p>
 
@@ -3610,46 +3611,101 @@ function yakitIceAktarUygula() {
 }
 
 // ===== PC'YE AKTAR (ZIP) =====
-async function pcyeAktar() {
-  if (typeof JSZip === 'undefined') { alert('JSZip yüklenemedi. İnternet bağlantını kontrol et.'); return; }
-  showLoading('ZIP hazırlanıyor...');
+function pcyeAktar() {
+  if (typeof XLSX === 'undefined') { alert('Excel kütüphanesi yüklenemedi. İnternet bağlantını kontrol et.'); return; }
+  showLoading('Excel hazırlanıyor...');
   try {
-    const zip = new JSZip();
-    // Araçlar CSV
-    const aracBaslik = ['id','plaka','model','yil','km','tip','kullanici','telefon','not','grup'];
-    zip.file('araclar.csv', '﻿' + [aracBaslik, ...state.araclar.map(a => aracBaslik.map(k => `"${(a[k]||'').toString().replace(/"/g,'""')}"`))] .map(r=>r.join(';')).join('\n'));
-    // İşlemler CSV
-    const islemBaslik = ['id','aracId','tur','tarih','bitis','km','maliyet','litre','sonrakiKm','sonrakiTarih','detay','not'];
-    zip.file('islemler.csv', '﻿' + [islemBaslik, ...state.islemler.map(i => islemBaslik.map(k => `"${(i[k]||'').toString().replace(/"/g,'""')}"`))] .map(r=>r.join(';')).join('\n'));
-    // Kullanım CSV
-    const kulBaslik = ['id','tarih','aracId','kullaniciAd','km'];
-    zip.file('kullanim.csv', '﻿' + [kulBaslik, ...(state.kullanim||[]).map(k => kulBaslik.map(f => `"${(k[f]||'').toString().replace(/"/g,'""')}"`))] .map(r=>r.join(';')).join('\n'));
-    // Kullanıcılar CSV
-    const kulKiBaslik = ['id','ad','soyad','telefon','unvan'];
-    zip.file('kullanicilar.csv', '﻿' + [kulKiBaslik, ...state.kullanicilar.map(k => kulKiBaslik.map(f => `"${(k[f]||'').toString().replace(/"/g,'""')}"`))] .map(r=>r.join(';')).join('\n'));
-    // Fotoğraf URL'leri
-    const fotolarTxt = [];
-    state.araclar.forEach(a => { if (a.anaFoto && !a.anaFoto.startsWith('data:')) fotolarTxt.push(`${a.plaka} (profil)\t${a.anaFoto}`); });
-    state.islemler.forEach(i => { const a = state.araclar.find(x=>x.id===i.aracId); (i.fotolar||[]).forEach((u,idx) => { if (u && !u.startsWith('data:')) fotolarTxt.push(`${a?.plaka||i.aracId} ${i.tur} ${i.tarih} (${idx+1})\t${u}`); }); });
-    if (fotolarTxt.length) zip.file('fotograf_linkleri.txt', fotolarTxt.join('\n'));
-    // Fotoğrafları indir (mümkünse)
-    let fotoIndir = 0;
-    const tumUrller = [...new Set(fotolarTxt.map(s=>s.split('\t')[1]).filter(Boolean))].slice(0,50);
-    for (let i = 0; i < tumUrller.length; i++) {
-      document.getElementById('loading-text').textContent = `Fotoğraflar indiriliyor... (${i+1}/${tumUrller.length})`;
-      try {
-        const r = await fetch(tumUrller[i]);
-        if (r.ok) { const blob = await r.blob(); const ext = blob.type.includes('png')?'png':'jpg'; zip.folder('fotograflar').file(`foto_${i+1}.${ext}`, blob); fotoIndir++; }
-      } catch(e) {}
-    }
-    const blob = await zip.generateAsync({ type: 'blob' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url; a.download = `senpa-panel-${new Date().toISOString().slice(0,10)}.zip`;
-    document.body.appendChild(a); a.click(); document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+    const wb = XLSX.utils.book_new();
+
+    // 1. Araçlar sayfası
+    const aracSatirlar = state.araclar.map(a => ({
+      'Plaka': a.plaka || '',
+      'Model': a.model || '',
+      'Yıl': a.yil || '',
+      'KM': a.km ? Number(a.km) : '',
+      'Tip': a.tip || '',
+      'Kullanıcı': a.kullanici || '',
+      'Telefon': a.telefon || '',
+      'Grup': a.grup || '',
+      'Not': a.not || '',
+    }));
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(aracSatirlar), 'Araçlar');
+
+    // 2. İşlemler sayfası (aracId yerine plaka göster)
+    const islemSatirlar = state.islemler.map(i => {
+      const a = state.araclar.find(x => x.id === i.aracId);
+      return {
+        'Plaka': a ? a.plaka : (i.aracId || ''),
+        'Model': a ? a.model : '',
+        'Tür': i.tur || '',
+        'Tarih': i.tarih || '',
+        'Bitiş': i.bitis || '',
+        'KM': i.km ? Number(i.km) : '',
+        'Maliyet (₺)': i.maliyet ? Number(i.maliyet) : '',
+        'Litre': i.litre ? Number(i.litre) : '',
+        'Sonraki KM': i.sonrakiKm ? Number(i.sonrakiKm) : '',
+        'Sonraki Tarih': i.sonrakiTarih || '',
+        'Detay': i.detay || '',
+        'Not': i.not || '',
+      };
+    });
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(islemSatirlar), 'İşlemler');
+
+    // 3. Yakıt özeti sayfası
+    const yakitSatirlar = state.islemler
+      .filter(i => i.tur === 'Yakıt')
+      .map(i => {
+        const a = state.araclar.find(x => x.id === i.aracId);
+        return {
+          'Plaka': a ? a.plaka : '',
+          'Tarih': i.tarih || '',
+          'KM': i.km ? Number(i.km) : '',
+          'Litre': i.litre ? Number(i.litre) : '',
+          'Litre Fiyatı (₺)': i.litreFiyat ? Number(i.litreFiyat) : '',
+          'Toplam (₺)': i.maliyet ? Number(i.maliyet) : '',
+        };
+      });
+    if (yakitSatirlar.length) XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(yakitSatirlar), 'Yakıt');
+
+    // 4. Kullanım Geçmişi sayfası
+    const kulSatirlar = (state.kullanim || []).map(k => {
+      const a = state.araclar.find(x => x.id === k.aracId);
+      return {
+        'Tarih': k.tarih || '',
+        'Plaka': a ? a.plaka : '',
+        'Model': a ? a.model : '',
+        'Kullanan': k.kullaniciAd || '',
+        'KM': k.km ? Number(k.km) : '',
+      };
+    });
+    if (kulSatirlar.length) XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(kulSatirlar), 'Kullanım Geçmişi');
+
+    // 5. Kullanıcılar sayfası
+    const kulKiSatirlar = state.kullanicilar.map(k => ({
+      'Ad': k.ad || '',
+      'Soyad': k.soyad || '',
+      'Telefon': k.telefon || '',
+      'Ünvan': k.unvan || '',
+      'Telegram ID': k.telegramId || '',
+    }));
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(kulKiSatirlar), 'Kullanıcılar');
+
+    // 6. Fotoğraf Linkleri sayfası
+    const fotoSatirlar = [];
+    state.araclar.forEach(a => { if (a.anaFoto && !a.anaFoto.startsWith('data:')) fotoSatirlar.push({ 'Plaka': a.plaka, 'Tür': 'Araç Profil', 'Tarih': '', 'Link': a.anaFoto }); });
+    state.islemler.forEach(i => {
+      const a = state.araclar.find(x => x.id === i.aracId);
+      (i.fotolar || []).forEach((u, idx) => {
+        if (u && !u.startsWith('data:')) fotoSatirlar.push({ 'Plaka': a?.plaka || '', 'Tür': i.tur || '', 'Tarih': i.tarih || '', 'Link': u });
+      });
+    });
+    if (fotoSatirlar.length) XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(fotoSatirlar), 'Fotoğraf Linkleri');
+
+    // İndir
+    const tarih = new Date().toISOString().slice(0, 10);
+    XLSX.writeFile(wb, `senpa-panel-${tarih}.xlsx`);
     hideLoading();
-    alert(`ZIP indirildi!\nCSV dosyaları: 4\nFotoğraf: ${fotoIndir}/${tumUrller.length}`);
+    closeModal('ayarlar-modal');
   } catch(e) { hideLoading(); alert('Hata: ' + e.message); }
 }
 
