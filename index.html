@@ -1162,59 +1162,69 @@
     <div class="modal-body" style="line-height:1.65;font-size:13.5px">
       <div style="background:var(--bg3);border-radius:var(--radius-sm);padding:1rem;margin-bottom:1.25rem">
         <div style="font-weight:700;margin-bottom:4px">🚗 Şenpa Panel nedir?</div>
-        Tüm araçlarının muayene, sigorta, kasko, bakım, lastik ve onarım kayıtlarını tek yerde tutan, yaklaşan tarihleri hatırlatan, fatura/makbuzları AI ile okuyabilen ve verileri Google Sheets + Drive'a bulutta saklayan bir takip sistemidir.
+        Tüm araçlarının muayene, sigorta, kasko, bakım, lastik, yakıt ve onarım kayıtlarını tek yerde tutan; yaklaşan tarihleri hatırlatan; fatura/makbuzları AI ile okuyabilen; verileri Google Sheets + Drive'a bulutta saklayan; Telegram üzerinden şoförlerden gün sonu raporu toplayan bir araç takip sistemidir.
       </div>
 
       <div style="font-weight:700;color:var(--accent);margin-bottom:6px">🔐 Giriş</div>
-      <p style="margin-bottom:1rem">Uygulama şifre korumalıdır. Varsayılan şifre <strong>senpa2026</strong>'dır. Şifreyi Ayarlar sayfasından değiştirebilirsin. Çıkış yapmak için sol menünün altındaki <strong>Çıkış</strong> butonunu kullan.</p>
+      <p style="margin-bottom:1rem">Uygulama şifre korumalıdır. Varsayılan şifre <strong>senpa2026</strong>'dır. Şifreyi Ayarlar sayfasından değiştirebilirsin. Çıkış yapmak için sol menünün altındaki <strong>Çıkış</strong> butonunu kullan. Sekme/tarayıcı kapanıp yeniden açılsa bile şifre tekrar sorulur.</p>
 
       <div style="font-weight:700;color:var(--accent);margin-bottom:6px">🚘 Araçlar</div>
       <p style="margin-bottom:1rem">Ana sayfada araçlar gruba göre sıralı listelenir: önce Saha Teknisyeni, sonra Nakliye, Yedek ve Şahsi. Üstteki <strong>filtre düğmeleriyle</strong> (Tümü / Saha Teknisyeni / Nakliye / Yedek / Şahsi) sadece o kategoriyi gösterebilirsin. Sol menüde "Araçlar" yanındaki sayı toplam araç adedidir. Bir karta tıklayınca detayına girersin. <strong>+ Araç Ekle</strong> ile yeni araç tanımlarsın. Eksik bilgi varsa kartın sağ üst köşesinde <span style="color:var(--danger)">kırmızı nokta</span>, şoför arıza bildirdiyse sarı ⚠️ belirir.</p>
 
       <div style="font-weight:700;color:var(--accent);margin-bottom:6px">🎨 Araç Grupları</div>
-      <p style="margin-bottom:1rem">Her araca bir grup atayabilirsin; kart çerçevesi grubun rengini alır: <span style="color:#eab308">🟡 Nakliye</span>, <span style="color:#22c55e">🟢 Saha Teknisyeni</span>, <span style="color:#94a3b8">⚪ Yedek Araç</span>, <span style="color:#3b82f6">🔵 Bireysel / Şahsi</span>. Böylece araçları renkten ayırt edersin.</p>
+      <p style="margin-bottom:1rem">Her araca bir grup atayabilirsin; kart çerçevesi grubun rengini alır: <span style="color:#eab308">🟡 Nakliye</span>, <span style="color:#22c55e">🟢 Saha Teknisyeni</span>, <span style="color:#94a3b8">⚪ Yedek Araç</span>, <span style="color:#3b82f6">🔵 Bireysel / Şahsi</span>. Araçlar listede kategoriler arasında çizgili ayraçlarla ayrılır.</p>
 
       <div style="font-weight:700;color:var(--accent);margin-bottom:6px">🚦 Takip / Muafiyet</div>
-      <p style="margin-bottom:1rem">Araç düzenleme ekranında <strong>Takip Edilecek Başlıklar</strong> kutucukları vardır: Muayene&Egzoz, Trafik Sigortası, Kasko, Bakım, Onarım, Yakıt/KM — her biri ayrı ayrı açılıp kapatılır. Bir başlığın işaretini kaldırırsan o araç için o başlıkta <strong>uyarı ve hatırlatma çıkmaz</strong> (ekranda görünmeye devam eder). Örnekler: kaskosu yapılamayan eski araçta "Kasko" işaretini kaldır; bakımı nakliyeciye ait araçta "Bakım"ı kaldır.</p>
+      <p style="margin-bottom:1rem">Araç düzenleme ekranında <strong>Takip Edilecek Başlıklar</strong> kutucukları vardır: Muayene&Egzoz, Trafik Sigortası, Kasko, Bakım, Onarım, Yakıt/KM — her biri ayrı ayrı açılıp kapatılır. Bir başlığın işaretini kaldırırsan o araç için o başlıkta <strong>uyarı ve hatırlatma çıkmaz</strong> (sekme ekranda görünmeye devam eder). Örnekler: kaskosu yapılamayan eski araçta "Kasko" işaretini kaldır; bakımı nakliyeciye ait araçta "Bakım"ı kaldır.</p>
 
       <div style="font-weight:700;color:var(--accent);margin-bottom:6px">📄 Araç Detayı</div>
-      <p style="margin-bottom:1rem">Dört sekme vardır: <strong>Tarihler</strong> (muayene/sigorta/kasko bitiş durumları), <strong>İşlem Geçmişi</strong> (tüm bakım/onarım kayıtları), <strong>Lastik</strong> (kış/yaz lastik takılı mı, son değişim tarihi), <strong>Görseller</strong> (araç ve belge fotoğrafları). Buradan <strong>İşlem Ekle</strong>, <strong>KM Güncelle</strong>, <strong>Düzenle</strong> ve <strong>Sil</strong> yapabilirsin.</p>
+      <p style="margin-bottom:1rem">Araç kartına tıklayınca detay sayfası açılır. Üstte <strong>Düzenle</strong>, <strong>+ İşlem Ekle</strong> ve <strong>Sil</strong> butonları bulunur. Sekme çubuğunda şu bölümler sıralanır: <strong>📅 Özet</strong> (muayene/sigorta/kasko bitiş tablosu), <strong>🔧 Muayene & Egzoz</strong>, <strong>🛡️ Sigorta & Kasko</strong>, <strong>🔴 Lastik</strong>, <strong>🔩 Bakım</strong>, <strong>🛠️ Onarım</strong>, <strong>⚙️ Yedek Parça</strong>, <strong>⛽ Yakıt</strong>, <strong>👤 Kullanım Geçmişi</strong>, <strong>🖼️ Görseller</strong>, <strong>📋 Tüm İşlem Geçmişi</strong>.</p>
 
       <div style="font-weight:700;color:var(--accent);margin-bottom:6px">➕ İşlem Ekleme</div>
-      <p style="margin-bottom:1rem">İşlem türünü seçince (Fenni Muayene, Egzoz Muayenesi, Trafik Sigortası, Kasko, Bakım, Onarım, Yedek Parça...) forma sadece o türe uygun alanlar gelir. <strong>Fenni Muayene + Egzoz</strong> seçeneği ikisini tek seferde, aynı tarih/bitişle birlikte kaydeder (maliyet bir kez yazılır). Formdaki <strong>Aracın Güncel KM'si</strong> alanını doldurursan aracın km bilgisi de güncellenir (ayrı KM Güncelle'ye gerek kalmaz). Bakımda <strong>Sonraki Bakım</strong> alanını "+6 Ay / +1 Yıl / +10.000 km / +15.000 km" hızlı butonlarıyla işlem tarihine/km'sine göre otomatik doldurabilirsin. Her işleme fatura/makbuz görseli ekleyebilirsin — görseller otomatik olarak Google Drive'daki <strong>Fatura-Makbuz</strong> klasörüne yüklenir. Görsellerin üstündeki ✕ ile silebilirsin. Görsel yüklersen Gemini otomatik okuyup formu doldurmayı teklif eder.</p>
+      <p style="margin-bottom:1rem">İşlem türünü seçince (Fenni Muayene, Egzoz Muayenesi, Trafik Sigortası, Kasko, Bakım, Onarım, Yedek Parça, Lastik Değişimi, Yakıt...) forma sadece o türe uygun alanlar gelir. <strong>Fenni Muayene + Egzoz</strong> seçeneği ikisini tek seferde kaydeder. Formdaki <strong>Aracın Güncel KM'si</strong> alanını doldurursan aracın km bilgisi de güncellenir. Bakımda <strong>Sonraki Bakım</strong> alanını "+6 Ay / +1 Yıl / +10.000 km / +15.000 km" hızlı butonlarıyla doldurabilirsin. <strong>Lastik Değişiminde</strong> marka/ebat/adet/birim fiyat ile kalem listesi girebilirsin; toplam maliyet otomatik hesaplanır. Her işleme fatura/makbuz görseli eklenebilir — görseller Drive'a yüklenir ve Gemini otomatik okuyup formu doldurmayı teklif eder.</p>
+
+      <div style="font-weight:700;color:var(--accent);margin-bottom:6px">⛽ Yakıt Takibi</div>
+      <p style="margin-bottom:1rem">İşlem Ekle → <strong>Yakıt</strong> türü seçilerek litre, litre birim fiyatı ve km girilebilir; maliyet otomatik hesaplanır. Araç detayındaki <strong>⛽ Yakıt sekmesinde</strong> tüm yakıt kayıtları, toplam litre, toplam maliyet ve ortalama <strong>lt/100km</strong> tüketimi görünür. Petrol istasyonundan gelen aylık Excel'i Ayarlar → <strong>Yakıt Excel'i İçe Aktar</strong> ile yapıştırarak da yükleyebilirsin (format: Plaka | Litre | Toplam Tutar).</p>
 
       <div style="font-weight:700;color:var(--accent);margin-bottom:6px">📷 Fotoğraflar</div>
-      <p style="margin-bottom:1rem">Tüm fotoğraflar Google Drive'a yüklenir. Drive'da <strong>Araç Takip Belgeler</strong> ana klasörü altında nereden eklendiğine göre ayrılır: <em>Araç Profil</em> (araç ana fotoğrafı), <em>Görseller</em> (Görseller sekmesi), <em>Fatura-Makbuz</em> (işlem belgeleri), <em>AI</em> (AI Asistan ile eklenenler). Her fotoğrafın köşesindeki ✕ ile silebilirsin. Ana fotoğrafa tıklayınca büyük açılır; sağ alttaki 📷 ile değiştirebilirsin.</p>
+      <p style="margin-bottom:1rem">Tüm fotoğraflar Google Drive'a yüklenir. Drive'da <strong>Şenpa Panel</strong> ana klasörü altında işlem tipine göre alt klasörlere ayrılır: <em>Araç Profil</em>, <em>Görseller</em>, <em>Fatura-Makbuz</em>, <em>AI</em>. Her fotoğrafın köşesindeki ✕ ile silersin (silinen fotoğraf önce Çöp Kutusu'na gider). Ana fotoğrafa tıklayınca büyük açılır; sağ alttaki 📷 ile değiştirebilirsin.</p>
 
       <div style="font-weight:700;color:var(--accent);margin-bottom:6px">🔔 Hatırlatmalar</div>
-      <p style="margin-bottom:1rem">Bildirimler <strong>3 sütunda</strong> gösterilir: <em>Muayene & Egzoz</em>, <em>Sigorta & Kasko</em>, <em>Tamir / Bakım / Onarım</em>. Hem yaklaşanlar hem süresi geçmişler aynı sütunda listelenir (geçmiş olanlar 🚨 "X gün geçti" olarak üstte). Her bildirime tıklayınca o aracın sayfasına gidersin. Kayıt hiç yoksa "kaydı yok", 1 aydan uzun bakım girişi yoksa "X gündür bakım girişi yok" çıkar. Ocak/Temmuz'da MTV genel bildirimi üstte görünür. Sağ üstteki <strong>Geçmişi Temizle</strong> ile süresi geçmişleri gizleyebilirsin. Takip işareti kaldırılan başlıklar görünmez.</p>
+      <p style="margin-bottom:1rem">Bildirimler <strong>3 sütunda</strong> gösterilir: <em>Muayene & Egzoz</em>, <em>Sigorta & Kasko</em>, <em>Tamir / Bakım / Onarım</em>. Hem yaklaşanlar hem süresi geçmişler aynı sütunda listelenir. Kayıt hiç yoksa "kaydı yok", 1 aydan uzun bakım girişi yoksa "X gündür bakım girişi yok" çıkar. Ocak/Temmuz'da MTV genel bildirimi üstte görünür. Takip işareti kaldırılan başlıklar görünmez.</p>
 
       <div style="font-weight:700;color:var(--accent);margin-bottom:6px">🟢 Durum Göstergeleri</div>
-      <p style="margin-bottom:1rem">Sağ üst köşede <strong>MTV</strong> ve <strong>Lastik Değişim</strong> göstergeleri bulunur. Yeşil = normal, kırmızı yanıp sönen = dikkat gerekiyor. MTV Ocak/Temmuz aylarında, Lastik Değişim ise mevsime uygun lastik takılı değilse kırmızı yanar.</p>
+      <p style="margin-bottom:1rem">Sağ üst köşede <strong>MTV</strong> ve <strong>Lastik Değişim</strong> göstergeleri bulunur. Yeşil = normal, kırmızı yanıp sönen = dikkat gerekiyor. MTV Ocak/Temmuz'da, Lastik Değişim mevsime uygunsuz lastik takılıysa kırmızı yanar.</p>
 
       <div style="font-weight:700;color:var(--accent);margin-bottom:6px">👥 Kullanıcılar</div>
-      <p style="margin-bottom:1rem">Sol menüden <strong>Kullanıcılar</strong> sayfasına girebilirsin. Şoför, yönetici gibi kişileri ad/soyad, telefon, ünvan ve <strong>Telegram ID</strong> bilgileriyle kayıt edebilirsin. Kayıtlı kullanıcılar araç formunda "Araç Kullanıcısı" seçiminde otomatik listelenir.</p>
+      <p style="margin-bottom:1rem">Sol menüden <strong>Kullanıcılar</strong> sayfasına girebilirsin. Şoför ve yöneticileri ad/soyad, telefon, ünvan ve <strong>Telegram ID</strong> bilgileriyle kayıt edebilirsin. Kayıtlı kullanıcılar araç formunda "Araç Kullanıcısı" seçiminde ve toplu Telegram mesajlarında otomatik listelenir. Telegram ID'sini öğrenmek için ilgili kişi bota <code>/start</code> yazar; bot ID'yi söyler.</p>
 
-      <div style="font-weight:700;color:var(--accent);margin-bottom:6px">✈️ Telegram & Gün Sonu Formu</div>
-      <p style="margin-bottom:1rem">Telegram ID'si girilen şoförlere her gün (Pazar hariç) 17:00'da bot bir <strong>form linki</strong> gönderir. Şoför linke tıklar, açılan tek sayfalık formu doldurur: araç kullandı mı → araç seç → güncel km (araç km'si otomatik güncellenir) → arıza var/yok + detay. Arıza bildirimi <strong>Hatırlatmalar</strong>'da "⚠️ Şoför Bildirimleri" altında listelenir, ilgili araç kartında sarı ⚠️ çıkar ve yöneticiye anlık Telegram bildirimi gider. Formu istediğin an <strong>Mesajlar</strong> sayfasından "📝 Gün Sonu Formu Gönder" ile manuel de gönderebilirsin. (Form web tabanlı olduğu için her zaman güvenilir çalışır.)</p>
+      <div style="font-weight:700;color:var(--accent);margin-bottom:6px">📱 Telegram & Gün Sonu Formu</div>
+      <p style="margin-bottom:1rem">Telegram ID'si girilen şoförlere her gün (Pazar hariç) 17:00'da bot bir <strong>form linki</strong> gönderir. Şoför linke tıklar, formu doldurur: araç kullandı mı → araç seç → güncel km (araç km'si otomatik güncellenir) → arıza var/yok + detay. Arıza bildirimi <strong>Hatırlatmalar</strong>'da "⚠️ Şoför Bildirimleri" altında görünür, araç kartında sarı ⚠️ çıkar ve yöneticiye anlık Telegram bildirimi gider. <strong>Mesajlar</strong> sayfasından istediğin an "📝 Gün Sonu Formu Gönder" ile manuel de gönderebilirsin.</p>
 
-      <div style="font-weight:700;color:var(--accent);margin-bottom:6px">📨 Mesajlar</div>
-      <p style="margin-bottom:1rem">Sol menüdeki <strong>Mesajlar</strong> sayfasından, Telegram ID'si olan kullanıcılara toplu mesaj gönderebilirsin. Soldan kişileri seç (Telegram'ı olmayanlar gri/pasif), sağa mesajı yaz, Gönder. Gönderim sonucu ve son 10 mesajın geçmişi görünür.</p>
+      <div style="font-weight:700;color:var(--accent);margin-bottom:6px">✉️ Mesajlar & Form Oluşturucu</div>
+      <p style="margin-bottom:1rem">Sol menüdeki <strong>Mesajlar</strong> sayfasından, Telegram ID'si olan kullanıcılara toplu mesaj gönderebilirsin. Ayrıca <strong>Form Oluşturucu</strong> ile özel formlar tasarlayabilirsin: başlık, açıklama ve sorular (metin, sayı, seçenek) ekle, kaydet, link al, Telegram'dan gönder. Gelen cevapları "📊 Cevaplar" butonuyla görebilirsin.</p>
 
       <div style="font-weight:700;color:var(--accent);margin-bottom:6px">📋 Tüm İşlemler</div>
       <p style="margin-bottom:1rem">Tüm araçların işlemlerini tek listede gösterir. Plaka/araç/tür filtresi ve serbest arama vardır; üstte filtrelenen kayıtların toplam adedi ve toplam maliyeti görünür.</p>
 
       <div style="font-weight:700;color:var(--accent);margin-bottom:6px">🗑️ Çöp Kutusu</div>
-      <p style="margin-bottom:1rem">Sildiğin araç ve işlemler kalıcı olarak yok olmaz, önce <strong>Çöp Kutusu</strong>'na taşınır. Buradan <strong>Geri Yükle</strong> ile geri alabilir veya <strong>Kalıcı Sil</strong> ile tamamen silebilirsin. Kalıcı silmede ilgili fotoğraflar Drive'da da çöpe atılır. Bir araç silinince işlem kayıtları da onunla birlikte çöpe gider ve geri yüklenince hepsi geri gelir.</p>
+      <p style="margin-bottom:1rem">Sildiğin araç, işlem ve fotoğraflar kalıcı olarak yok olmaz, önce <strong>Çöp Kutusu</strong>'na taşınır (Drive'da da "Çöp Kutusu" alt klasörüne gider). Buradan <strong>↩️ Geri Yükle</strong> ile kurtarabilir veya <strong>Kalıcı Sil</strong> ile tamamen silebilirsin. Kalıcı silmede Drive'daki fotoğraflar da kaldırılır. Bir araç silinince tüm işlem kayıtları onunla birlikte çöpe gider ve geri yüklenince hepsi geri gelir.</p>
 
       <div style="font-weight:700;color:var(--accent);margin-bottom:6px">✨ AI Asistan</div>
       <p style="margin-bottom:1rem">Sağ üstteki <strong>AI Asistan</strong> tuşuyla açılır. "Hangi araçların sigortası bitiyor?", "Bu yıl toplam masraf ne kadar?" gibi sorular sorabilirsin. Fatura/makbuz görseli yükleyip otomatik işlem oluşturabilirsin.</p>
 
       <div style="font-weight:700;color:var(--accent);margin-bottom:6px">⚙️ Ayarlar</div>
-      <p style="margin-bottom:1rem">Uygulama şifresini değiştirebilir ve hazır araç verilerini içe aktarabilirsin. Veriler Google Sheets'e otomatik kaydedilir, tüm cihazlarda ortak çalışır.</p>
+      <p style="margin-bottom:1rem">
+        <strong>Uygulama Şifresi</strong> — değiştirebilirsin.<br>
+        <strong>Apps Script URL & Gemini Key</strong> — bulut senkron ve AI için; varsayılan dolu, gerekirse değiştir.<br>
+        <strong>Telegram</strong> — Bot Token ve Yönetici ID gir, "Kaydet" yap; "Botu Test Et" ile doğrula.<br>
+        <strong>Yakıt Excel'i İçe Aktar</strong> — petrol istasyonu aylık çizelgesini (Plaka | Litre | Tutar) yapıştır, önizle, aktar.<br>
+        <strong>💾 ZIP İndir (PC'ye Aktar)</strong> — tüm veriyi (araçlar, işlemler, kullanım, kullanıcılar CSV + fotoğraf linkleri) tek ZIP dosyasında indirir.<br>
+        <strong>İçe Aktar / Dışa Aktar</strong> — veriyi JSON formatında yedekle veya geri yükle.
+      </p>
 
       <div style="background:var(--warn-bg);border:1px solid rgba(245,158,11,0.3);border-radius:var(--radius-sm);padding:0.85rem;font-size:12.5px">
-        💡 <strong>İpucu:</strong> Bu bir uygulamadır (PWA) — telefon/bilgisayarda tarayıcı menüsünden "Ana ekrana ekle / Uygulamayı yükle" dersen kendi ikonuyla, tam ekran ve çevrimdışı açılır. Veriler buluttadır; Telegram gün sonu formu arka planda çalışır.
+        💡 <strong>İpucu:</strong> Bu bir PWA uygulamasıdır — telefon/bilgisayarda tarayıcı menüsünden "Ana ekrana ekle / Uygulamayı yükle" dersen kendi ikonuyla, tam ekran açılır. Veriler Google Sheets'te bulutta saklanır; Telegram gün sonu formu her akşam 17:00'de otomatik gönderilir.
       </div>
 
       <div class="form-actions" style="margin-top:1.25rem">
