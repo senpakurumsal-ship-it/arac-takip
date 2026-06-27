@@ -133,6 +133,7 @@ function doPost(e) {
   if (action === 'saveForm')        { return jsonOut(saveForm(body.data)); }
   if (action === 'deleteForm')      { satirSil('Formlar', body.id); return jsonOut({ ok: true }); }
   if (action === 'saveFormCevap')   { return jsonOut(saveFormCevap(body.data)); }
+  if (action === 'formGonder')      { return jsonOut(formLinkGonder(body.formId, body.baslik, body.idler)); }
   return jsonOut({ error: 'bilinmeyen action' });
 }
 
@@ -529,6 +530,11 @@ function saveForm(data) {
 
 function saveFormCevap(data) {
   if (data.cevaplar && typeof data.cevaplar !== 'string') data.cevaplar = JSON.stringify(data.cevaplar);
+  // Gönderen adı boşsa, Telegram ID'sinden Kullanicilar'da ara ve çöz
+  if (!data.gonderenAd && data.gonderenId) {
+    var k = tgKullaniciByTgId(data.gonderenId);
+    if (k) data.gonderenAd = (k.ad + ' ' + (k.soyad || '')).trim();
+  }
   satirKaydet('FormCevaplari', data);
   // Yöneticiye bildirim
   if (TG_TOKEN() && TG_ADMIN()) {
@@ -540,6 +546,26 @@ function saveFormCevap(data) {
     } catch(e) {}
   }
   return { ok: true };
+}
+
+// Özel formu kişiye özel link ile gönderir (her kullanıcıya ?u=<telegramId> eklenir
+// ki cevapta kimin doldurduğu bilinsin). idler verilirse sadece onlara, null ise herkese.
+function formLinkGonder(formId, baslik, idler) {
+  if (!TG_TOKEN()) return { error: 'Bot token tanımlı değil.' };
+  if (!formId) return { error: 'Form id eksik.' };
+  var kullanicilar = tabloOku('Kullanicilar');
+  var n = 0, hedef = 0;
+  kullanicilar.forEach(function(k) {
+    if (!k.telegramId) return;
+    if (idler && idler.length && idler.indexOf(String(k.telegramId)) < 0) return;
+    hedef++;
+    var link = FORM_URL + '?form=' + encodeURIComponent(formId) + '&u=' + encodeURIComponent(k.telegramId);
+    var r = tgGonder(k.telegramId,
+      '📋 <b>' + (baslik || 'Form') + '</b>\nMerhaba ' + (k.ad || '') + '! Aşağıdaki formu doldurmanızı rica ederiz:',
+      [[ { text: '📝 Formu Doldur', url: link } ]]);
+    try { if (JSON.parse(r.getContentText()).ok) n++; } catch(e){}
+  });
+  return { ok: true, gonderilen: n, hedef: hedef };
 }
 
 // NOT: Eski otomatik km-sorma entegrasyonu kaldırıldı; artık Telegram kullanılıyor.

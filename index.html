@@ -160,6 +160,10 @@
   .tab-content { display: none; }
   .tab-content.active { display: block; }
   .tab-dd-btn { display: none; }
+  /* İki bölümü yan yana sütun olarak gösterir (Muayene/Egzoz, Sigorta/Kasko) */
+  .cift-kolon { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
+  .cift-kolon > div { min-width: 0; }
+  .cift-kolon > div:first-child { border-right: 1px solid var(--border); padding-right: 1.5rem; }
 
   /* DATE ROWS */
   .date-table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
@@ -254,6 +258,10 @@
     .tab-dd-btn.open .tab-dd-caret { transform: rotate(180deg); }
     .tabs { display: none; flex-direction: column; gap: 0; flex-wrap: nowrap; border: 1px solid var(--border); border-radius: var(--radius-sm); overflow: hidden; margin-bottom: 1.25rem; }
     .tabs.dd-open { display: flex; }
+    /* Yan yana sütunlar mobilde alt alta */
+    .cift-kolon { grid-template-columns: 1fr; gap: 0; }
+    .cift-kolon > div:first-child { border-right: none; padding-right: 0; }
+    .cift-kolon > div + div { border-top: 1px solid var(--border); margin-top: 1.5rem; padding-top: 1.5rem; }
     .tab { width: 100%; flex-shrink: 0; text-align: left; padding: 0.75rem 1rem; font-size: 13.5px; border-bottom: 1px solid var(--border); margin-bottom: 0; }
     .tabs .tab:last-child { border-bottom: none; }
     .tab.active { background: rgba(79,110,247,0.12); border-bottom-color: var(--border); }
@@ -1796,15 +1804,17 @@ function renderDetay(a) {
 
     <div class="tab-content" id="tab-muayene-egzoz">
       <div style="margin-bottom:1.25rem"><button class="btn" onclick="openIslemModalTur('${a.id}','Fenni Muayene + Egzoz')">+ Fenni Muayene + Egzoz Ekle (birlikte)</button></div>
-      ${ciftSekmeBolumHTML(a, 'Fenni Muayene', '🔧')}
-      <div style="border-top:1px solid var(--border);margin:1.5rem 0"></div>
-      ${ciftSekmeBolumHTML(a, 'Egzoz Muayenesi', '💨')}
+      <div class="cift-kolon">
+        ${ciftSekmeBolumHTML(a, 'Fenni Muayene', '🔧')}
+        ${ciftSekmeBolumHTML(a, 'Egzoz Muayenesi', '💨')}
+      </div>
     </div>
 
     <div class="tab-content" id="tab-sigorta-kasko">
-      ${ciftSekmeBolumHTML(a, 'Trafik Sigortası', '🛡️')}
-      <div style="border-top:1px solid var(--border);margin:1.5rem 0"></div>
-      ${ciftSekmeBolumHTML(a, 'Kasko', '🚗')}
+      <div class="cift-kolon">
+        ${ciftSekmeBolumHTML(a, 'Trafik Sigortası', '🛡️')}
+        ${ciftSekmeBolumHTML(a, 'Kasko', '🚗')}
+      </div>
     </div>
 
     ${lastikSekmesiHTML(a)}
@@ -3860,17 +3870,15 @@ async function formTelegramGonder(formId, baslik) {
   const cbList = document.querySelectorAll('.mesaj-cb:checked');
   const idler = Array.from(cbList).map(cb => cb.value).filter(Boolean);
   if (!idler.length && !confirm('Tüm kayıtlı kullanıcılara gönderilecek. Emin misin?')) return;
-  const hedefler = idler.length ? idler : state.kullanicilar.filter(k=>k.telegramId).map(k=>String(k.telegramId));
-  const link = `${location.origin}${location.pathname.replace('index.html','').replace(/\/$/,'')}/form.html?form=${formId}`;
-  const mesaj = `📋 <b>${baslik}</b>\nAşağıdaki formu doldurmanızı rica ederiz:`;
   showLoading('Gönderiliyor...');
   // Form Sheets'te güncel olsun (eski formlar yerelde kalmış olabilir) — gönderimden önce yaz
   const form = state.formlar.find(f => f.id === formId);
   if (form) { const sr = await apiCall('saveForm', { data: form }); if (!sr || !sr.ok) { hideLoading(); alert('⚠️ Form buluta yazılamadı, gönderim iptal edildi. Telefonlarda "bulunamadı" hatası vermemesi için önce bağlantını kontrol et.'); return; } }
-  const r = await apiCall('topluMesaj', { idler: hedefler, mesaj: mesaj + '\n\n' + link });
+  // Kişiye özel link sunucuda kurulur (?u=<telegramId>) ki cevapta kimin doldurduğu bilinsin
+  const r = await apiCall('formGonder', { formId, baslik, idler });
   hideLoading();
   const sonuc = document.getElementById('mesaj-sonuc');
-  if (r && r.ok) sonuc.innerHTML = `<span style="color:var(--success)">✅ ${r.gonderilen}/${r.toplam} kişiye gönderildi</span>`;
+  if (r && r.ok) sonuc.innerHTML = `<span style="color:var(--success)">✅ ${r.gonderilen}/${r.hedef} kişiye gönderildi</span>`;
   else sonuc.innerHTML = `<span style="color:var(--danger)">Hata: ${r?.error||'bilinmeyen'}</span>`;
 }
 
