@@ -11,6 +11,7 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icon-192.png">
 <link rel="icon" type="image/png" href="icon-192.png">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <title>Şenpa Panel</title>
 <style>
   :root {
@@ -580,6 +581,14 @@
           <div id="mesaj-gecmis" style="margin-top:1.5rem"></div>
         </div>
       </div>
+      <!-- Formlar bölümü -->
+      <div style="margin-top:1.5rem;border-top:1px solid var(--border);padding-top:1.25rem">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.75rem">
+          <div style="font-size:14px;font-weight:700">📋 Formlar</div>
+          <button class="btn" style="padding:5px 13px;font-size:12px" onclick="formAc()">+ Yeni Form</button>
+        </div>
+        <div id="mesaj-formlar-list"></div>
+      </div>
     </div>
 
     <!-- ÇÖP KUTUSU SAYFASI -->
@@ -763,6 +772,7 @@
             <option>Yedek Parça</option>
             <option>Bakım</option>
             <option>Lastik Değişimi</option>
+            <option>Yakıt</option>
           </select>
         </div>
         <div class="form-group">
@@ -805,6 +815,17 @@
           <button type="button" class="btn outline" style="font-size:11px;padding:4px 10px" onclick="sonrakiHesapla('ay',12)">+1 Yıl</button>
           <button type="button" class="btn outline" style="font-size:11px;padding:4px 10px" onclick="sonrakiHesapla('km',10000)">+10.000 km</button>
           <button type="button" class="btn outline" style="font-size:11px;padding:4px 10px" onclick="sonrakiHesapla('km',15000)">+15.000 km</button>
+        </div>
+      </div>
+      <!-- Yakıt — sadece "Yakıt" seçilince görünür -->
+      <div class="form-row" id="field-yakit-giris" style="display:none">
+        <div class="form-group">
+          <label>Litre</label>
+          <input id="inp-islem-litre" type="number" step="0.01" placeholder="50.5" inputmode="decimal">
+        </div>
+        <div class="form-group">
+          <label>Litre Birim Fiyatı (TL)</label>
+          <input id="inp-islem-litre-fiyat" type="number" step="0.01" placeholder="45.20" inputmode="decimal" oninput="yakitToplamHesapla()">
         </div>
       </div>
       <!-- Lastik Kalemleri — sadece "Lastik Değişimi" seçilince görünür -->
@@ -966,6 +987,15 @@
         </div>
       </div>
       <div style="border-top:1px solid var(--border);margin:1.25rem 0 0;padding-top:1rem">
+        <div style="font-size:13px;font-weight:600;margin-bottom:6px">⛽ Yakıt İçe Aktar</div>
+        <div style="font-size:12px;color:var(--muted);margin-bottom:0.75rem;line-height:1.6">
+          Petrol istasyonundan gelen Excel verisini yapıştır. Sütunlar: <strong>Plaka · Litre · Tutar</strong> (sekmeyle ayrılmış ya da noktalı virgüllü).
+        </div>
+        <div class="form-actions" style="justify-content:flex-end">
+          <button class="btn outline" onclick="yakitIceAktarAc()">⛽ Yakıt Excel'i İçe Aktar</button>
+        </div>
+      </div>
+      <div style="border-top:1px solid var(--border);margin:1.25rem 0 0;padding-top:1rem">
         <div style="font-size:13px;font-weight:600;margin-bottom:6px">🔄 İçe / Dışa Aktar</div>
         <div style="font-size:12px;color:var(--muted);margin-bottom:0.75rem;line-height:1.6">
           Verileri metin olarak dışa aktarıp yedekleyebilir, veya AI ile hazırladığın araç/işlem verisini buraya yapıştırarak toplu içe aktarabilirsin.
@@ -973,6 +1003,15 @@
         <div class="form-actions" style="justify-content:flex-end;gap:8px;flex-wrap:wrap">
           <button class="btn outline" onclick="disaAktarAc()">⬇️ Dışa Aktar (Yedek)</button>
           <button class="btn" onclick="iceAktarAc()">⬆️ İçe Aktar (Yapıştır)</button>
+        </div>
+      </div>
+      <div style="border-top:1px solid var(--border);margin:1.25rem 0 0;padding-top:1rem">
+        <div style="font-size:13px;font-weight:600;margin-bottom:6px">💾 PC'ye Aktar</div>
+        <div style="font-size:12px;color:var(--muted);margin-bottom:0.75rem;line-height:1.6">
+          Tüm araç, işlem ve kullanım verilerini ZIP dosyası olarak indir. Drive'a erişmen gerekmez.
+        </div>
+        <div class="form-actions" style="justify-content:flex-end">
+          <button class="btn" onclick="pcyeAktar()">💾 ZIP İndir</button>
         </div>
       </div>
     </div>
@@ -1022,6 +1061,74 @@
         <button class="btn outline" onclick="closeModal('ice-modal')">İptal</button>
         <button class="btn" onclick="iceAktarUygula()">İçe Aktar</button>
       </div>
+    </div>
+  </div>
+</div>
+
+<!-- YAKIT İÇE AKTAR MODAL -->
+<div class="overlay" id="yakit-modal">
+  <div class="modal" style="max-width:620px">
+    <div class="modal-header">
+      <div class="modal-title">⛽ Yakıt İçe Aktar</div>
+      <button class="modal-close" onclick="closeModal('yakit-modal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div style="font-size:12px;color:var(--muted);margin-bottom:0.75rem;line-height:1.6">
+        Petrol istasyonu Excel'ini kopyalayıp aşağıya yapıştır. <strong>Sütun sırası:</strong> Plaka · Litre · Tutar (opsiyonel: Tarih). Başlık satırı varsa otomatik atlanır.
+      </div>
+      <div class="form-row" style="margin-bottom:0.75rem">
+        <div class="form-group">
+          <label>Ay / Yıl</label>
+          <input id="yakit-tarih" type="month" value="${new Date().toISOString().slice(0,7)}">
+        </div>
+      </div>
+      <textarea id="yakit-paste" placeholder="Excel'den kopyaladığın satırları buraya yapıştır..." style="min-height:180px;font-family:monospace;font-size:12px" oninput="yakitOnizle()"></textarea>
+      <div id="yakit-onizle" style="margin-top:0.75rem;font-size:12px"></div>
+      <div class="form-actions" style="margin-top:1rem">
+        <button class="btn outline" onclick="closeModal('yakit-modal')">İptal</button>
+        <button class="btn" id="yakit-aktar-btn" onclick="yakitIceAktarUygula()" disabled>İçe Aktar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- FORM OLUŞTURUCU MODAL -->
+<div class="overlay" id="form-builder-modal">
+  <div class="modal" style="max-width:680px">
+    <div class="modal-header">
+      <div class="modal-title" id="form-builder-title">Yeni Form</div>
+      <button class="modal-close" onclick="closeModal('form-builder-modal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="form-edit-id">
+      <div class="form-group">
+        <label>Form Başlığı *</label>
+        <input id="inp-form-baslik" placeholder="Örn: Haftalık Araç Kontrol Formu">
+      </div>
+      <div class="form-group">
+        <label>Açıklama <span style="color:var(--muted);font-weight:400;font-size:11px">(opsiyonel)</span></label>
+        <textarea id="inp-form-aciklama" rows="2" placeholder="Formun amacını kısaca açıkla..."></textarea>
+      </div>
+      <div style="font-size:13px;font-weight:600;margin-bottom:8px;margin-top:0.25rem">Sorular</div>
+      <div id="form-sorular-list"></div>
+      <button type="button" class="btn outline" style="width:100%;margin-top:8px;font-size:12px" onclick="formSoruEkle()">+ Soru Ekle</button>
+      <div class="form-actions" style="margin-top:1.25rem">
+        <button class="btn outline" onclick="closeModal('form-builder-modal')">İptal</button>
+        <button class="btn" onclick="saveFormYeni()">💾 Kaydet</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- FORM CEVAPLARI MODAL -->
+<div class="overlay" id="form-cevaplar-modal">
+  <div class="modal" style="max-width:680px">
+    <div class="modal-header">
+      <div class="modal-title" id="form-cevaplar-title">Form Cevapları</div>
+      <button class="modal-close" onclick="closeModal('form-cevaplar-modal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div id="form-cevaplar-icerik"></div>
     </div>
   </div>
 </div>
@@ -1158,6 +1265,8 @@ let state = JSON.parse(localStorage.getItem('arac_takip_cache') || '{"araclar":[
 if (!state.kullanicilar) state.kullanicilar = [];
 if (!state.cop) state.cop = [];
 if (!state.kullanim) state.kullanim = [];
+if (!state.formlar) state.formlar = [];
+if (!state.formCevaplari) state.formCevaplari = [];
 let currentAracId = null;
 // Varsayılan değerler (Ayarlar'dan değiştirilebilir; değiştirilince localStorage'a yazılır)
 const API_URL_DEFAULT = 'https://script.google.com/macros/s/AKfycbzJCYFTYDLr4t06ZewVj5j0dbim4LShcd7zMPVorboEPxq9XUeQboeFvgc71tC8Pu32/exec';
@@ -1225,7 +1334,9 @@ async function apiCall(action, data, useGet) {
   if (!API_URL) return null;
   try {
     if (useGet) {
-      const res = await fetch(API_URL + '?action=' + action, { method: 'GET' });
+      let url = API_URL + '?action=' + action;
+      if (data) Object.keys(data).forEach(k => { url += '&' + encodeURIComponent(k) + '=' + encodeURIComponent(data[k]); });
+      const res = await fetch(url, { method: 'GET' });
       return await res.json();
     } else {
       const res = await fetch(API_URL, {
@@ -1269,6 +1380,7 @@ async function loadFromCloud(silent) {
     state.kullanicilar.forEach(k => syncKullanici(k));
   }
   state.kullanim = (result.kullanim || []).map(k => ({ ...k, id: String(k.id), aracId: String(k.aracId) }));
+  if (result.formlar && result.formlar.length) state.formlar = result.formlar.map(f => ({ ...f, id: String(f.id) }));
   save();
   isOnline = true;
   setSyncStatus('✅ Senkron — ' + new Date().toLocaleTimeString('tr-TR', {hour:'2-digit',minute:'2-digit'}), 'var(--success)');
@@ -1628,6 +1740,7 @@ function renderDetay(a) {
       <button class="tab" onclick="switchTab('bakim',this)">🔩 Bakım</button>
       <button class="tab" onclick="switchTab('onarim',this)">🛠️ Onarım</button>
       <button class="tab" onclick="switchTab('parca',this)">⚙️ Yedek Parça</button>
+      <button class="tab" onclick="switchTab('yakit',this)">⛽ Yakıt</button>
       <button class="tab" onclick="switchTab('kullanim',this)">👤 Kullanım Geçmişi</button>
       <button class="tab" onclick="switchTab('gorseller',this)">🖼️ Görseller</button>
       <button class="tab" onclick="switchTab('islemler',this)">📋 Tüm İşlem Geçmişi</button>
@@ -1677,6 +1790,8 @@ function renderDetay(a) {
     ${turSekmesiHTML(a, 'bakim', 'Bakım', '🔩')}
     ${turSekmesiHTML(a, 'onarim', 'Onarım', '🛠️')}
     ${turSekmesiHTML(a, 'parca', 'Yedek Parça', '⚙️')}
+
+    ${yakitSekmesiHTML(a)}
 
     <div class="tab-content" id="tab-islemler">
       ${islemler.length ? `<input id="detay-islem-arama" placeholder="İşlem türü, parça, detay veya not ara..." style="margin-bottom:1rem" oninput="filtreDetayIslemler('${a.id}')">` : ''}
@@ -1732,6 +1847,49 @@ function ciftSekmeBolumHTML(a, turAdi, ikon) {
         <button class="btn" style="padding:6px 12px;font-size:12px" onclick="openIslemModalTur('${a.id}','${turAdi}')">+ ${turAdi} Ekle</button>
       </div>
       ${kayitlar.length ? kayitlar.map(i => islemItemHTML(i)).join('') : `<div class="empty-state" style="padding:1.5rem"><div class="empty-icon" style="font-size:32px">${ikon}</div><div style="font-size:13px">Bu araç için ${turAdi.toLocaleLowerCase('tr-TR')} kaydı yok</div></div>`}
+    </div>`;
+}
+
+function yakitSekmesiHTML(a) {
+  const kayitlar = state.islemler
+    .filter(i => i.aracId === a.id && i.tur === 'Yakıt')
+    .sort((x,y) => (y.tarih||'') > (x.tarih||'') ? 1 : -1);
+  const toplamLitre = kayitlar.reduce((s,i) => s + (Number(i.litre)||0), 0);
+  const toplamMaliyet = kayitlar.reduce((s,i) => s + (Number(i.maliyet)||0), 0);
+  // lt/100km hesaplama (ilk ve son km farkından)
+  const kmliKayitlar = kayitlar.filter(i => i.km).sort((x,y) => Number(x.km)-Number(y.km));
+  let verimHtml = '';
+  if (kmliKayitlar.length >= 2) {
+    const kmFark = Number(kmliKayitlar[kmliKayitlar.length-1].km) - Number(kmliKayitlar[0].km);
+    const aradakiLitre = kayitlar.filter(i => i.km && Number(i.km) > Number(kmliKayitlar[0].km)).reduce((s,i) => s+(Number(i.litre)||0), 0);
+    if (kmFark > 0 && aradakiLitre > 0) {
+      const verim = (aradakiLitre / kmFark * 100).toFixed(1);
+      verimHtml = `<div style="background:rgba(79,110,247,0.1);border:1px solid rgba(79,110,247,0.25);border-radius:var(--radius-sm);padding:0.75rem;margin-bottom:1rem;font-size:13px">⛽ Ortalama yakıt tüketimi: <strong style="color:var(--accent)">${verim} lt/100km</strong></div>`;
+    }
+  }
+  return `
+    <div class="tab-content" id="tab-yakit">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;flex-wrap:wrap;gap:8px">
+        <div style="font-size:14px;font-weight:600">⛽ Yakıt Geçmişi <span style="font-size:12px;color:var(--muted);font-weight:400">(${kayitlar.length} kayıt)</span></div>
+        <button class="btn" style="padding:6px 12px;font-size:12px" onclick="openIslemModalTur('${a.id}','Yakıt')">+ Yakıt Ekle</button>
+      </div>
+      ${verimHtml}
+      ${toplamLitre > 0 ? `<div style="display:flex;gap:1rem;margin-bottom:1rem;flex-wrap:wrap">
+        <div style="background:var(--bg3);border-radius:var(--radius-sm);padding:0.6rem 1rem;font-size:12px"><span style="color:var(--muted)">Toplam litre</span><br><strong>${toplamLitre.toLocaleString('tr-TR',{maximumFractionDigits:1})} lt</strong></div>
+        ${toplamMaliyet > 0 ? `<div style="background:var(--bg3);border-radius:var(--radius-sm);padding:0.6rem 1rem;font-size:12px"><span style="color:var(--muted)">Toplam maliyet</span><br><strong style="color:var(--success)">₺${toplamMaliyet.toLocaleString('tr-TR')}</strong></div>` : ''}
+      </div>` : ''}
+      ${kayitlar.length ? kayitlar.map(i => `
+        <div class="hatirlat-item" style="cursor:default;align-items:flex-start">
+          <div class="hatirlat-icon">⛽</div>
+          <div class="hatirlat-info" style="flex:1">
+            <div class="hatirlat-plaka">${formatTarih(i.tarih)}${i.km ? ' · ' + Number(i.km).toLocaleString('tr-TR') + ' km' : ''}</div>
+            <div class="hatirlat-tarih">${i.litre ? i.litre + ' lt' : ''}${i.litreFiyat ? ' · ₺' + i.litreFiyat + '/lt' : ''}${i.maliyet ? ' · <strong style="color:var(--success)">₺' + Number(i.maliyet).toLocaleString('tr-TR') + '</strong>' : ''}</div>
+          </div>
+          <div style="display:flex;gap:4px">
+            <button class="btn outline" style="padding:3px 8px;font-size:11px" onclick="editIslem('${i.id}')">✏️</button>
+            <button class="btn danger" style="padding:3px 8px;font-size:11px" onclick="silIslem('${i.id}')">🗑️</button>
+          </div>
+        </div>`).join('') : '<div class="empty-state"><div class="empty-icon">⛽</div><div>Henüz yakıt kaydı yok</div></div>'}
     </div>`;
 }
 
@@ -1904,7 +2062,7 @@ function fotoSil(idx) {
   islem.fotolar = islem.fotolar.filter(f => f !== item.url);
   const a = state.araclar.find(x => x.id === islem.aracId);
   if (a && a.anaFoto === item.url) { a.anaFoto = ''; syncArac(a); }
-  state.cop.unshift({ id: uid(), tip: 'foto', silindi: new Date().toISOString(), veri: { url: item.url, islemId: item.islemId, aracId: islem.aracId } });
+  state.cop.unshift({ id: uid(), tip: 'foto', silindi: new Date().toISOString(), veri: { url: item.url, islemId: item.islemId, aracId: islem.aracId, originalFolder: islem.tur || 'İşlemler' } });
   save(); syncIslem(islem); updateCopBadge();
   // Drive'da "Çöp Kutusu" klasörüne taşı
   if (item.url && !item.url.startsWith('data:')) apiCall('moveToTrash', { url: item.url }).catch(() => {});
@@ -1916,7 +2074,7 @@ function aracFotoSil(aracId) {
   if (!a || !confirm('Ana fotoğraf çöp kutusuna taşınsın mı?')) return;
   const eski = a.anaFoto;
   a.anaFoto = '';
-  state.cop.unshift({ id: uid(), tip: 'foto', silindi: new Date().toISOString(), veri: { url: eski, islemId: null, aracId } });
+  state.cop.unshift({ id: uid(), tip: 'foto', silindi: new Date().toISOString(), veri: { url: eski, islemId: null, aracId, originalFolder: 'Araç Profil' } });
   save(); renderDetay(a); syncArac(a); updateCopBadge();
   if (eski && !eski.startsWith('data:')) apiCall('moveToTrash', { url: eski }).catch(() => {});
 }
@@ -2191,7 +2349,8 @@ function islemBelgeSec(event) {
       const base64 = ev.target.result;
       let url = base64;
       try {
-        const res = await apiCall('uploadPhoto', { base64, mimeType: f.type, fileName: f.name, folder: 'Fatura-Makbuz' });
+        const islemTur = document.getElementById('inp-islem-tur')?.value || 'İşlemler';
+        const res = await apiCall('uploadPhoto', { base64, mimeType: f.type, fileName: f.name, folder: islemTur });
         if (res && res.url) url = res.url;
       } catch(e) {}
       ph.remove();
@@ -2256,6 +2415,7 @@ const ISLEM_FIELD_CONFIG = {
   'Yedek Parça':       { km: true,  bitis: false, sonraki: false, detay: true },
   'Bakım':             { km: true,  bitis: false, sonraki: true,  detay: true },
   'Lastik Değişimi':   { km: true,  bitis: false, sonraki: false, detay: true, lastik: true },
+  'Yakıt':             { km: true,  bitis: false, sonraki: false, detay: false, yakit: true },
 };
 const ISLEM_BITIS_LABEL = {
   'Fenni Muayene + Egzoz': 'Muayene/Egzoz Bitiş Tarihi *',
@@ -2300,6 +2460,11 @@ function updateIslemFormFields() {
   const lastikAlani = document.getElementById('field-lastik-kalemleri');
   if (lastikAlani) lastikAlani.style.display = cfg.lastik ? '' : 'none';
   if (!cfg.lastik) lastikKalemleri = [];
+
+  // Yakıt alanını göster/gizle
+  const yakitAlani = document.getElementById('field-yakit-giris');
+  if (yakitAlani) yakitAlani.style.display = cfg.yakit ? '' : 'none';
+  if (!cfg.yakit) { const l = document.getElementById('inp-islem-litre'); if (l) l.value = ''; const lf = document.getElementById('inp-islem-litre-fiyat'); if (lf) lf.value = ''; }
 
   // Gizlenen alanları temizle ki yanlışlıkla eski veri kaydedilmesin
   if (!cfg.km) document.getElementById('inp-islem-km').value = '';
@@ -2346,9 +2511,17 @@ function lastikToplamGuncelle() {
   const toplam = lastikKalemleri.reduce((s, k) => s + (Number(k.adet)||1) * (Number(k.birimFiyat)||0), 0);
   const el = document.getElementById('lastik-kalem-toplam');
   if (el) el.textContent = '₺' + toplam.toLocaleString('tr-TR');
-  // Toplam maliyeti otomatik doldur
   const malEl = document.getElementById('inp-islem-maliyet');
   if (malEl && toplam > 0) malEl.value = toplam;
+}
+
+function yakitToplamHesapla() {
+  const litre = Number(document.getElementById('inp-islem-litre')?.value || 0);
+  const fiyat = Number(document.getElementById('inp-islem-litre-fiyat')?.value || 0);
+  if (litre > 0 && fiyat > 0) {
+    const malEl = document.getElementById('inp-islem-maliyet');
+    if (malEl) malEl.value = (litre * fiyat).toFixed(2);
+  }
 }
 
 // İŞLEM KAYIT
@@ -2370,11 +2543,19 @@ function openIslemModal(aracId, islemId) {
     document.getElementById('inp-islem-not').value = i.not || '';
     islemBelgeGecici = (i.fotolar || []).slice();
     lastikKalemleri = (i.lastikler || []).map(k => ({...k}));
+    const lEl = document.getElementById('inp-islem-litre');
+    const lfEl = document.getElementById('inp-islem-litre-fiyat');
+    if (lEl) lEl.value = i.litre || '';
+    if (lfEl) lfEl.value = i.litreFiyat || '';
   } else {
     fields.forEach(f => document.getElementById(f).value = '');
     document.getElementById('inp-islem-tarih').value = new Date().toISOString().slice(0,10);
     islemBelgeGecici = [];
     lastikKalemleri = [];
+    const lEl = document.getElementById('inp-islem-litre');
+    const lfEl = document.getElementById('inp-islem-litre-fiyat');
+    if (lEl) lEl.value = '';
+    if (lfEl) lfEl.value = '';
   }
   const _arac = state.araclar.find(x => x.id === document.getElementById('islem-arac-id').value);
   document.getElementById('inp-guncel-km').value = _arac ? (_arac.km || '') : '';
@@ -2411,7 +2592,7 @@ function saveIslem() {
     const arc = state.araclar.find(x => x.id === aracId);
     if (arc && String(arc.km || '') !== guncelKm) { arc.km = guncelKm; syncArac(arc); }
   }
-  const base = { aracId, tarih, km: document.getElementById('inp-islem-km').value, maliyet: document.getElementById('inp-islem-maliyet').value, bitis: document.getElementById('inp-islem-bitis').value, sonrakiKm: document.getElementById('inp-sonraki-km').value, sonrakiTarih: document.getElementById('inp-sonraki-tarih').value, detay: document.getElementById('inp-islem-detay').value, not: document.getElementById('inp-islem-not').value, fotolar: islemBelgeGecici.slice(), lastikler: tur === 'Lastik Değişimi' ? lastikKalemleri.filter(k => k.marka || k.ebat) : [] };
+  const base = { aracId, tarih, km: document.getElementById('inp-islem-km').value, maliyet: document.getElementById('inp-islem-maliyet').value, bitis: document.getElementById('inp-islem-bitis').value, sonrakiKm: document.getElementById('inp-sonraki-km').value, sonrakiTarih: document.getElementById('inp-sonraki-tarih').value, detay: document.getElementById('inp-islem-detay').value, not: document.getElementById('inp-islem-not').value, fotolar: islemBelgeGecici.slice(), lastikler: tur === 'Lastik Değişimi' ? lastikKalemleri.filter(k => k.marka || k.ebat) : [], litre: tur === 'Yakıt' ? (document.getElementById('inp-islem-litre')?.value || '') : '', litreFiyat: tur === 'Yakıt' ? (document.getElementById('inp-islem-litre-fiyat')?.value || '') : '' };
 
   if (tur === 'Fenni Muayene + Egzoz' && !id) {
     // Fenni muayene ve egzoz tek seferde iki ayrı kayıt olarak eklenir (aynı tarih/bitiş)
@@ -2509,7 +2690,6 @@ function copGeriYukle(copId) {
   const c = state.cop.find(x => x.id === copId);
   if (!c) return;
   if (c.tip === 'foto') {
-    // Fotoğrafı ilgili işleme geri ekle
     if (c.veri.islemId) {
       const islem = state.islemler.find(i => i.id === c.veri.islemId);
       if (islem) { islem.fotolar = islem.fotolar || []; islem.fotolar.push(c.veri.url); syncIslem(islem); }
@@ -2517,13 +2697,23 @@ function copGeriYukle(copId) {
       const a = state.araclar.find(x => x.id === c.veri.aracId);
       if (a) { a.anaFoto = c.veri.url; syncArac(a); }
     }
+    if (c.veri.url && !c.veri.url.startsWith('data:'))
+      apiCall('restoreFromTrash', { url: c.veri.url, folder: c.veri.originalFolder || 'İşlemler' }).catch(() => {});
   } else if (c.tip === 'arac') {
     state.araclar.push(c.veri);
     syncArac(c.veri);
     (c.islemler || []).forEach(i => { state.islemler.push(i); syncIslem(i); });
+    // Fotoğrafları orijinal klasörlerine geri taşı
+    if (c.veri.anaFoto && !c.veri.anaFoto.startsWith('data:'))
+      apiCall('restoreFromTrash', { url: c.veri.anaFoto, folder: 'Araç Profil' }).catch(() => {});
+    (c.islemler || []).forEach(i =>
+      (i.fotolar || []).filter(u => u && !u.startsWith('data:')).forEach(u =>
+        apiCall('restoreFromTrash', { url: u, folder: i.tur || 'İşlemler' }).catch(() => {})));
   } else {
     state.islemler.push(c.veri);
     syncIslem(c.veri);
+    (c.veri.fotolar || []).filter(u => u && !u.startsWith('data:')).forEach(u =>
+      apiCall('restoreFromTrash', { url: u, folder: c.veri.tur || 'İşlemler' }).catch(() => {}));
   }
   state.cop = state.cop.filter(x => x.id !== copId);
   save();
@@ -2582,6 +2772,7 @@ function renderMesajlar() {
     }).join('');
   }
   renderMesajGecmis();
+  renderMesajFormlar();
 }
 
 function mesajTumunuSec(sec) {
@@ -3339,6 +3530,265 @@ async function iceAktarUygula() {
       if (ok) sonuc.innerHTML += '<br><span style="color:var(--success)">☁️ Google Sheets\'e de yazıldı.</span>';
     }, 300);
   }
+}
+
+// ===== YAKIT İÇE AKTAR =====
+let _yakitOnizleData = [];
+
+function yakitIceAktarAc() {
+  document.getElementById('yakit-paste').value = '';
+  document.getElementById('yakit-onizle').innerHTML = '';
+  document.getElementById('yakit-aktar-btn').disabled = true;
+  document.getElementById('yakit-tarih').value = new Date().toISOString().slice(0, 7);
+  _yakitOnizleData = [];
+  closeModal('ayarlar-modal');
+  document.getElementById('yakit-modal').classList.add('open');
+}
+
+function yakitOnizle() {
+  const txt = document.getElementById('yakit-paste').value.trim();
+  const el = document.getElementById('yakit-onizle');
+  _yakitOnizleData = [];
+  if (!txt) { el.innerHTML = ''; document.getElementById('yakit-aktar-btn').disabled = true; return; }
+
+  const satirlar = txt.split('\n').map(s => s.trim()).filter(Boolean);
+  const satirlar2 = satirlar.map(s => s.split(/\t|;/).map(h => h.trim()));
+  // Başlık satırını tespit et (sayı içermiyorsa atla)
+  const baslangic = isNaN(Number((satirlar2[0]||[])[1]?.replace(',','.'))) ? 1 : 0;
+  const hatalar = [], kayitlar = [];
+
+  for (let i = baslangic; i < satirlar2.length; i++) {
+    const s = satirlar2[i];
+    const plaka = (s[0]||'').replace(/\s/g,'').toUpperCase();
+    const litre = Number((s[1]||'').replace(',','.'));
+    const tutar = Number((s[2]||'').replace(',','.'));
+    if (!plaka) continue;
+    const arac = state.araclar.find(a => (a.plaka||'').replace(/\s/g,'').toUpperCase() === plaka);
+    kayitlar.push({ plaka, litre: litre||'', tutar: tutar||'', aracId: arac?.id || null, model: arac?.model || '?' });
+    if (!arac) hatalar.push(plaka);
+  }
+
+  _yakitOnizleData = kayitlar;
+  const aktar = kayitlar.filter(k => k.aracId).length;
+  el.innerHTML = `
+    <div style="margin-bottom:8px;font-weight:600">${kayitlar.length} satır bulundu — ${aktar} araç eşleşti${hatalar.length ? `, <span style="color:var(--warn)">${hatalar.length} eşleşmedi</span>` : ''}</div>
+    <table style="width:100%;border-collapse:collapse;font-size:12px">
+      <thead><tr style="color:var(--muted)"><th style="text-align:left;padding:4px 6px">Plaka</th><th style="padding:4px 6px">Litre</th><th style="padding:4px 6px">Tutar</th><th style="padding:4px 6px">Durum</th></tr></thead>
+      <tbody>${kayitlar.map(k => `<tr style="border-top:1px solid var(--border)">
+        <td style="padding:4px 6px">${k.plaka}</td>
+        <td style="padding:4px 6px;text-align:center">${k.litre||'—'}</td>
+        <td style="padding:4px 6px;text-align:center">${k.tutar ? '₺'+Number(k.tutar).toLocaleString('tr-TR') : '—'}</td>
+        <td style="padding:4px 6px;text-align:center">${k.aracId ? '<span style="color:var(--success)">✓ '+k.model+'</span>' : '<span style="color:var(--warn)">Eşleşmedi</span>'}</td>
+      </tr>`).join('')}</tbody>
+    </table>`;
+  document.getElementById('yakit-aktar-btn').disabled = aktar === 0;
+}
+
+function yakitIceAktarUygula() {
+  const tarihAy = document.getElementById('yakit-tarih').value; // yyyy-MM
+  const tarih = tarihAy ? tarihAy + '-01' : new Date().toISOString().slice(0,10);
+  let eklenen = 0;
+  _yakitOnizleData.filter(k => k.aracId).forEach(k => {
+    const islem = { id: uid(), aracId: k.aracId, tur: 'Yakıt', tarih, km: '', maliyet: String(k.tutar||''), litre: String(k.litre||''), litreFiyat: '', detay: '', not: 'Excel import', fotolar: [], lastikler: [] };
+    state.islemler.push(islem);
+    syncIslem(islem);
+    eklenen++;
+  });
+  save(); renderAraclar(); updateBadge();
+  closeModal('yakit-modal');
+  alert(`${eklenen} yakıt kaydı eklendi.`);
+}
+
+// ===== PC'YE AKTAR (ZIP) =====
+async function pcyeAktar() {
+  if (typeof JSZip === 'undefined') { alert('JSZip yüklenemedi. İnternet bağlantını kontrol et.'); return; }
+  showLoading('ZIP hazırlanıyor...');
+  try {
+    const zip = new JSZip();
+    // Araçlar CSV
+    const aracBaslik = ['id','plaka','model','yil','km','tip','kullanici','telefon','not','grup'];
+    zip.file('araclar.csv', '﻿' + [aracBaslik, ...state.araclar.map(a => aracBaslik.map(k => `"${(a[k]||'').toString().replace(/"/g,'""')}"`))] .map(r=>r.join(';')).join('\n'));
+    // İşlemler CSV
+    const islemBaslik = ['id','aracId','tur','tarih','bitis','km','maliyet','litre','sonrakiKm','sonrakiTarih','detay','not'];
+    zip.file('islemler.csv', '﻿' + [islemBaslik, ...state.islemler.map(i => islemBaslik.map(k => `"${(i[k]||'').toString().replace(/"/g,'""')}"`))] .map(r=>r.join(';')).join('\n'));
+    // Kullanım CSV
+    const kulBaslik = ['id','tarih','aracId','kullaniciAd','km'];
+    zip.file('kullanim.csv', '﻿' + [kulBaslik, ...(state.kullanim||[]).map(k => kulBaslik.map(f => `"${(k[f]||'').toString().replace(/"/g,'""')}"`))] .map(r=>r.join(';')).join('\n'));
+    // Kullanıcılar CSV
+    const kulKiBaslik = ['id','ad','soyad','telefon','unvan'];
+    zip.file('kullanicilar.csv', '﻿' + [kulKiBaslik, ...state.kullanicilar.map(k => kulKiBaslik.map(f => `"${(k[f]||'').toString().replace(/"/g,'""')}"`))] .map(r=>r.join(';')).join('\n'));
+    // Fotoğraf URL'leri
+    const fotolarTxt = [];
+    state.araclar.forEach(a => { if (a.anaFoto && !a.anaFoto.startsWith('data:')) fotolarTxt.push(`${a.plaka} (profil)\t${a.anaFoto}`); });
+    state.islemler.forEach(i => { const a = state.araclar.find(x=>x.id===i.aracId); (i.fotolar||[]).forEach((u,idx) => { if (u && !u.startsWith('data:')) fotolarTxt.push(`${a?.plaka||i.aracId} ${i.tur} ${i.tarih} (${idx+1})\t${u}`); }); });
+    if (fotolarTxt.length) zip.file('fotograf_linkleri.txt', fotolarTxt.join('\n'));
+    // Fotoğrafları indir (mümkünse)
+    let fotoIndir = 0;
+    const tumUrller = [...new Set(fotolarTxt.map(s=>s.split('\t')[1]).filter(Boolean))].slice(0,50);
+    for (let i = 0; i < tumUrller.length; i++) {
+      document.getElementById('loading-text').textContent = `Fotoğraflar indiriliyor... (${i+1}/${tumUrller.length})`;
+      try {
+        const r = await fetch(tumUrller[i]);
+        if (r.ok) { const blob = await r.blob(); const ext = blob.type.includes('png')?'png':'jpg'; zip.folder('fotograflar').file(`foto_${i+1}.${ext}`, blob); fotoIndir++; }
+      } catch(e) {}
+    }
+    const blob = await zip.generateAsync({ type: 'blob' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = `senpa-panel-${new Date().toISOString().slice(0,10)}.zip`;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    hideLoading();
+    alert(`ZIP indirildi!\nCSV dosyaları: 4\nFotoğraf: ${fotoIndir}/${tumUrller.length}`);
+  } catch(e) { hideLoading(); alert('Hata: ' + e.message); }
+}
+
+// ===== MESAJLAR FORM OLUŞTURUCU =====
+let _formSorular = []; // [{id, tip, soru, secenekler, zorunlu}]
+
+function renderMesajFormlar() {
+  const el = document.getElementById('mesaj-formlar-list');
+  if (!el) return;
+  if (!state.formlar.length) { el.innerHTML = '<div style="font-size:12px;color:var(--muted);padding:8px 0">Henüz form oluşturulmadı.</div>'; return; }
+  el.innerHTML = state.formlar.map(f => {
+    const link = `${location.origin}${location.pathname.replace('index.html','').replace(/\/$/, '')}/form.html?form=${f.id}`;
+    return `<div style="background:var(--bg3);border-radius:var(--radius-sm);padding:0.75rem;margin-bottom:0.5rem">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap">
+        <div>
+          <div style="font-size:13px;font-weight:700">${f.baslik}</div>
+          ${f.aciklama ? `<div style="font-size:11px;color:var(--muted);margin-top:2px">${f.aciklama}</div>` : ''}
+          <div style="font-size:11px;color:var(--muted);margin-top:2px">${(f.sorular||[]).length} soru · ${f.olusturuldu||''}</div>
+        </div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap">
+          <button class="btn outline" style="font-size:11px;padding:3px 9px" onclick="formLinkKopyala('${link}')">🔗 Link</button>
+          <button class="btn outline" style="font-size:11px;padding:3px 9px" onclick="formTelegramGonder('${f.id}','${f.baslik.replace(/'/g,'')}')">📤 Gönder</button>
+          <button class="btn outline" style="font-size:11px;padding:3px 9px" onclick="formCevaplariGoster('${f.id}','${f.baslik.replace(/'/g,'')}')">📊 Cevaplar</button>
+          <button class="btn outline" style="font-size:11px;padding:3px 9px" onclick="formDuzenle('${f.id}')">✏️</button>
+          <button class="btn danger" style="font-size:11px;padding:3px 9px" onclick="formSil('${f.id}')">🗑️</button>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function formAc() {
+  _formSorular = [];
+  document.getElementById('form-edit-id').value = '';
+  document.getElementById('inp-form-baslik').value = '';
+  document.getElementById('inp-form-aciklama').value = '';
+  document.getElementById('form-builder-title').textContent = 'Yeni Form';
+  renderFormSorular();
+  document.getElementById('form-builder-modal').classList.add('open');
+}
+
+function formDuzenle(id) {
+  const f = state.formlar.find(x => x.id === id);
+  if (!f) return;
+  _formSorular = (f.sorular || []).map(s => ({...s, secenekler: [...(s.secenekler||[])]}));
+  document.getElementById('form-edit-id').value = id;
+  document.getElementById('inp-form-baslik').value = f.baslik || '';
+  document.getElementById('inp-form-aciklama').value = f.aciklama || '';
+  document.getElementById('form-builder-title').textContent = 'Formu Düzenle';
+  renderFormSorular();
+  document.getElementById('form-builder-modal').classList.add('open');
+}
+
+function formSil(id) {
+  if (!confirm('Bu form ve tüm cevapları silinecek. Emin misiniz?')) return;
+  state.formlar = state.formlar.filter(f => f.id !== id);
+  state.formCevaplari = state.formCevaplari.filter(c => c.formId !== id);
+  save(); renderMesajFormlar();
+  apiCall('deleteForm', { id }).catch(() => {});
+}
+
+function formSoruEkle() {
+  _formSorular.push({ id: uid(), tip: 'metin', soru: '', secenekler: [], zorunlu: false });
+  renderFormSorular();
+}
+
+function renderFormSorular() {
+  const el = document.getElementById('form-sorular-list');
+  if (!el) return;
+  if (!_formSorular.length) { el.innerHTML = '<div style="font-size:12px;color:var(--muted);padding:8px 0">Henüz soru yok. "+ Soru Ekle" ile başla.</div>'; return; }
+  el.innerHTML = _formSorular.map((s, i) => `
+    <div style="background:var(--bg3);border-radius:var(--radius-sm);padding:0.75rem;margin-bottom:6px">
+      <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px">
+        <select style="flex:0 0 auto;width:140px;font-size:12px;padding:5px 7px" onchange="_formSorular[${i}].tip=this.value;renderFormSorular()">
+          <option value="metin" ${s.tip==='metin'?'selected':''}>Kısa Metin</option>
+          <option value="uzun_metin" ${s.tip==='uzun_metin'?'selected':''}>Uzun Metin</option>
+          <option value="sayi" ${s.tip==='sayi'?'selected':''}>Sayı</option>
+          <option value="tarih" ${s.tip==='tarih'?'selected':''}>Tarih</option>
+          <option value="evet_hayir" ${s.tip==='evet_hayir'?'selected':''}>Evet / Hayır</option>
+          <option value="secim" ${s.tip==='secim'?'selected':''}>Seçim (çoktan seçmeli)</option>
+        </select>
+        <input style="flex:1;font-size:13px" placeholder="Soru metni..." value="${(s.soru||'').replace(/"/g,'&quot;')}" oninput="_formSorular[${i}].soru=this.value">
+        <label style="display:flex;align-items:center;gap:4px;font-size:11px;white-space:nowrap;cursor:pointer">
+          <input type="checkbox" ${s.zorunlu?'checked':''} onchange="_formSorular[${i}].zorunlu=this.checked" style="width:auto"> Zorunlu
+        </label>
+        <button class="btn danger" style="padding:3px 8px;font-size:11px" onclick="_formSorular.splice(${i},1);renderFormSorular()">✕</button>
+      </div>
+      ${s.tip==='secim' ? `
+        <div style="padding-left:8px">
+          ${(s.secenekler||[]).map((o,j) => `
+            <div style="display:flex;gap:6px;margin-bottom:4px">
+              <input style="flex:1;font-size:12px;padding:4px 8px" placeholder="Seçenek ${j+1}" value="${o.replace(/"/g,'&quot;')}" oninput="_formSorular[${i}].secenekler[${j}]=this.value">
+              <button class="btn outline" style="padding:3px 7px;font-size:11px" onclick="_formSorular[${i}].secenekler.splice(${j},1);renderFormSorular()">✕</button>
+            </div>`).join('')}
+          <button class="btn outline" style="font-size:11px;padding:3px 9px;margin-top:2px" onclick="_formSorular[${i}].secenekler.push('');renderFormSorular()">+ Seçenek Ekle</button>
+        </div>` : ''}
+    </div>`).join('');
+}
+
+function saveFormYeni() {
+  const baslik = document.getElementById('inp-form-baslik').value.trim();
+  if (!baslik) { alert('Form başlığı zorunlu!'); return; }
+  const id = document.getElementById('form-edit-id').value || uid();
+  const formObj = { id, baslik, aciklama: document.getElementById('inp-form-aciklama').value.trim(), sorular: _formSorular.filter(s => s.soru.trim()), olusturuldu: new Date().toISOString().slice(0,10) };
+  const idx = state.formlar.findIndex(f => f.id === id);
+  if (idx >= 0) state.formlar[idx] = formObj; else state.formlar.push(formObj);
+  save(); closeModal('form-builder-modal'); renderMesajFormlar();
+  apiCall('saveForm', { data: formObj }).catch(() => {});
+}
+
+function formLinkKopyala(link) {
+  navigator.clipboard.writeText(link).then(() => alert('Link kopyalandı!')).catch(() => { prompt('Linki kopyala:', link); });
+}
+
+async function formTelegramGonder(formId, baslik) {
+  const cbList = document.querySelectorAll('.mesaj-cb:checked');
+  const idler = Array.from(cbList).map(cb => cb.value).filter(Boolean);
+  if (!idler.length && !confirm('Tüm kayıtlı kullanıcılara gönderilecek. Emin misin?')) return;
+  const hedefler = idler.length ? idler : state.kullanicilar.filter(k=>k.telegramId).map(k=>String(k.telegramId));
+  const link = `${location.origin}${location.pathname.replace('index.html','').replace(/\/$/,'')}/form.html?form=${formId}`;
+  const mesaj = `📋 <b>${baslik}</b>\nAşağıdaki formu doldurmanızı rica ederiz:`;
+  showLoading('Gönderiliyor...');
+  const r = await apiCall('topluMesaj', { idler: hedefler, mesaj: mesaj + '\n\n' + link });
+  hideLoading();
+  const sonuc = document.getElementById('mesaj-sonuc');
+  if (r && r.ok) sonuc.innerHTML = `<span style="color:var(--success)">✅ ${r.gonderilen}/${r.toplam} kişiye gönderildi</span>`;
+  else sonuc.innerHTML = `<span style="color:var(--danger)">Hata: ${r?.error||'bilinmeyen'}</span>`;
+}
+
+async function formCevaplariGoster(formId, baslik) {
+  document.getElementById('form-cevaplar-title').textContent = baslik + ' — Cevaplar';
+  document.getElementById('form-cevaplar-icerik').innerHTML = '<div style="color:var(--muted);font-size:13px">Yükleniyor...</div>';
+  document.getElementById('form-cevaplar-modal').classList.add('open');
+  const yerel = state.formCevaplari.filter(c => c.formId === formId);
+  const form = state.formlar.find(f => f.id === formId);
+  let cevaplar = yerel;
+  try {
+    const r = await apiCall('getFormCevaplari', { formId }, 'GET');
+    if (r && r.cevaplar) { cevaplar = r.cevaplar; state.formCevaplari = [...state.formCevaplari.filter(c=>c.formId!==formId), ...r.cevaplar]; save(); }
+  } catch(e) {}
+  if (!cevaplar.length) { document.getElementById('form-cevaplar-icerik').innerHTML = '<div style="color:var(--muted);font-size:13px;text-align:center;padding:2rem">Henüz cevap yok</div>'; return; }
+  const sorular = form?.sorular || [];
+  document.getElementById('form-cevaplar-icerik').innerHTML = cevaplar.sort((a,b)=>b.tarih>a.tarih?1:-1).map(c => {
+    const cvp = typeof c.cevaplar === 'string' ? JSON.parse(c.cevaplar) : (c.cevaplar||{});
+    return `<div style="background:var(--bg3);border-radius:var(--radius-sm);padding:0.75rem;margin-bottom:0.75rem">
+      <div style="font-size:11px;color:var(--muted);margin-bottom:6px">${c.gonderenAd||'Bilinmiyor'} · ${c.tarih||''}</div>
+      ${sorular.map(s => `<div style="margin-bottom:4px;font-size:12px"><span style="color:var(--muted)">${s.soru}:</span> <strong>${cvp[s.id]??'—'}</strong></div>`).join('')}
+    </div>`;
+  }).join('');
 }
 
 // BAŞLANGIÇ

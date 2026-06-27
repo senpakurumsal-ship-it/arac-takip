@@ -103,7 +103,82 @@
 const API_URL = 'https://script.google.com/macros/s/AKfycbzJCYFTYDLr4t06ZewVj5j0dbim4LShcd7zMPVorboEPxq9XUeQboeFvgc71tC8Pu32/exec';
 const params = new URLSearchParams(location.search);
 const telegramId = params.get('u') || '';
+const formId = params.get('form') || '';
 let kullandi = null, arizaVar = false;
+
+// ─── ÖZEL FORM MODU ─────────────────────────────────────────────────────────
+if (formId) {
+  document.querySelector('.head h1').textContent = 'FORM';
+  document.getElementById('form-alan').innerHTML = '<div style="color:var(--muted);font-size:13px;text-align:center;padding:2rem">Form yükleniyor...</div>';
+  loadCustomForm();
+}
+
+async function loadCustomForm() {
+  try {
+    const res = await fetch(API_URL + '?action=getForm&id=' + encodeURIComponent(formId));
+    const data = await res.json();
+    const form = data.form;
+    if (!form) { document.getElementById('form-alan').innerHTML = '<div style="color:var(--danger);text-align:center;padding:2rem">Form bulunamadı.</div>'; return; }
+    document.querySelector('.head h1').textContent = (form.baslik||'Form').toUpperCase();
+    document.getElementById('selam').textContent = form.aciklama || 'Lütfen formu doldurun';
+    const sorular = Array.isArray(form.sorular) ? form.sorular : (typeof form.sorular === 'string' ? JSON.parse(form.sorular) : []);
+    document.getElementById('form-alan').innerHTML = sorular.map(s => renderSoruHTML(s)).join('') +
+      `<button class="gonder" id="gonder-btn" onclick="customFormGonder('${form.id}','${(form.baslik||'').replace(/'/g,'')}')">Gönder</button>
+       <div class="not" id="hata" style="color:var(--danger)"></div>`;
+  } catch(e) {
+    document.getElementById('form-alan').innerHTML = '<div style="color:var(--danger);text-align:center;padding:2rem">Form yüklenemedi.</div>';
+  }
+}
+
+function renderSoruHTML(s) {
+  const zorunlu = s.zorunlu ? ' <span style="color:var(--danger)">*</span>' : '';
+  let inp = '';
+  if (s.tip === 'metin') inp = `<input id="s_${s.id}" placeholder="Cevabınız...">`;
+  else if (s.tip === 'uzun_metin') inp = `<textarea id="s_${s.id}" rows="3" placeholder="Cevabınız..."></textarea>`;
+  else if (s.tip === 'sayi') inp = `<input id="s_${s.id}" type="number" inputmode="numeric" placeholder="0">`;
+  else if (s.tip === 'tarih') inp = `<input id="s_${s.id}" type="date">`;
+  else if (s.tip === 'evet_hayir') inp = `<div class="secim">
+    <button type="button" class="sec-evet" onclick="eyBtnSec('s_${s.id}',true,this)">Evet ✅</button>
+    <button type="button" class="sec-hayir" onclick="eyBtnSec('s_${s.id}',false,this)">Hayır ❌</button>
+    <input type="hidden" id="s_${s.id}" value="">
+  </div>`;
+  else if (s.tip === 'secim') {
+    const opts = Array.isArray(s.secenekler) ? s.secenekler : [];
+    inp = `<select id="s_${s.id}"><option value="">— Seçin —</option>${opts.map(o=>`<option value="${o}">${o}</option>`).join('')}</select>`;
+  }
+  return `<div class="card"><div class="field"><label>${s.soru}${zorunlu}</label>${inp}</div></div>`;
+}
+
+function eyBtnSec(id, val, btn) {
+  document.getElementById(id).value = val ? 'Evet' : 'Hayır';
+  const wrap = btn.closest('.secim');
+  wrap.querySelectorAll('button').forEach(b => b.classList.remove('on'));
+  btn.classList.add('on');
+}
+
+async function customFormGonder(fId, baslik) {
+  const hata = document.getElementById('hata');
+  hata.textContent = '';
+  const res = await fetch(API_URL + '?action=getForm&id=' + encodeURIComponent(fId));
+  const data = await res.json();
+  const sorular = Array.isArray(data.form?.sorular) ? data.form.sorular : JSON.parse(data.form?.sorular||'[]');
+  const cevaplar = {};
+  for (const s of sorular) {
+    const el = document.getElementById('s_' + s.id);
+    const val = el ? el.value.trim() : '';
+    if (s.zorunlu && !val) { hata.textContent = `"${s.soru}" zorunlu!`; return; }
+    cevaplar[s.id] = val;
+  }
+  const btn = document.getElementById('gonder-btn');
+  btn.disabled = true; btn.textContent = 'Gönderiliyor...';
+  try {
+    const r = await fetch(API_URL, { method:'POST', headers:{'Content-Type':'text/plain'}, body: JSON.stringify({ action:'saveFormCevap', data: { id: 'fc_'+Date.now(), formId: fId, tarih: new Date().toISOString().slice(0,10), cevaplar, gonderenId: telegramId, gonderenAd: '' } }) });
+    const j = await r.json();
+    if (j.ok) { sonucGoster('✅', 'Teşekkürler!', 'Cevaplarınız kaydedildi.'); }
+    else { btn.disabled = false; btn.textContent = 'Gönder'; hata.textContent = 'Gönderilemedi: ' + (j.error||''); }
+  } catch(e) { btn.disabled = false; btn.textContent = 'Gönder'; hata.textContent = 'Bağlantı hatası.'; }
+}
+// ─────────────────────────────────────────────────────────────────────────────
 
 async function araclariYukle(){
   try{
@@ -116,7 +191,7 @@ async function araclariYukle(){
     document.getElementById('arac').innerHTML = '<option value="">Araçlar yüklenemedi</option>';
   }
 }
-araclariYukle();
+if (!formId) araclariYukle();
 
 let kullaniciListesi = [];
 async function kullanicilariYukle(){
@@ -135,7 +210,7 @@ async function kullanicilariYukle(){
     document.getElementById('kullanan').innerHTML = '<option value="">Liste yüklenemedi</option>';
   }
 }
-kullanicilariYukle();
+if (!formId) kullanicilariYukle();
 
 function kullandiSec(v){
   kullandi = v;

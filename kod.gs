@@ -51,6 +51,15 @@ function sheetKur() {
   }
   sutunGarantile(ss.getSheetByName('Araclar'), ['grup','takip']);
   sutunGarantile(ss.getSheetByName('Kullanicilar'), ['telegramId']);
+  sutunGarantile(ss.getSheetByName('Islemler'), ['litre','lastikler']);
+  if (!ss.getSheetByName('Formlar')) {
+    var sf = ss.insertSheet('Formlar');
+    sf.appendRow(['id','baslik','aciklama','sorular','olusturuldu']);
+  }
+  if (!ss.getSheetByName('FormCevaplari')) {
+    var sfc = ss.insertSheet('FormCevaplari');
+    sfc.appendRow(['id','formId','tarih','cevaplar','gonderenId','gonderenAd']);
+  }
 }
 
 function sutunGarantile(sheet, sutunlar) {
@@ -69,7 +78,21 @@ function sutunGarantile(sheet, sutunlar) {
 function doGet(e) {
   sheetKur();
   if (e.parameter.action === 'getAll') {
-    return jsonOut({ araclar: tabloOku('Araclar'), islemler: tabloOku('Islemler'), kullanicilar: tabloOku('Kullanicilar'), kullanim: tabloOku('Kullanim') });
+    return jsonOut({ araclar: tabloOku('Araclar'), islemler: tabloOku('Islemler'), kullanicilar: tabloOku('Kullanicilar'), kullanim: tabloOku('Kullanim'), formlar: tabloOku('Formlar') });
+  }
+  if (e.parameter.action === 'getForms') {
+    return jsonOut({ formlar: tabloOku('Formlar') });
+  }
+  if (e.parameter.action === 'getForm') {
+    var fId = e.parameter.id;
+    var formlar = tabloOku('Formlar');
+    var form = formlar.filter(function(f){ return f.id === fId; })[0] || null;
+    return jsonOut({ form: form });
+  }
+  if (e.parameter.action === 'getFormCevaplari') {
+    var formId = e.parameter.formId;
+    var tum = tabloOku('FormCevaplari');
+    return jsonOut({ cevaplar: formId ? tum.filter(function(c){ return c.formId === formId; }) : tum });
   }
   if (e.parameter.action === 'formAraclar') {
     var ar = tabloOku('Araclar').map(function(a){ return { id: a.id, plaka: a.plaka, model: a.model }; });
@@ -97,14 +120,19 @@ function doPost(e) {
   if (action === 'deleteIslem')     { satirSil('Islemler', body.id);          return jsonOut({ ok: true }); }
   if (action === 'saveKullanici')   { satirKaydet('Kullanicilar', body.data); return jsonOut({ ok: true }); }
   if (action === 'deleteKullanici') { satirSil('Kullanicilar', body.id);      return jsonOut({ ok: true }); }
-  if (action === 'uploadPhoto')      { return jsonOut(uploadPhoto(body.base64, body.mimeType, body.fileName, body.folder)); }
-  if (action === 'deletePhoto')      { return jsonOut(deletePhoto(body.url)); }
-  if (action === 'moveToTrash')      { return jsonOut(moveToTrashFolder(body.url)); }
+  if (action === 'saveKullanim')    { satirKaydet('Kullanim', body.data);     return jsonOut({ ok: true }); }
+  if (action === 'uploadPhoto')     { return jsonOut(uploadPhoto(body.base64, body.mimeType, body.fileName, body.folder)); }
+  if (action === 'deletePhoto')     { return jsonOut(deletePhoto(body.url)); }
+  if (action === 'moveToTrash')     { return jsonOut(moveToTrashFolder(body.url)); }
+  if (action === 'restoreFromTrash'){ return jsonOut(restoreFromTrash(body.url, body.folder)); }
   if (action === 'telegramAyar')    { return jsonOut(telegramAyarKaydet(body.token, body.admin)); }
   if (action === 'telegramTest')    { return jsonOut(telegramTest()); }
   if (action === 'topluMesaj')      { return jsonOut(topluMesajGonder(body.idler, body.mesaj)); }
   if (action === 'gunSonuKaydet')   { return jsonOut(gunSonuKaydet(body)); }
   if (action === 'gunSonuGonder')   { return jsonOut(gunSonuFormGonder(body.idler)); }
+  if (action === 'saveForm')        { return jsonOut(saveForm(body.data)); }
+  if (action === 'deleteForm')      { satirSil('Formlar', body.id); return jsonOut({ ok: true }); }
+  if (action === 'saveFormCevap')   { return jsonOut(saveFormCevap(body.data)); }
   return jsonOut({ error: 'bilinmeyen action' });
 }
 
@@ -122,7 +150,7 @@ function tabloOku(sheetName) {
     var obj = {};
     for (var j = 0; j < headers.length; j++) {
       var v = values[i][j];
-      if (headers[j] === 'fotolar' || headers[j] === 'lastikler') {
+      if (headers[j] === 'fotolar' || headers[j] === 'lastikler' || headers[j] === 'sorular' || headers[j] === 'cevaplar') {
         try { obj[headers[j]] = v ? JSON.parse(v) : []; } catch (e2) { obj[headers[j]] = []; }
       } else if (headers[j] === 'takip') {
         try { obj[headers[j]] = v ? JSON.parse(v) : {}; } catch (e3) { obj[headers[j]] = {}; }
@@ -143,6 +171,8 @@ function satirKaydet(sheetName, data) {
     if (h === 'fotolar') return JSON.stringify(data.fotolar || []);
     if (h === 'takip') return JSON.stringify(data.takip || {});
     if (h === 'lastikler') return JSON.stringify(data.lastikler || []);
+    if (h === 'sorular') return typeof data.sorular === 'string' ? data.sorular : JSON.stringify(data.sorular || []);
+    if (h === 'cevaplar') return typeof data.cevaplar === 'string' ? data.cevaplar : JSON.stringify(data.cevaplar || {});
     return data[h] !== undefined && data[h] !== null ? data[h] : '';
   });
   for (var i = 1; i < values.length; i++) {
@@ -190,6 +220,23 @@ function moveToTrashFolder(url) {
       }
     }
     copKlasor.addFile(file);
+    return { ok: true };
+  } catch(e) { return { error: e.toString() }; }
+}
+
+// Drive dosyasını Çöp Kutusu'ndan çıkarıp belirtilen klasöre geri taşır
+function restoreFromTrash(url, folderName) {
+  try {
+    var m = String(url || '').match(/[-\w]{25,}/);
+    if (!m) return { error: 'id bulunamadi' };
+    var file = DriveApp.getFileById(m[0]);
+    var hedef = folderName ? getOrCreateSubFolder(folderName) : getOrCreateBelgeFolder();
+    // Mevcut tüm klasörlerden çıkar
+    var parents = file.getParents();
+    while (parents.hasNext()) {
+      try { parents.next().removeFile(file); } catch(e) {}
+    }
+    hedef.addFile(file);
     return { ok: true };
   } catch(e) { return { error: e.toString() }; }
 }
@@ -471,6 +518,28 @@ function tetikleyiciKur() {
   gunler.forEach(function(g) {
     ScriptApp.newTrigger('gunSonuMesajGonder').timeBased().onWeekDay(g).atHour(17).create();
   });
+}
+
+// ================= FORMLAR =================
+function saveForm(data) {
+  if (data.sorular && typeof data.sorular !== 'string') data.sorular = JSON.stringify(data.sorular);
+  satirKaydet('Formlar', data);
+  return { ok: true };
+}
+
+function saveFormCevap(data) {
+  if (data.cevaplar && typeof data.cevaplar !== 'string') data.cevaplar = JSON.stringify(data.cevaplar);
+  satirKaydet('FormCevaplari', data);
+  // Yöneticiye bildirim
+  if (TG_TOKEN() && TG_ADMIN()) {
+    try {
+      var formlar = tabloOku('Formlar');
+      var form = formlar.filter(function(f){ return f.id === data.formId; })[0];
+      var baslik = form ? form.baslik : 'Form';
+      tgGonder(TG_ADMIN(), '📋 <b>' + baslik + '</b> formu dolduruldu\n👤 ' + (data.gonderenAd || 'Bilinmiyor'));
+    } catch(e) {}
+  }
+  return { ok: true };
 }
 
 // NOT: Eski otomatik km-sorma entegrasyonu kaldırıldı; artık Telegram kullanılıyor.
