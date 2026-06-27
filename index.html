@@ -89,6 +89,9 @@
   .arac-card .km-info { font-size: 11px; color: var(--muted); margin-top: 0.4rem; }
   .arac-card { border-left-width: 4px; }
   .grup-baslik { font-size: 12px; font-weight: 700; color: var(--muted); letter-spacing: 0.5px; text-transform: uppercase; padding: 0 2px 4px; }
+  .lastik-kalem-row { display:grid; grid-template-columns:2fr 2fr 1fr 1.5fr auto; gap:6px; align-items:center; margin-bottom:6px; }
+  .lastik-kalem-row input { padding:7px 9px; font-size:13px; }
+  @media(max-width:600px){ .lastik-kalem-row { grid-template-columns:1fr 1fr; } .lastik-kalem-row .kalem-sil { grid-column:1/-1; } }
   .grup-ayrac { display: flex; align-items: center; gap: 10px; margin-top: 0.75rem; padding-bottom: 4px; }
   .grup-ayrac::before { content: ''; flex: 1; height: 1px; background: var(--border); }
   .grup-ayrac span { font-size: 12px; font-weight: 700; color: var(--muted); letter-spacing: 0.5px; text-transform: uppercase; white-space: nowrap; }
@@ -538,6 +541,7 @@
           <option>Onarım</option>
           <option>Yedek Parça</option>
           <option>Bakım</option>
+          <option>Lastik Değişimi</option>
         </select>
       </div>
       <div id="islem-toplam-ozet" style="font-size:13px;color:var(--muted);margin-bottom:1rem"></div>
@@ -758,6 +762,7 @@
             <option>Onarım</option>
             <option>Yedek Parça</option>
             <option>Bakım</option>
+            <option>Lastik Değişimi</option>
           </select>
         </div>
         <div class="form-group">
@@ -802,6 +807,14 @@
           <button type="button" class="btn outline" style="font-size:11px;padding:4px 10px" onclick="sonrakiHesapla('km',15000)">+15.000 km</button>
         </div>
       </div>
+      <!-- Lastik Kalemleri — sadece "Lastik Değişimi" seçilince görünür -->
+      <div class="form-group" id="field-lastik-kalemleri" style="display:none">
+        <label>Lastik Kalemleri</label>
+        <div id="lastik-kalem-list"></div>
+        <button type="button" class="btn outline" style="margin-top:6px;font-size:12px;width:100%" onclick="lastikKalemEkle()">+ Lastik Ekle</button>
+        <div style="font-size:12px;color:var(--muted);margin-top:6px;text-align:right">Toplam: <strong id="lastik-kalem-toplam">₺0</strong></div>
+      </div>
+
       <div class="form-group" id="field-islem-detay">
         <label id="label-islem-detay">Değişen Parça / Detay</label>
         <textarea id="inp-islem-detay" placeholder="Yağ filtresi, hava filtresi..."></textarea>
@@ -1778,9 +1791,31 @@ function lastikSekmesiHTML(a) {
       <div style="display:flex;justify-content:flex-end">
         <button class="btn" onclick="saveLastikBilgi('${a.id}')">💾 Kaydet</button>
       </div>
-      ${lastik.sonDegisim ? `<div style="margin-top:1rem;padding:0.75rem;background:var(--bg3);border-radius:var(--radius-sm);font-size:13px;color:var(--muted)">
+      ${lastik.sonDegisim ? `<div style="margin-top:0.5rem;padding:0.75rem;background:var(--bg3);border-radius:var(--radius-sm);font-size:13px;color:var(--muted)">
         Son değişimden bu yana: <strong style="color:var(--text)">${Math.floor((new Date()-new Date(lastik.sonDegisim))/(1000*60*60*24))} gün</strong>
       </div>` : ''}
+
+      ${(function(){
+        const lastikIslemleri = state.islemler.filter(i => i.aracId === a.id && i.tur === 'Lastik Değişimi' && (i.lastikler||[]).length).sort((x,y) => y.tarih > x.tarih ? 1 : -1);
+        if (!lastikIslemleri.length) return '<div style="margin-top:1rem;font-size:13px;color:var(--muted)">Henüz lastik değişim kaydı yok.</div>';
+        return '<div style="margin-top:1rem"><div style="font-size:13px;font-weight:700;margin-bottom:0.5rem">🔄 Lastik Değişim Geçmişi</div>' +
+          lastikIslemleri.map(i => {
+            const toplam = (i.lastikler||[]).reduce((s,k)=>s+(Number(k.adet)||1)*(Number(k.birimFiyat)||0),0);
+            return `<div style="background:var(--bg3);border-radius:var(--radius-sm);padding:0.75rem;margin-bottom:0.5rem">
+              <div style="display:flex;justify-content:space-between;margin-bottom:0.5rem">
+                <span style="font-size:13px;font-weight:700">${formatTarih(i.tarih)}</span>
+                ${toplam ? `<span style="font-size:13px;color:var(--success);font-weight:700">₺${toplam.toLocaleString('tr-TR')}</span>` : ''}
+              </div>
+              ${(i.lastikler||[]).map(k=>`<div style="font-size:12px;color:var(--muted);display:flex;gap:12px;padding:2px 0">
+                <span style="color:var(--text);font-weight:600">${k.marka||'?'}</span>
+                <span>${k.ebat||''}</span>
+                <span>${k.adet||1} adet</span>
+                ${k.birimFiyat?`<span>₺${Number(k.birimFiyat).toLocaleString('tr-TR')} / adet</span>`:''}
+              </div>`).join('')}
+              ${i.detay||i.not?`<div style="font-size:11px;color:var(--muted);margin-top:4px">${i.not||i.detay}</div>`:''}
+            </div>`;
+          }).join('') + '</div>';
+      })()}
     </div>`;
 }
 
@@ -2220,6 +2255,7 @@ const ISLEM_FIELD_CONFIG = {
   'Onarım':            { km: true,  bitis: false, sonraki: false, detay: true },
   'Yedek Parça':       { km: true,  bitis: false, sonraki: false, detay: true },
   'Bakım':             { km: true,  bitis: false, sonraki: true,  detay: true },
+  'Lastik Değişimi':   { km: true,  bitis: false, sonraki: false, detay: true, lastik: true },
 };
 const ISLEM_BITIS_LABEL = {
   'Fenni Muayene + Egzoz': 'Muayene/Egzoz Bitiş Tarihi *',
@@ -2258,13 +2294,61 @@ function updateIslemFormFields() {
   fieldDetay.style.display = cfg.detay ? '' : 'none';
 
   labelBitis.textContent = ISLEM_BITIS_LABEL[tur] || 'Bitiş / Geçerlilik Tarihi';
-  labelDetay.textContent = tur === 'Yedek Parça' ? 'Değişen Parça' : 'Değişen Parça / Detay';
+  labelDetay.textContent = tur === 'Yedek Parça' ? 'Değişen Parça' : tur === 'Lastik Değişimi' ? 'Ek Not' : 'Değişen Parça / Detay';
+
+  // Lastik kalemleri alanını göster/gizle
+  const lastikAlani = document.getElementById('field-lastik-kalemleri');
+  if (lastikAlani) lastikAlani.style.display = cfg.lastik ? '' : 'none';
+  if (!cfg.lastik) lastikKalemleri = [];
 
   // Gizlenen alanları temizle ki yanlışlıkla eski veri kaydedilmesin
   if (!cfg.km) document.getElementById('inp-islem-km').value = '';
   if (!cfg.bitis) document.getElementById('inp-islem-bitis').value = '';
   if (!cfg.sonraki) { document.getElementById('inp-sonraki-km').value = ''; document.getElementById('inp-sonraki-tarih').value = ''; }
   if (!cfg.detay) document.getElementById('inp-islem-detay').value = '';
+}
+
+// ===== LASTİK KALEMLERİ =====
+let lastikKalemleri = []; // [{marka, ebat, adet, birimFiyat}]
+
+function lastikKalemEkle() {
+  lastikKalemleri.push({ marka: '', ebat: '', adet: 4, birimFiyat: '' });
+  renderLastikKalemler();
+}
+
+function lastikKalemSil(idx) {
+  lastikKalemleri.splice(idx, 1);
+  renderLastikKalemler();
+}
+
+function renderLastikKalemler() {
+  const list = document.getElementById('lastik-kalem-list');
+  if (!list) return;
+  if (!lastikKalemleri.length) {
+    list.innerHTML = '<div style="font-size:12px;color:var(--muted);padding:6px 0">Henüz lastik eklenmedi. "+ Lastik Ekle" ile ekleyin.</div>';
+    document.getElementById('lastik-kalem-toplam').textContent = '₺0';
+    return;
+  }
+  list.innerHTML = lastikKalemleri.map((k, i) => `
+    <div class="lastik-kalem-row">
+      <input placeholder="Marka (Michelin...)" value="${k.marka||''}" oninput="lastikKalemleri[${i}].marka=this.value">
+      <input placeholder="Ebat (205/55 R16)" value="${k.ebat||''}" oninput="lastikKalemleri[${i}].ebat=this.value">
+      <input type="number" placeholder="Adet" value="${k.adet||''}" min="1" max="8" style="max-width:70px"
+             oninput="lastikKalemleri[${i}].adet=Number(this.value);lastikToplamGuncelle()">
+      <input type="number" placeholder="Birim ₺" value="${k.birimFiyat||''}"
+             oninput="lastikKalemleri[${i}].birimFiyat=Number(this.value);lastikToplamGuncelle()">
+      <button type="button" class="btn danger kalem-sil" style="padding:5px 9px;font-size:12px" onclick="lastikKalemSil(${i})">✕</button>
+    </div>`).join('');
+  lastikToplamGuncelle();
+}
+
+function lastikToplamGuncelle() {
+  const toplam = lastikKalemleri.reduce((s, k) => s + (Number(k.adet)||1) * (Number(k.birimFiyat)||0), 0);
+  const el = document.getElementById('lastik-kalem-toplam');
+  if (el) el.textContent = '₺' + toplam.toLocaleString('tr-TR');
+  // Toplam maliyeti otomatik doldur
+  const malEl = document.getElementById('inp-islem-maliyet');
+  if (malEl && toplam > 0) malEl.value = toplam;
 }
 
 // İŞLEM KAYIT
@@ -2285,14 +2369,17 @@ function openIslemModal(aracId, islemId) {
     document.getElementById('inp-islem-detay').value = i.detay || '';
     document.getElementById('inp-islem-not').value = i.not || '';
     islemBelgeGecici = (i.fotolar || []).slice();
+    lastikKalemleri = (i.lastikler || []).map(k => ({...k}));
   } else {
     fields.forEach(f => document.getElementById(f).value = '');
     document.getElementById('inp-islem-tarih').value = new Date().toISOString().slice(0,10);
     islemBelgeGecici = [];
+    lastikKalemleri = [];
   }
   const _arac = state.araclar.find(x => x.id === document.getElementById('islem-arac-id').value);
   document.getElementById('inp-guncel-km').value = _arac ? (_arac.km || '') : '';
   renderIslemBelgePreview();
+  renderLastikKalemler();
   updateIslemFormFields();
   document.getElementById('islem-modal').classList.add('open');
 }
@@ -2324,7 +2411,7 @@ function saveIslem() {
     const arc = state.araclar.find(x => x.id === aracId);
     if (arc && String(arc.km || '') !== guncelKm) { arc.km = guncelKm; syncArac(arc); }
   }
-  const base = { aracId, tarih, km: document.getElementById('inp-islem-km').value, maliyet: document.getElementById('inp-islem-maliyet').value, bitis: document.getElementById('inp-islem-bitis').value, sonrakiKm: document.getElementById('inp-sonraki-km').value, sonrakiTarih: document.getElementById('inp-sonraki-tarih').value, detay: document.getElementById('inp-islem-detay').value, not: document.getElementById('inp-islem-not').value, fotolar: islemBelgeGecici.slice() };
+  const base = { aracId, tarih, km: document.getElementById('inp-islem-km').value, maliyet: document.getElementById('inp-islem-maliyet').value, bitis: document.getElementById('inp-islem-bitis').value, sonrakiKm: document.getElementById('inp-sonraki-km').value, sonrakiTarih: document.getElementById('inp-sonraki-tarih').value, detay: document.getElementById('inp-islem-detay').value, not: document.getElementById('inp-islem-not').value, fotolar: islemBelgeGecici.slice(), lastikler: tur === 'Lastik Değişimi' ? lastikKalemleri.filter(k => k.marka || k.ebat) : [] };
 
   if (tur === 'Fenni Muayene + Egzoz' && !id) {
     // Fenni muayene ve egzoz tek seferde iki ayrı kayıt olarak eklenir (aynı tarih/bitiş)

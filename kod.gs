@@ -122,7 +122,7 @@ function tabloOku(sheetName) {
     var obj = {};
     for (var j = 0; j < headers.length; j++) {
       var v = values[i][j];
-      if (headers[j] === 'fotolar') {
+      if (headers[j] === 'fotolar' || headers[j] === 'lastikler') {
         try { obj[headers[j]] = v ? JSON.parse(v) : []; } catch (e2) { obj[headers[j]] = []; }
       } else if (headers[j] === 'takip') {
         try { obj[headers[j]] = v ? JSON.parse(v) : {}; } catch (e3) { obj[headers[j]] = {}; }
@@ -142,6 +142,7 @@ function satirKaydet(sheetName, data) {
   var satir = headers.map(function(h) {
     if (h === 'fotolar') return JSON.stringify(data.fotolar || []);
     if (h === 'takip') return JSON.stringify(data.takip || {});
+    if (h === 'lastikler') return JSON.stringify(data.lastikler || []);
     return data[h] !== undefined && data[h] !== null ? data[h] : '';
   });
   for (var i = 1; i < values.length; i++) {
