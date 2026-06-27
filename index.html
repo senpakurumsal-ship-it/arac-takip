@@ -209,9 +209,6 @@
   .empty-icon { font-size: 48px; margin-bottom: 1rem; opacity: 0.4; }
 
   /* KM GÜNCELLE */
-  .km-modal-display { text-align: center; padding: 1.5rem 0; }
-  .km-modal-display .km-eski { font-size: 13px; color: var(--muted); margin-bottom: 8px; }
-  .km-modal-display .km-input-big { font-size: 28px; font-weight: 700; text-align: center; padding: 0.75rem; }
 
   @media (max-width: 600px) {
     .app-shell { display: block; }
@@ -1024,25 +1021,6 @@
 <style>@keyframes spin { to { transform: rotate(360deg); } }</style>
 
 <!-- KM GÜNCELLEME MODAL -->
-<div class="overlay" id="km-modal">
-  <div class="modal" style="max-width:380px">
-    <div class="modal-header">
-      <div class="modal-title">KM Güncelle</div>
-      <button class="modal-close" onclick="closeModal('km-modal')">✕</button>
-    </div>
-    <div class="modal-body">
-      <input type="hidden" id="km-arac-id">
-      <div class="km-modal-display">
-        <div class="km-eski" id="km-eski-deger">Mevcut: -</div>
-        <input id="inp-km-yeni" type="number" class="km-input-big" placeholder="0" inputmode="numeric">
-      </div>
-      <div class="form-actions">
-        <button class="btn outline" onclick="closeModal('km-modal')">İptal</button>
-        <button class="btn" onclick="saveKm()">Güncelle</button>
-      </div>
-    </div>
-  </div>
-</div>
 
 <!-- FOTOĞRAF GÖRÜNTÜLEME MODAL -->
 <div class="overlay" id="foto-modal" onclick="closeModal('foto-modal')">
@@ -1334,11 +1312,12 @@ async function tumVeriyiSheetseYaz() {
   }
 }
 
-function showPage(name, btn) {
+function showPage(name, btn, skipHistory) {
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.getElementById('page-' + name).classList.add('active');
   document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
   if (btn) btn.classList.add('active');
+  else document.querySelectorAll('.nav-btn').forEach(b => { if (b.getAttribute('onclick') && b.getAttribute('onclick').includes("'" + name + "'")) b.classList.add('active'); });
   if (name === 'hatirlatmalar') renderHatirlatmalar();
   if (name === 'islemler') renderTumIslemler();
   if (name === 'araclar') renderAraclar();
@@ -1346,6 +1325,7 @@ function showPage(name, btn) {
   if (name === 'cop') renderCop();
   if (name === 'mesajlar') renderMesajlar();
   closeMobileSidebar();
+  if (!skipHistory) history.pushState({ page: name }, '', '#' + name);
 }
 
 // SIDEBAR / MOBİL MENÜ
@@ -1574,7 +1554,7 @@ function getAracTarihler(aracId) {
   });
 }
 
-function showDetay(aracId) {
+function showDetay(aracId, skipHistory) {
   currentAracId = aracId;
   const a = state.araclar.find(x => x.id === aracId);
   if (!a) return;
@@ -1582,6 +1562,7 @@ function showDetay(aracId) {
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.getElementById('page-detay').classList.add('active');
   renderDetay(a);
+  if (!skipHistory) history.pushState({ page: 'detay', aracId }, '', '#detay-' + aracId);
 }
 
 function renderDetay(a) {
@@ -1621,7 +1602,6 @@ function renderDetay(a) {
       </div>
       <div style="display:flex;gap:8px;flex-wrap:wrap;margin-left:auto">
         <button class="btn outline" onclick="editArac('${a.id}')">✏️ Düzenle</button>
-        <button class="btn outline" onclick="openKmModal('${a.id}')">📏 KM Güncelle</button>
         <button class="btn" onclick="openIslemModal('${a.id}')">+ İşlem Ekle</button>
         <button class="btn danger" onclick="silArac('${a.id}')">Sil</button>
       </div>
@@ -1880,35 +1860,30 @@ function urlKullanimSayisi(url) {
   state.islemler.forEach(i => (i.fotolar || []).forEach(f => { if (f === url) n++; }));
   return n;
 }
-// Artık kullanılmayan bir Drive dosyasını çöpe atar (base64/yerel ise dokunmaz)
-function driveDosyaSil(url) {
-  if (!url || String(url).indexOf('data:') === 0) return;
-  if (urlKullanimSayisi(url) > 0) return; // hâlâ başka yerde kullanılıyor
-  if (!String(url).includes('drive.google.com') && !String(url).includes('googleusercontent')) return;
-  apiCall('deletePhoto', { url }).catch(() => {});
-}
 
 function fotoSil(idx) {
   const item = _tumFotolarRef[idx];
-  if (!item || !confirm('Bu fotoğraf silinsin mi? (Drive\'dan da çöpe gider)')) return;
+  if (!item || !confirm('Bu fotoğraf çöp kutusuna taşınsın mı?')) return;
   const islem = state.islemler.find(i => i.id === item.islemId);
   if (!islem) return;
   islem.fotolar = islem.fotolar.filter(f => f !== item.url);
   const a = state.araclar.find(x => x.id === islem.aracId);
   if (a && a.anaFoto === item.url) { a.anaFoto = ''; syncArac(a); }
-  save();
-  syncIslem(islem);
-  driveDosyaSil(item.url);
+  state.cop.unshift({ id: uid(), tip: 'foto', silindi: new Date().toISOString(), veri: { url: item.url, islemId: item.islemId, aracId: islem.aracId } });
+  save(); syncIslem(islem); updateCopBadge();
+  // Drive'da "Çöp Kutusu" klasörüne taşı
+  if (item.url && !item.url.startsWith('data:')) apiCall('moveToTrash', { url: item.url }).catch(() => {});
   if (a) renderDetay(a);
 }
 
 function aracFotoSil(aracId) {
   const a = state.araclar.find(x => x.id === aracId);
-  if (!a || !confirm('Ana fotoğraf silinsin mi?')) return;
+  if (!a || !confirm('Ana fotoğraf çöp kutusuna taşınsın mı?')) return;
   const eski = a.anaFoto;
   a.anaFoto = '';
-  save(); renderDetay(a); syncArac(a);
-  driveDosyaSil(eski);
+  state.cop.unshift({ id: uid(), tip: 'foto', silindi: new Date().toISOString(), veri: { url: eski, islemId: null, aracId } });
+  save(); renderDetay(a); syncArac(a); updateCopBadge();
+  if (eski && !eski.startsWith('data:')) apiCall('moveToTrash', { url: eski }).catch(() => {});
 }
 
 // Drive görsel URL'ini <img> içinde çalışan thumbnail formatına çevirir.
@@ -2065,6 +2040,11 @@ function silArac(id) {
   syncDeleteArac(id);
   aracIslemleri.forEach(i => syncDeleteIslem(i.id));
   updateCopBadge();
+  // Tüm Drive fotoğraflarını çöp klasörüne taşı
+  const tumUrller = [];
+  if (arac.anaFoto) tumUrller.push(arac.anaFoto);
+  aracIslemleri.forEach(i => (i.fotolar || []).forEach(f => tumUrller.push(f)));
+  tumUrller.filter(u => u && !u.startsWith('data:')).forEach(u => apiCall('moveToTrash', { url: u }).catch(() => {}));
 }
 
 function silIslemKaydi(id, sessiz) {
@@ -2075,6 +2055,8 @@ function silIslemKaydi(id, sessiz) {
   save();
   syncDeleteIslem(id);
   updateCopBadge();
+  // İşlemin Drive fotoğraflarını çöp klasörüne taşı
+  (islem.fotolar || []).filter(u => u && !u.startsWith('data:')).forEach(u => apiCall('moveToTrash', { url: u }).catch(() => {}));
 }
 
 // KULLANICILAR
@@ -2156,36 +2138,6 @@ async function syncDeleteKullanici(id) {
   await apiCall('deleteKullanici', { id });
 }
 
-// KM GÜNCELLEME
-function openKmModal(aracId) {
-  const a = state.araclar.find(x => x.id === aracId);
-  if (!a) return;
-  document.getElementById('km-arac-id').value = aracId;
-  document.getElementById('km-eski-deger').textContent = 'Mevcut: ' + (a.km ? Number(a.km).toLocaleString('tr-TR') + ' km' : 'Kayıt yok');
-  document.getElementById('inp-km-yeni').value = a.km || '';
-  document.getElementById('km-modal').classList.add('open');
-  setTimeout(() => document.getElementById('inp-km-yeni').focus(), 100);
-}
-
-function saveKm() {
-  const aracId = document.getElementById('km-arac-id').value;
-  const yeniKm = document.getElementById('inp-km-yeni').value;
-  if (!yeniKm) { alert('KM değeri girin!'); return; }
-  const a = state.araclar.find(x => x.id === aracId);
-  if (!a) return;
-  const eskiKm = a.km;
-  if (eskiKm && Number(yeniKm) < Number(eskiKm)) {
-    if (!confirm('Girdiğiniz KM mevcut değerden düşük. Yine de kaydedilsin mi?')) return;
-  } else {
-    if (!confirm('Yeni KM kaydedilsin mi?')) return;
-  }
-  a.km = yeniKm;
-  save();
-  closeModal('km-modal');
-  renderAraclar();
-  if (currentAracId === aracId) renderDetay(a);
-  syncArac(a);
-}
 
 // İŞLEM BELGE (fatura/makbuz) YÖNETİMİ
 let islemBelgeGecici = [];
@@ -2439,8 +2391,13 @@ function renderCop() {
     const tarih = new Date(c.silindi).toLocaleString('tr-TR', { day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit' });
     let baslik, alt;
     if (c.tip === 'arac') {
+      const fotoCnt = (c.veri.anaFoto ? 1 : 0) + (c.islemler || []).reduce((s,i)=>s+(i.fotolar||[]).length,0);
       baslik = '🚘 ' + (c.veri.plaka || '?') + ' — ' + (c.veri.model || '');
-      alt = (c.islemler ? c.islemler.length : 0) + ' işlem kaydı ile birlikte';
+      alt = (c.islemler ? c.islemler.length : 0) + ' işlem' + (fotoCnt ? ', ' + fotoCnt + ' fotoğraf' : '');
+    } else if (c.tip === 'foto') {
+      const a = state.araclar.find(x => x.id === c.veri.aracId);
+      baslik = '🖼️ Fotoğraf' + (a ? ' · ' + a.plaka : '');
+      alt = c.veri.islemId ? 'İşlem görseli' : 'Ana fotoğraf';
     } else {
       const a = state.araclar.find(x => x.id === c.veri.aracId);
       baslik = '📋 ' + (c.veri.tur || 'İşlem') + (a ? ' · ' + a.plaka : '');
@@ -2464,7 +2421,16 @@ function renderCop() {
 function copGeriYukle(copId) {
   const c = state.cop.find(x => x.id === copId);
   if (!c) return;
-  if (c.tip === 'arac') {
+  if (c.tip === 'foto') {
+    // Fotoğrafı ilgili işleme geri ekle
+    if (c.veri.islemId) {
+      const islem = state.islemler.find(i => i.id === c.veri.islemId);
+      if (islem) { islem.fotolar = islem.fotolar || []; islem.fotolar.push(c.veri.url); syncIslem(islem); }
+    } else if (c.veri.aracId) {
+      const a = state.araclar.find(x => x.id === c.veri.aracId);
+      if (a) { a.anaFoto = c.veri.url; syncArac(a); }
+    }
+  } else if (c.tip === 'arac') {
     state.araclar.push(c.veri);
     syncArac(c.veri);
     (c.islemler || []).forEach(i => { state.islemler.push(i); syncIslem(i); });
@@ -2481,19 +2447,35 @@ function copGeriYukle(copId) {
 
 function copKaliciSil(copId) {
   const c = state.cop.find(x => x.id === copId);
-  if (!c || !confirm('Bu kayıt kalıcı olarak silinecek. Fotoğrafları da Drive\'dan çöpe gidecek. Emin misiniz?')) return;
-  // İlgili Drive fotoğraflarını çöpe at
+  if (!c || !confirm('Kalıcı silinecek. Drive\'dan da kaldırılacak. Emin misiniz?')) return;
   const urller = [];
-  if (c.tip === 'arac') {
+  if (c.tip === 'foto') {
+    urller.push(c.veri.url);
+  } else if (c.tip === 'arac') {
     if (c.veri.anaFoto) urller.push(c.veri.anaFoto);
     (c.islemler || []).forEach(i => (i.fotolar || []).forEach(f => urller.push(f)));
   } else {
     (c.veri.fotolar || []).forEach(f => urller.push(f));
   }
-  urller.forEach(u => { if (u && String(u).indexOf('data:') !== 0) apiCall('deletePhoto', { url: u }).catch(() => {}); });
+  urller.filter(u => u && !u.startsWith('data:')).forEach(u => apiCall('deletePhoto', { url: u }).catch(() => {}));
   state.cop = state.cop.filter(x => x.id !== copId);
-  save();
-  renderCop();
+  save(); renderCop();
+}
+
+function copTumunuSil() {
+  if (!state.cop.length || !confirm('Çöp kutusundaki TÜM kayıtlar kalıcı silinecek. Emin misiniz?')) return;
+  const urller = [];
+  state.cop.forEach(c => {
+    if (c.tip === 'foto') urller.push(c.veri.url);
+    else if (c.tip === 'arac') {
+      if (c.veri.anaFoto) urller.push(c.veri.anaFoto);
+      (c.islemler || []).forEach(i => (i.fotolar || []).forEach(f => urller.push(f)));
+    } else {
+      (c.veri.fotolar || []).forEach(f => urller.push(f));
+    }
+  });
+  urller.filter(u => u && !u.startsWith('data:')).forEach(u => apiCall('deletePhoto', { url: u }).catch(() => {}));
+  state.cop = []; save(); renderCop();
 }
 
 // MESAJLAR (Telegram toplu mesaj)
@@ -2568,22 +2550,6 @@ function renderMesajGecmis() {
     }).join('');
 }
 
-function copTumunuSil() {
-  if (!state.cop.length || !confirm('Çöp kutusundaki TÜM kayıtlar kalıcı silinecek. Emin misiniz?')) return;
-  const urller = [];
-  state.cop.forEach(c => {
-    if (c.tip === 'arac') {
-      if (c.veri.anaFoto) urller.push(c.veri.anaFoto);
-      (c.islemler || []).forEach(i => (i.fotolar || []).forEach(f => urller.push(f)));
-    } else {
-      (c.veri.fotolar || []).forEach(f => urller.push(f));
-    }
-  });
-  urller.forEach(u => { if (u && String(u).indexOf('data:') !== 0) apiCall('deletePhoto', { url: u }).catch(() => {}); });
-  state.cop = [];
-  save();
-  renderCop();
-}
 
 // HATIRLATMALAR
 function hatItemHTML(item) {
@@ -3318,8 +3284,19 @@ async function seedVerileriYukle(zorla) {
   }
 }
 
+// Geri tuşu: sayfa/detay geçişlerini History API ile yönet
+window.addEventListener('popstate', e => {
+  const s = e.state;
+  if (!s) { showPage('araclar', null, true); return; }
+  if (s.page === 'detay' && s.aracId) { showDetay(s.aracId, true); }
+  else if (s.page) { showPage(s.page, null, true); }
+  else { showPage('araclar', null, true); }
+});
+
 async function init() {
   checkLogin();
+  // Başlangıç state: geri tuşu uygulamadan çıkmasın
+  history.replaceState({ page: 'araclar' }, '', '#araclar');
   renderAraclar();
   updateBadge();
   updateDurumIndicators();

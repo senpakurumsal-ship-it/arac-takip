@@ -97,8 +97,9 @@ function doPost(e) {
   if (action === 'deleteIslem')     { satirSil('Islemler', body.id);          return jsonOut({ ok: true }); }
   if (action === 'saveKullanici')   { satirKaydet('Kullanicilar', body.data); return jsonOut({ ok: true }); }
   if (action === 'deleteKullanici') { satirSil('Kullanicilar', body.id);      return jsonOut({ ok: true }); }
-  if (action === 'uploadPhoto')     { return jsonOut(uploadPhoto(body.base64, body.mimeType, body.fileName, body.folder)); }
-  if (action === 'deletePhoto')     { return jsonOut(deletePhoto(body.url)); }
+  if (action === 'uploadPhoto')      { return jsonOut(uploadPhoto(body.base64, body.mimeType, body.fileName, body.folder)); }
+  if (action === 'deletePhoto')      { return jsonOut(deletePhoto(body.url)); }
+  if (action === 'moveToTrash')      { return jsonOut(moveToTrashFolder(body.url)); }
   if (action === 'telegramAyar')    { return jsonOut(telegramAyarKaydet(body.token, body.admin)); }
   if (action === 'telegramTest')    { return jsonOut(telegramTest()); }
   if (action === 'topluMesaj')      { return jsonOut(topluMesajGonder(body.idler, body.mesaj)); }
@@ -162,7 +163,7 @@ function satirSil(sheetName, id) {
 
 // ================= DRIVE =================
 function getOrCreateBelgeFolder() {
-  var name = 'Araç Takip Belgeler';
+  var name = 'Şenpa Panel';
   var folders = DriveApp.getFoldersByName(name);
   return folders.hasNext() ? folders.next() : DriveApp.createFolder(name);
 }
@@ -171,6 +172,28 @@ function getOrCreateSubFolder(subName) {
   var folders = parent.getFoldersByName(subName);
   return folders.hasNext() ? folders.next() : parent.createFolder(subName);
 }
+
+// Fotoğrafı "Şenpa Panel/Çöp Kutusu" klasörüne taşır (silinebilir ama kurtarılabilir)
+function moveToTrashFolder(url) {
+  try {
+    var m = String(url || '').match(/[-\w]{25,}/);
+    if (!m) return { error: 'id bulunamadi' };
+    var file = DriveApp.getFileById(m[0]);
+    var copKlasor = getOrCreateSubFolder('Çöp Kutusu');
+    // Eski klasörlerden çıkar, çöpe taşı
+    var parents = file.getParents();
+    while (parents.hasNext()) {
+      var p = parents.next();
+      if (p.getId() !== copKlasor.getId()) {
+        try { p.removeFile(file); } catch(e) {}
+      }
+    }
+    copKlasor.addFile(file);
+    return { ok: true };
+  } catch(e) { return { error: e.toString() }; }
+}
+
+// Drive'dan kalıcı olarak sil (Drive çöpüne gider, 30 günde otomatik temizlenir)
 function deletePhoto(url) {
   try {
     var m = String(url || '').match(/[-\w]{25,}/);
