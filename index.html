@@ -88,6 +88,11 @@
   .badge.danger { background: var(--red-bg); color: var(--danger); border: 1px solid rgba(239,68,68,0.3); }
   .arac-card .km-info { font-size: 11px; color: var(--muted); margin-top: 0.4rem; }
   .arac-card { border-left-width: 4px; }
+  .grup-baslik { font-size: 12px; font-weight: 700; color: var(--muted); letter-spacing: 0.5px; text-transform: uppercase; padding: 0 2px 4px; }
+  .grup-ayrac { display: flex; align-items: center; gap: 10px; margin-top: 0.75rem; padding-bottom: 4px; }
+  .grup-ayrac::before { content: ''; flex: 1; height: 1px; background: var(--border); }
+  .grup-ayrac span { font-size: 12px; font-weight: 700; color: var(--muted); letter-spacing: 0.5px; text-transform: uppercase; white-space: nowrap; }
+  .grup-ayrac::after { content: ''; flex: 1; height: 1px; background: var(--border); }
   .eksik-nokta { position: absolute; top: 12px; right: 12px; width: 11px; height: 11px; border-radius: 50%; background: var(--danger); box-shadow: 0 0 0 3px rgba(239,68,68,0.18); }
   .ariza-rozet { position: absolute; top: 9px; right: 28px; font-size: 13px; line-height: 1; }
   .grup-etiket { font-size: 11px; font-weight: 700; margin-bottom: 0.55rem; display: inline-flex; align-items: center; gap: 5px; }
@@ -1525,7 +1530,9 @@ function renderAraclar() {
     updateBadge();
     return;
   }
-  grid.innerHTML = sirali.map(a => {
+  let oncekiGrup = null;
+  const parcalar = [];
+  sirali.forEach(a => {
     const tarihler = getAracTarihler(a.id);
     const badges = tarihler.filter(t => t.bitis && turTakipEdiliyor(a, t.ad)).map(t => {
       const gun = gunFark(t.bitis);
@@ -1536,7 +1543,13 @@ function renderAraclar() {
     const eksikler = getAracEksikler(a);
     const renk = grupRenk(a);
     const arizaVar = state.islemler.some(i => i.aracId === a.id && i.tur === 'Arıza Bildirimi');
-    return `<div class="arac-card" onclick="showDetay('${a.id}')" style="border-color:${renk}">
+    const grup = a.grup || '';
+    if (!aracFiltreGrup && grup !== oncekiGrup) {
+      if (oncekiGrup !== null) parcalar.push(`<div class="grup-ayrac" style="grid-column:1/-1"><span>${grup}</span></div>`);
+      else parcalar.push(`<div class="grup-baslik" style="grid-column:1/-1">${grup}</div>`);
+      oncekiGrup = grup;
+    }
+    parcalar.push(`<div class="arac-card" onclick="showDetay('${a.id}')" style="border-color:${renk}">
       ${eksikler.length ? `<span class="eksik-nokta" title="${eksikler.join(', ')}"></span>` : ''}
       ${arizaVar ? `<span class="ariza-rozet" title="Şoför arıza bildirdi">⚠️</span>` : ''}
       ${a.grup ? `<div class="grup-etiket" style="color:${renk}">${a.grup}</div>` : ''}
@@ -1545,8 +1558,9 @@ function renderAraclar() {
       <div class="badges">${badges || '<span class="badge ok">Tümü geçerli</span>'}</div>
       ${a.kullanici ? `<div class="km-info">👤 ${a.kullanici}</div>` : ''}
       ${a.km ? `<div class="km-info">📏 ${Number(a.km).toLocaleString('tr-TR')} km</div>` : ''}
-    </div>`;
-  }).join('');
+    </div>`);
+  });
+  grid.innerHTML = parcalar.join('');
   updateBadge();
 }
 
