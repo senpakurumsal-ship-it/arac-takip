@@ -159,6 +159,7 @@
   .tab:hover:not(.active) { color: var(--text); }
   .tab-content { display: none; }
   .tab-content.active { display: block; }
+  .tab-dd-btn { display: none; }
 
   /* DATE ROWS */
   .date-table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
@@ -247,8 +248,15 @@
     .section-header { flex-wrap: wrap; gap: 0.6rem; }
     .modal { border-radius: 0; max-width: 100%; min-height: 100vh; }
     .overlay { padding: 0; }
-    .tabs { overflow-x: auto; -webkit-overflow-scrolling: touch; flex-wrap: nowrap; }
-    .tab { flex-shrink: 0; padding: 0.6rem 0.8rem; font-size: 12px; }
+    /* Sekmeler mobilde açılır buton (dropdown) olur */
+    .tab-dd-btn { display: flex; align-items: center; justify-content: space-between; width: 100%; background: var(--bg3); border: 1px solid var(--border); color: var(--text); font-size: 14px; font-weight: 600; padding: 0.7rem 1rem; border-radius: var(--radius-sm); cursor: pointer; margin-bottom: 0.5rem; }
+    .tab-dd-caret { color: var(--muted); transition: transform 0.2s; font-size: 12px; }
+    .tab-dd-btn.open .tab-dd-caret { transform: rotate(180deg); }
+    .tabs { display: none; flex-direction: column; gap: 0; flex-wrap: nowrap; border: 1px solid var(--border); border-radius: var(--radius-sm); overflow: hidden; margin-bottom: 1.25rem; }
+    .tabs.dd-open { display: flex; }
+    .tab { width: 100%; flex-shrink: 0; text-align: left; padding: 0.75rem 1rem; font-size: 13.5px; border-bottom: 1px solid var(--border); margin-bottom: 0; }
+    .tabs .tab:last-child { border-bottom: none; }
+    .tab.active { background: rgba(79,110,247,0.12); border-bottom-color: var(--border); }
     input, select, textarea { font-size: 16px; }
     .arac-grid { grid-template-columns: 1fr; }
     .kullanici-grid { grid-template-columns: 1fr; }
@@ -1743,7 +1751,10 @@ function renderDetay(a) {
       </div>
     </div>
 
-    <div class="tabs">
+    <button type="button" class="tab-dd-btn" id="tab-dd-btn" onclick="toggleTabDropdown()">
+      <span id="tab-dd-label">📅 Özet</span><span class="tab-dd-caret">▼</span>
+    </button>
+    <div class="tabs" id="detay-tabs">
       <button class="tab active" onclick="switchTab('tarihler',this)">📅 Özet</button>
       <button class="tab" onclick="switchTab('muayene-egzoz',this)">🔧 Muayene & Egzoz</button>
       <button class="tab" onclick="switchTab('sigorta-kasko',this)">🛡️ Sigorta & Kasko</button>
@@ -2053,6 +2064,21 @@ function switchTab(name, btn) {
   document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
   btn.classList.add('active');
   document.getElementById('tab-' + name).classList.add('active');
+  // Mobil dropdown: seçilen sekme adını butona yaz ve menüyü kapat
+  const lbl = document.getElementById('tab-dd-label');
+  if (lbl) lbl.textContent = btn.textContent.trim();
+  const tabs = document.getElementById('detay-tabs');
+  const ddBtn = document.getElementById('tab-dd-btn');
+  if (tabs) tabs.classList.remove('dd-open');
+  if (ddBtn) ddBtn.classList.remove('open');
+}
+
+function toggleTabDropdown() {
+  const tabs = document.getElementById('detay-tabs');
+  const ddBtn = document.getElementById('tab-dd-btn');
+  if (!tabs) return;
+  const acik = tabs.classList.toggle('dd-open');
+  if (ddBtn) ddBtn.classList.toggle('open', acik);
 }
 
 let _tumFotolarRef = [];
@@ -3805,15 +3831,25 @@ function renderFormSorular() {
     </div>`).join('');
 }
 
-function saveFormYeni() {
+async function saveFormYeni() {
   const baslik = document.getElementById('inp-form-baslik').value.trim();
   if (!baslik) { alert('Form başlığı zorunlu!'); return; }
   const id = document.getElementById('form-edit-id').value || uid();
   const formObj = { id, baslik, aciklama: document.getElementById('inp-form-aciklama').value.trim(), sorular: _formSorular.filter(s => s.soru.trim()), olusturuldu: new Date().toISOString().slice(0,10) };
   const idx = state.formlar.findIndex(f => f.id === id);
   if (idx >= 0) state.formlar[idx] = formObj; else state.formlar.push(formObj);
-  save(); closeModal('form-builder-modal'); renderMesajFormlar();
-  apiCall('saveForm', { data: formObj }).catch(() => {});
+  save(); renderMesajFormlar();
+  // Buluta yaz ve doğrula — form telefonda açılabilmesi için Sheets'te olmalı
+  if (API_URL) {
+    showLoading('Form buluta kaydediliyor...');
+    const r = await apiCall('saveForm', { data: formObj });
+    hideLoading();
+    if (!r || !r.ok) {
+      alert('⚠️ Form yerel olarak kaydedildi ama buluta yazılamadı.\n\nBu form şu an telefonlarda "bulunamadı" hatası verebilir. İnternet bağlantını kontrol edip formu tekrar kaydet.');
+      return;
+    }
+  }
+  closeModal('form-builder-modal');
 }
 
 function formLinkKopyala(link) {
@@ -3828,6 +3864,9 @@ async function formTelegramGonder(formId, baslik) {
   const link = `${location.origin}${location.pathname.replace('index.html','').replace(/\/$/,'')}/form.html?form=${formId}`;
   const mesaj = `📋 <b>${baslik}</b>\nAşağıdaki formu doldurmanızı rica ederiz:`;
   showLoading('Gönderiliyor...');
+  // Form Sheets'te güncel olsun (eski formlar yerelde kalmış olabilir) — gönderimden önce yaz
+  const form = state.formlar.find(f => f.id === formId);
+  if (form) { const sr = await apiCall('saveForm', { data: form }); if (!sr || !sr.ok) { hideLoading(); alert('⚠️ Form buluta yazılamadı, gönderim iptal edildi. Telefonlarda "bulunamadı" hatası vermemesi için önce bağlantını kontrol et.'); return; } }
   const r = await apiCall('topluMesaj', { idler: hedefler, mesaj: mesaj + '\n\n' + link });
   hideLoading();
   const sonuc = document.getElementById('mesaj-sonuc');
