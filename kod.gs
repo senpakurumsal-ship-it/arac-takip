@@ -122,6 +122,7 @@ function doPost(e) {
   if (action === 'deleteKullanici') { satirSil('Kullanicilar', body.id);      return jsonOut({ ok: true }); }
   if (action === 'saveKullanim')    { satirKaydet('Kullanim', body.data);     return jsonOut({ ok: true }); }
   if (action === 'uploadPhoto')     { return jsonOut(uploadPhoto(body.base64, body.mimeType, body.fileName, body.folder)); }
+  if (action === 'fotoBase64')      { return jsonOut(fotoBase64Getir(body.url)); }
   if (action === 'deletePhoto')     { return jsonOut(deletePhoto(body.url)); }
   if (action === 'moveToTrash')     { return jsonOut(moveToTrashFolder(body.url)); }
   if (action === 'restoreFromTrash'){ return jsonOut(restoreFromTrash(body.url, body.folder)); }
@@ -249,6 +250,15 @@ function deletePhoto(url) {
     if (!m) return { error: 'id bulunamadi' };
     DriveApp.getFileById(m[0]).setTrashed(true);
     return { ok: true };
+  } catch(e) { return { error: e.toString() }; }
+}
+// Drive fotoğrafını base64 olarak döndürür (PC'ye Aktar ZIP için; tarayıcı CORS'u aşar)
+function fotoBase64Getir(url) {
+  try {
+    var m = String(url || '').match(/[-\w]{25,}/);
+    if (!m) return { error: 'id bulunamadi' };
+    var blob = DriveApp.getFileById(m[0]).getBlob();
+    return { base64: Utilities.base64Encode(blob.getBytes()), mimeType: blob.getContentType() };
   } catch(e) { return { error: e.toString() }; }
 }
 function uploadPhoto(base64, mimeType, fileName, folderName) {

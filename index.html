@@ -1025,10 +1025,10 @@
       <div style="border-top:1px solid var(--border);margin:1.25rem 0 0;padding-top:1rem">
         <div style="font-size:13px;font-weight:600;margin-bottom:6px">💾 PC'ye Aktar</div>
         <div style="font-size:12px;color:var(--muted);margin-bottom:0.75rem;line-height:1.6">
-          Tüm araç, işlem ve kullanım verilerini Excel dosyası olarak indir. Her veri türü ayrı sekmede açılır.
+          Tüm veriyi tek ZIP olarak indir: Excel dosyası (her veri türü ayrı sekme) + tüm araç/belge fotoğrafları + fotoğraf linkleri.
         </div>
         <div class="form-actions" style="justify-content:flex-end">
-          <button class="btn" onclick="pcyeAktar()">📊 Excel İndir (.xlsx)</button>
+          <button class="btn" onclick="pcyeAktar()">📦 ZIP İndir (Excel + Fotoğraflar)</button>
         </div>
       </div>
     </div>
@@ -1236,7 +1236,7 @@
         <strong>Apps Script URL & Gemini Key</strong> — bulut senkron ve AI için; varsayılan dolu, gerekirse değiştir.<br>
         <strong>Telegram</strong> — Bot Token ve Yönetici ID gir, "Kaydet" yap; "Botu Test Et" ile doğrula.<br>
         <strong>Yakıt Excel'i İçe Aktar</strong> — petrol istasyonu aylık çizelgesini (Plaka | Litre | Tutar) yapıştır, önizle, aktar.<br>
-        <strong>📊 Excel İndir (PC'ye Aktar)</strong> — tüm veriyi tek <code>.xlsx</code> dosyasında indirir; her veri türü ayrı sekmede (Araçlar, İşlemler, Yakıt, Kullanım, Kullanıcılar, Fotoğraf Linkleri). Direkt çift tıkla Excel'de açılır.<br>
+        <strong>📦 ZIP İndir (PC'ye Aktar)</strong> — tüm veriyi tek ZIP'te indirir: <code>.xlsx</code> Excel (Araçlar, İşlemler, Yakıt, Kullanım, Kullanıcılar, Fotoğraf Linkleri sekmeleri) + <em>fotograflar</em> klasöründe tüm araç/belge fotoğrafları + linkler.<br>
         <strong>İçe Aktar / Dışa Aktar</strong> — veriyi JSON formatında yedekle veya geri yükle.
       </p>
 
@@ -3647,8 +3647,9 @@ function yakitIceAktarUygula() {
 }
 
 // ===== PC'YE AKTAR (ZIP) =====
-function pcyeAktar() {
+async function pcyeAktar() {
   if (typeof XLSX === 'undefined') { alert('Excel kütüphanesi yüklenemedi. İnternet bağlantını kontrol et.'); return; }
+  if (typeof JSZip === 'undefined') { alert('ZIP kütüphanesi yüklenemedi. İnternet bağlantını kontrol et.'); return; }
   showLoading('Excel hazırlanıyor...');
   try {
     const wb = XLSX.utils.book_new();
@@ -3737,11 +3738,65 @@ function pcyeAktar() {
     });
     if (fotoSatirlar.length) XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(fotoSatirlar), 'Fotoğraf Linkleri');
 
-    // İndir
+    // ZIP oluştur: Excel + fotoğraflar
     const tarih = new Date().toISOString().slice(0, 10);
-    XLSX.writeFile(wb, `senpa-panel-${tarih}.xlsx`);
+    const zip = new JSZip();
+    const xlsxData = XLSX.write(wb, { type: 'array', bookType: 'xlsx' });
+    zip.file(`senpa-panel-${tarih}.xlsx`, xlsxData);
+
+    // Ayarlar / anahtarlar / şifre notu
+    const sifre = localStorage.getItem('arac_takip_sifre') || VARSAYILAN_SIFRE;
+    const bilgiler = [
+      'ŞENPA PANEL — AYARLAR & ANAHTARLAR',
+      'Dışa aktarma: ' + new Date().toLocaleString('tr-TR'),
+      '',
+      'Uygulama şifresi      : ' + sifre,
+      'Apps Script URL (API) : ' + API_URL,
+      'Gemini API anahtarı   : ' + (GEMINI_KEY || '(tanımsız)'),
+      '',
+      'Telegram Bot:',
+      '  Bot token ve Yönetici ID güvenlik için SUNUCUDA saklanır:',
+      '  Apps Script > Project Settings > Script Properties >',
+      '  TELEGRAM_TOKEN ve TELEGRAM_ADMIN. (Uygulamada/depoda tutulmaz.)',
+      '  Ayarlar > Telegram bölümünden güncellenebilir.',
+      '',
+      'NOT: Bu dosya hassas bilgi içerir; güvenli bir yerde sakla.',
+    ].join('\n');
+    zip.file('ayarlar-anahtarlar.txt', '﻿' + bilgiler);
+
+    // Fotoğraf linkleri metni (her zaman dahil)
+    if (fotoSatirlar.length) {
+      zip.file('fotograf_linkleri.txt', fotoSatirlar.map(f => `${f.Plaka}\t${f['Tür']}\t${f.Tarih}\t${f.Link}`).join('\n'));
+    }
+
+    // Fotoğrafları backend üzerinden base64 alıp zip'e ekle (tarayıcı CORS engelini aşar)
+    const guvenliAd = s => String(s || '').replace(/[^A-Za-z0-9]+/g, '_').replace(/^_+|_+$/g, '');
+    const fotoKlasor = zip.folder('fotograflar');
+    let fotoOk = 0;
+    for (let n = 0; n < fotoSatirlar.length; n++) {
+      const f = fotoSatirlar[n];
+      document.getElementById('loading-text').textContent = `Fotoğraflar indiriliyor... (${n + 1}/${fotoSatirlar.length})`;
+      try {
+        const r = await apiCall('fotoBase64', { url: f.Link });
+        if (r && r.base64) {
+          const ext = (r.mimeType || '').includes('png') ? 'png' : 'jpg';
+          const ad = `${guvenliAd(f.Plaka)}_${guvenliAd(f['Tür'])}_${guvenliAd(f.Tarih) || 'foto'}_${n + 1}.${ext}`;
+          fotoKlasor.file(ad, r.base64, { base64: true });
+          fotoOk++;
+        }
+      } catch (e) {}
+    }
+
+    document.getElementById('loading-text').textContent = 'ZIP paketleniyor...';
+    const zipBlob = await zip.generateAsync({ type: 'blob' });
+    const url = URL.createObjectURL(zipBlob);
+    const a = document.createElement('a');
+    a.href = url; a.download = `senpa-panel-${tarih}.zip`;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    URL.revokeObjectURL(url);
     hideLoading();
     closeModal('ayarlar-modal');
+    alert(`ZIP indirildi!\n• Excel: senpa-panel-${tarih}.xlsx (tüm veriler)\n• Fotoğraf: ${fotoOk}/${fotoSatirlar.length}`);
   } catch(e) { hideLoading(); alert('Hata: ' + e.message); }
 }
 
