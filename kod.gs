@@ -102,7 +102,16 @@ function doGet(e) {
     var ks = tabloOku('Kullanicilar').map(function(k){ return { id: k.id, ad: k.ad, soyad: k.soyad, telegramId: k.telegramId }; });
     return jsonOut({ kullanicilar: ks });
   }
+  if (e.parameter.action === 'getAyarlar') {
+    return jsonOut({ sifreHash: PropertiesService.getScriptProperties().getProperty('APP_SIFRE_HASH') || '' });
+  }
   return jsonOut({ error: 'bilinmeyen action' });
+}
+
+// Uygulama giriş şifresinin hash'ini buluta kaydeder (düz şifre asla saklanmaz)
+function sifreHashKaydet(hash) {
+  if (hash) PropertiesService.getScriptProperties().setProperty('APP_SIFRE_HASH', String(hash));
+  return { ok: true };
 }
 
 function doPost(e) {
@@ -123,6 +132,7 @@ function doPost(e) {
   if (action === 'saveKullanim')    { satirKaydet('Kullanim', body.data);     return jsonOut({ ok: true }); }
   if (action === 'uploadPhoto')     { return jsonOut(uploadPhoto(body.base64, body.mimeType, body.fileName, body.folder)); }
   if (action === 'fotoBase64')      { return jsonOut(fotoBase64Getir(body.url)); }
+  if (action === 'setSifreHash')    { return jsonOut(sifreHashKaydet(body.hash)); }
   if (action === 'deletePhoto')     { return jsonOut(deletePhoto(body.url)); }
   if (action === 'moveToTrash')     { return jsonOut(moveToTrashFolder(body.url)); }
   if (action === 'restoreFromTrash'){ return jsonOut(restoreFromTrash(body.url, body.folder)); }

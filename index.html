@@ -1255,6 +1255,24 @@
 // GİRİŞ / ÇIKIŞ
 const VARSAYILAN_SIFRE = 'senpa2026';
 function getSifre() { return localStorage.getItem('arac_takip_sifre') || VARSAYILAN_SIFRE; }
+
+// Şifre artık buluta HASH olarak kaydedilir → tüm cihazlarda ortak.
+async function sha256(s) {
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(s));
+  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
+}
+// Bulut şifre hash'ini getirir (çevrimdışıysa son bilinen yerel kopya).
+async function bulutSifreHash() {
+  try {
+    const r = await apiCall('getAyarlar', null, 'GET');
+    if (r && typeof r.sifreHash === 'string') {
+      localStorage.setItem('arac_takip_sifre_hash', r.sifreHash);
+      return r.sifreHash; // '' olabilir (henüz şifre belirlenmemiş)
+    }
+  } catch (e) {}
+  return localStorage.getItem('arac_takip_sifre_hash'); // çevrimdışı: önbellek (null olabilir)
+}
+
 function checkLogin() {
   // Oturum sessionStorage'da tutulur: yenilemede sorulmaz, ama uygulama/sekme
   // kapanıp tekrar açılınca (çıkış yapılmasa bile) şifre yeniden istenir.
@@ -1263,15 +1281,29 @@ function checkLogin() {
   document.getElementById('login-input').focus();
   return false;
 }
-function doLogin() {
+async function doLogin() {
   const val = document.getElementById('login-input').value;
-  if (val === getSifre()) {
+  const hata = document.getElementById('login-error');
+  hata.textContent = 'Kontrol ediliyor...';
+  const girilenHash = await sha256(val);
+  const bulut = await bulutSifreHash();
+  let gecerli;
+  if (bulut) {
+    // Bulutta (veya önbellekte) tanımlı şifre var → hash karşılaştır
+    gecerli = girilenHash === bulut;
+  } else {
+    // Hiç bulut şifresi yok → varsayılan ya da bu cihazdaki eski düz şifre kabul
+    gecerli = (val === VARSAYILAN_SIFRE) || (val === localStorage.getItem('arac_takip_sifre'));
+  }
+  if (gecerli) {
     sessionStorage.setItem('arac_takip_giris', '1');
+    localStorage.setItem('arac_takip_sifre_hash', girilenHash);
+    localStorage.setItem('arac_takip_sifre', val); // not defteri/ZIP için yerelde tutulur
     document.getElementById('login-screen').classList.add('hidden');
     document.getElementById('login-input').value = '';
-    document.getElementById('login-error').textContent = '';
+    hata.textContent = '';
   } else {
-    document.getElementById('login-error').textContent = 'Hatalı şifre, tekrar deneyin.';
+    hata.textContent = 'Hatalı şifre, tekrar deneyin.';
     document.getElementById('login-input').value = '';
     document.getElementById('login-input').focus();
   }
@@ -3429,14 +3461,19 @@ async function telegramBotTest() {
   else sonuc.innerHTML = '<span style="color:var(--danger)">⚠️ ' + ((r && r.error) || 'Gönderilemedi') + '</span>';
 }
 
-function sifreDegistir() {
+async function sifreDegistir() {
   const yeni = document.getElementById('inp-yeni-sifre').value;
   const yeni2 = document.getElementById('inp-yeni-sifre2').value;
   const sonuc = document.getElementById('sifre-sonuc');
   if (!yeni || yeni.length < 4) { sonuc.innerHTML = '<span style="color:var(--danger)">Şifre en az 4 karakter olmalı</span>'; return; }
   if (yeni !== yeni2) { sonuc.innerHTML = '<span style="color:var(--danger)">Şifreler eşleşmiyor</span>'; return; }
-  localStorage.setItem('arac_takip_sifre', yeni);
-  sonuc.innerHTML = '<span style="color:var(--success)">✅ Şifre güncellendi</span>';
+  const hash = await sha256(yeni);
+  localStorage.setItem('arac_takip_sifre', yeni);          // yerel (not defteri/ZIP)
+  localStorage.setItem('arac_takip_sifre_hash', hash);     // yerel önbellek
+  sonuc.innerHTML = '<span style="color:var(--muted)">Buluta kaydediliyor...</span>';
+  const r = await apiCall('setSifreHash', { hash });
+  if (r && r.ok) sonuc.innerHTML = '<span style="color:var(--success)">✅ Şifre güncellendi ve tüm cihazlara senkronlandı</span>';
+  else sonuc.innerHTML = '<span style="color:var(--warn)">⚠️ Bu cihazda güncellendi ama buluta yazılamadı. İnternet gelince Ayarlar\'dan tekrar kaydet (yoksa diğer cihazlarda eski şifre kalır).</span>';
   document.getElementById('inp-yeni-sifre').value = '';
   document.getElementById('inp-yeni-sifre2').value = '';
 }
